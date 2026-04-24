@@ -1,9 +1,5 @@
 import React, { useState } from 'react';
 import { 
-  Database, 
-  CheckCircle2, 
-  Link as LinkIcon, 
-  ShieldCheck, 
   X, 
   UserPlus, 
   ChevronDown, 
@@ -43,67 +39,6 @@ const AdminView = ({ adminUsers, onAddUser, t }) => {
       <div className="flex items-center justify-between">
          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t.admin}</h1>
          <Badge variant="navy">Super Admin Access</Badge>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="col-span-1 p-6 border-l-4 border-l-amber-500 dark:bg-slate-800 dark:border-slate-700">
-           <h3 className="font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-             <Database size={18} /> System Status
-           </h3>
-           <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-100 dark:border-emerald-800">
-                 <div className="flex items-center gap-3">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                    <div>
-                      <p className="text-sm font-medium text-emerald-900 dark:text-emerald-400">n8n RAG Workflow</p>
-                      <p className="text-xs text-emerald-700 dark:text-emerald-500">Connected & Syncing</p>
-                    </div>
-                 </div>
-                 <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400"/>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                 <div className="flex items-center gap-3">
-                    <div className="w-2.5 h-2.5 rounded-full bg-slate-400"></div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-900 dark:text-slate-300">SharePoint Integration</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-500">Idle - Last sync 2h ago</p>
-                    </div>
-                 </div>
-                 <LinkIcon size={16} className="text-slate-400"/>
-              </div>
-           </div>
-        </Card>
-
-        <Card className="col-span-1 md:col-span-2 p-0 dark:bg-slate-800 dark:border-slate-700">
-           <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
-             <h3 className="font-semibold text-slate-800 dark:text-white flex items-center gap-2">
-               <ShieldCheck size={18} /> Security Audit Log
-             </h3>
-             <button className="text-xs text-amber-600 hover:underline">Export CSV</button>
-           </div>
-           <div className="p-0">
-             <table className="w-full text-xs">
-               <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400">
-                  <tr>
-                    <th className="px-4 py-2 text-left">Time</th>
-                    <th className="px-4 py-2 text-left">User</th>
-                    <th className="px-4 py-2 text-left">Action</th>
-                    <th className="px-4 py-2 text-left">IP Address</th>
-                  </tr>
-               </thead>
-               <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                 {[1,2,3,4].map(i => (
-                    <tr key={i}>
-                      <td className="px-4 py-2 text-slate-500 dark:text-slate-400">Oct 24, 14:0{i}</td>
-                      <td className="px-4 py-2 font-medium text-slate-700 dark:text-slate-200">User A</td>
-                      <td className="px-4 py-2 text-slate-600 dark:text-slate-400">Accessed Case #10{i}</td>
-                      <td className="px-4 py-2 text-slate-400 dark:text-slate-500 font-mono">192.168.1.{i+10}</td>
-                    </tr>
-                 ))}
-               </tbody>
-             </table>
-           </div>
-        </Card>
       </div>
 
       <Card className="dark:bg-slate-800 dark:border-slate-700">

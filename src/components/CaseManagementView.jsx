@@ -130,7 +130,7 @@ const CaseManagementView = ({ cases, setCases, setActiveCase }) => {
                      </td>
                      <td className="px-6 py-4">
                        <div className="flex -space-x-2">
-                         {c.members.map((m, i) => (
+                         {(c.members || []).map((m, i) => (
                            <div key={i} className="w-7 h-7 rounded-full bg-slate-800 dark:bg-slate-600 text-white flex items-center justify-center text-xs border-2 border-white dark:border-slate-800">
                              {m}
                            </div>
@@ -183,7 +183,7 @@ const CaseManagementView = ({ cases, setCases, setActiveCase }) => {
                        <div className="flex justify-between items-center pt-2 border-t border-slate-50 dark:border-slate-700">
                           <span className="text-xs text-slate-400 dark:text-slate-500">{c.amount}</span>
                           <div className="w-6 h-6 rounded-full bg-slate-800 dark:bg-slate-600 text-white flex items-center justify-center text-[10px]">
-                             {c.members[0]}
+                             {(c.members || [])[0] || '?'}
                           </div>
                        </div>
                     </div>

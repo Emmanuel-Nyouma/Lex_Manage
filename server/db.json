@@ -1,0 +1,48 @@
+{
+  "cabinets": [
+    {
+      "id": "CAB-001",
+      "name": "Jenkins & Associates"
+    }
+  ],
+  "users": [
+    {
+      "id": 1,
+      "name": "Sarah Jenkins",
+      "email": "admin@lexmanage.com",
+      "password": "$2b$10$/4RuUk6AcJ3cMcvo1vSVYu849qw79a0Xhc0bRhYODaTEyMaQsLNfa",
+      "role": "ADMIN",
+      "cabinetId": "CAB-001",
+      "rate": 650,
+      "status": "Active"
+    }
+  ],
+  "cases": [
+    {
+      "id": 101,
+      "name": "Estate of H. Sterling",
+      "client": "Sterling Family",
+      "type": "Probate",
+      "status": "Active",
+      "deadline": "2023-11-15",
+      "amount": "$1.2M",
+      "cabinetId": "CAB-001",
+      "memberIds": [
+        1
+      ]
+    },
+    {
+      "id": 102,
+      "name": "TechCorp v. DataInc",
+      "client": "TechCorp Global",
+      "type": "IP Litigation",
+      "status": "In Court",
+      "deadline": "2023-10-30",
+      "amount": "$4.5M",
+      "cabinetId": "CAB-001",
+      "memberIds": [
+        1
+      ]
+    }
+  ]
+}

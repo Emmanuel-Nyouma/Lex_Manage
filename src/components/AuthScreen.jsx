@@ -23,7 +23,7 @@ const authService = {
       const data = await response.json();
       if (!response.ok) throw data.message || "Login failed";
       
-      return data.user;
+      return data;
     } catch (error) {
       throw error;
     }

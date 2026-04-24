@@ -99,13 +99,14 @@ const MOCK_USERS = [
  */
 export default function LexManageApp() {
   // --- SETTINGS STATE ---
-  const [language, setLanguage] = useState('en');
-  const [theme, setTheme] = useState('light');
+  const [language, setLanguage] = useState(localStorage.getItem('lex_lang') || 'en');
+  const [theme, setTheme] = useState(localStorage.getItem('lex_theme') || 'light');
   const t = translations[language];
 
   // --- AUTH STATE ---
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('lex_token'));
   
   // --- APP STATE ---
   const [currentView, setCurrentView] = useState('dashboard');
@@ -114,8 +115,9 @@ export default function LexManageApp() {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [activeCase, setActiveCase] = useState(null); 
   const [adminUsers, setAdminUsers] = useState(MOCK_USERS); 
-  const [cases, setCases] = useState(MOCK_CASES); 
+  const [cases, setCases] = useState([]); 
   const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // AI State
   const [chatHistory, setChatHistory] = useState(INITIAL_CHAT_HISTORY);
@@ -128,12 +130,59 @@ export default function LexManageApp() {
     } else {
       document.documentElement.classList.remove('dark');
     }
+    localStorage.setItem('lex_theme', theme);
   }, [theme]);
 
+  // Save Language
+  useEffect(() => {
+    localStorage.setItem('lex_lang', language);
+  }, [language]);
+
+  // Fetch Cases from API
+  useEffect(() => {
+    if (isAuthenticated) {
+      const fetchCases = async () => {
+        try {
+          const response = await fetch('/api/cases', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setCases(data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch cases:", error);
+        }
+      };
+      fetchCases();
+    }
+  }, [isAuthenticated, token]);
+
+  // Handle Token Persistence
+  useEffect(() => {
+    const savedUser = localStorage.getItem('lex_user');
+    if (token && savedUser) {
+      setIsAuthenticated(true);
+      setCurrentUser(JSON.parse(savedUser));
+    }
+  }, []);
+
   // --- HANDLERS ---
-  const handleAuthSuccess = (user) => {
+  const handleAuthSuccess = (data) => {
+    const user = data.user || data; // Handle both direct user object and {user, token}
+    const authToken = data.token;
+    
     setIsAuthenticated(true);
     setCurrentUser(user);
+    
+    if (authToken) {
+      setToken(authToken);
+      localStorage.setItem('lex_token', authToken);
+      localStorage.setItem('lex_user', JSON.stringify(user));
+    }
+
     if (user.role === 'ADMIN') setCurrentView('admin');
     else setCurrentView('dashboard');
   };
@@ -141,11 +190,18 @@ export default function LexManageApp() {
   const handleLogout = () => {
     setIsAuthenticated(false);
     setCurrentUser(null);
+    setToken(null);
+    localStorage.removeItem('lex_token');
+    localStorage.removeItem('lex_user');
     setChatHistory(INITIAL_CHAT_HISTORY);
   };
 
   const handleMarkAsRead = (id) => {
     setNotifications(notifications.map(n => n.id === id ? { ...n, unread: false } : n));
+  };
+
+  const handleMarkAllRead = () => {
+    setNotifications(notifications.map(n => ({ ...n, unread: false })));
   };
 
   const handleSendMessage = async (text) => {
@@ -162,6 +218,12 @@ export default function LexManageApp() {
   };
 
   const unreadCount = notifications.filter(n => n.unread).length;
+
+  const filteredCases = cases.filter(c => 
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.type?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (!isAuthenticated) {
     return <AuthScreen onLoginSuccess={handleAuthSuccess} />;
@@ -244,6 +306,8 @@ export default function LexManageApp() {
                <input 
                  className="bg-transparent border-none focus:outline-none text-sm w-full text-slate-700 dark:text-slate-200 placeholder:text-slate-400" 
                  placeholder={t.search_placeholder} 
+                 value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)}
                />
                <span className="text-[10px] text-slate-400 border border-slate-300 dark:border-slate-600 px-1 rounded">⌘K</span>
              </div>
@@ -267,16 +331,21 @@ export default function LexManageApp() {
                    <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-40 animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="p-3 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 rounded-t-lg">
                          <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{t.notifications}</h4>
-                         <button className="text-xs text-amber-600 hover:underline">Mark all read</button>
+                         <button 
+                           onClick={handleMarkAllRead}
+                           className="text-xs text-amber-600 hover:text-amber-700 hover:underline font-medium"
+                         >
+                           Mark all read
+                         </button>
                       </div>
                       <div className="max-h-80 overflow-y-auto">
                          {notifications.map(n => (
                            <div 
                              key={n.id} 
                              onClick={() => handleMarkAsRead(n.id)}
-                             className={`p-3 border-b border-slate-50 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer flex gap-3 ${n.unread ? 'bg-amber-50/30 dark:bg-amber-900/10' : ''}`}
+                             className={`p-3 border-b border-slate-50 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer flex gap-3 transition-colors ${n.unread ? 'bg-amber-50/40 dark:bg-amber-900/20' : 'bg-white dark:bg-slate-800'}`}
                            >
-                              <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${n.unread ? 'bg-amber-500' : 'bg-slate-300'}`}></div>
+                              <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${n.unread ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
                               <div>
                                  <p className={`text-xs ${n.unread ? 'font-semibold text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-400'}`}>{n.title}</p>
                                  <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5 line-clamp-2">{n.message}</p>
@@ -304,8 +373,8 @@ export default function LexManageApp() {
         </header>
 
         <main className="flex-1 overflow-y-auto p-6 bg-slate-50/50 dark:bg-slate-950 relative">
-          {currentView === 'dashboard' && <DashboardView currentUser={currentUser} cases={cases} onCaseSelect={setActiveCase} onNavigate={setCurrentView} t={t} />}
-          {currentView === 'cases' && <CaseManagementView cases={cases} setCases={setCases} setActiveCase={setActiveCase} t={t} />}
+          {currentView === 'dashboard' && <DashboardView currentUser={currentUser} cases={filteredCases} onCaseSelect={setActiveCase} onNavigate={setCurrentView} t={t} />}
+          {currentView === 'cases' && <CaseManagementView cases={filteredCases} setCases={setCases} setActiveCase={setActiveCase} t={t} />}
           {currentView === 'calendar' && <CalendarView t={t} />}
           {currentView === 'documents' && <DocumentsView t={t} />}
           {currentView === 'admin' && <AdminView adminUsers={adminUsers} onAddUser={(u) => setAdminUsers([...adminUsers, u])} t={t} />}
