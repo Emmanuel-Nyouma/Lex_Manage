@@ -11,6 +11,17 @@ const NewCaseDialog = ({ isOpen, onClose, onSubmit }) => {
     description: ''
   });
 
+  // Task 2: Global Navigation & Close Triggers
+  useEffect(() => {
+    const handleEsc = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleEsc);
+    }
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e) => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, Sparkles, Loader2, Lightbulb, Mail, Plus, FileText 
 } from 'lucide-react';
@@ -12,6 +12,15 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
     { id: 1, date: '2023-10-30', event: 'Motion to Dismiss', description: 'Scheduled hearing in federal court.', status: 'upcoming' },
     { id: 2, date: '2023-09-15', event: 'Discovery Phase', description: 'All relevant documents exchanged.', status: 'completed' },
   ]);
+
+  // Task 2: Global Navigation & Close Triggers
+  useEffect(() => {
+    const handleEsc = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
 
   if (!activeCase) return null;
 

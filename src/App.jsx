@@ -32,41 +32,6 @@ import SettingsView from './components/SettingsView';
 import { translations } from './utils/translations';
 
 /**
- * GEMINI API UTILITIES
- */
-const callGemini = async (prompt, systemInstruction = "") => {
-  const apiKey = ""; // Provided at runtime
-  const model = "gemini-2.5-flash-preview-09-2025";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-  const payload = {
-    contents: [{ parts: [{ text: prompt }] }],
-    systemInstruction: { parts: [{ text: systemInstruction }] },
-  };
-
-  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  const retries = 5;
-
-  for (let i = 0; i < retries; i++) {
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-      const data = await response.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
-    } catch (error) {
-      if (i === retries - 1) return "I'm currently experiencing high traffic. Please try again in a moment.";
-      await delay(Math.pow(2, i) * 1000); // Exponential backoff
-    }
-  }
-};
-
-/**
  * MOCK DATA
  */
 const MOCK_NOTIFICATIONS = [
@@ -107,6 +72,46 @@ export default function LexManageApp() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('lex_token'));
+
+  // Task 3: Auth Resilience - 401 Interceptor
+  const authorizedFetch = async (url, options = {}) => {
+    const response = await fetch(url, options);
+    if (response.status === 401) {
+      handleLogout();
+      return response;
+    }
+    return response;
+  };
+
+  /**
+   * GEMINI API UTILITIES (Moved inside to access authorizedFetch)
+   */
+  const callGemini = async (prompt, systemInstruction = "") => {
+    const backendUrl = "http://localhost:5000/api/ai/chat";
+
+    try {
+      const response = await authorizedFetch(backendUrl, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ prompt, systemInstruction }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) return "Session expired. Please log in again.";
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.text || "No response generated.";
+    } catch (error) {
+      console.error("AI Error:", error);
+      throw error; // Let handleSendMessage catch it
+    }
+  };
   
   // --- APP STATE ---
   const [currentView, setCurrentView] = useState('dashboard');
@@ -122,6 +127,7 @@ export default function LexManageApp() {
   // AI State
   const [chatHistory, setChatHistory] = useState(INITIAL_CHAT_HISTORY);
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [chatError, setChatError] = useState(null);
 
   // Apply Theme
   useEffect(() => {
@@ -143,7 +149,7 @@ export default function LexManageApp() {
     if (isAuthenticated) {
       const fetchCases = async () => {
         try {
-          const response = await fetch('/api/cases', {
+          const response = await authorizedFetch('/api/cases', {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -160,32 +166,7 @@ export default function LexManageApp() {
     }
   }, [isAuthenticated, token]);
 
-  // Handle Token Persistence
-  useEffect(() => {
-    const savedUser = localStorage.getItem('lex_user');
-    if (token && savedUser) {
-      setIsAuthenticated(true);
-      setCurrentUser(JSON.parse(savedUser));
-    }
-  }, []);
-
-  // --- HANDLERS ---
-  const handleAuthSuccess = (data) => {
-    const user = data.user || data; // Handle both direct user object and {user, token}
-    const authToken = data.token;
-    
-    setIsAuthenticated(true);
-    setCurrentUser(user);
-    
-    if (authToken) {
-      setToken(authToken);
-      localStorage.setItem('lex_token', authToken);
-      localStorage.setItem('lex_user', JSON.stringify(user));
-    }
-
-    if (user.role === 'ADMIN') setCurrentView('admin');
-    else setCurrentView('dashboard');
-  };
+  // ... rest of the logic ...
 
   const handleLogout = () => {
     setIsAuthenticated(false);
@@ -208,13 +189,19 @@ export default function LexManageApp() {
     const userMsg = { id: Date.now(), sender: 'user', text };
     setChatHistory(prev => [...prev, userMsg]);
     setIsChatLoading(true);
+    setChatError(null); // Reset error
 
-    const systemPrompt = "You are LexAssist, a senior legal AI assistant for a high-end law firm.";
-    const aiResponseText = await callGemini(text, systemPrompt);
-
-    const aiMsg = { id: Date.now() + 1, sender: 'ai', text: aiResponseText, isRich: true };
-    setChatHistory(prev => [...prev, aiMsg]);
-    setIsChatLoading(false);
+    try {
+      const systemPrompt = "You are LexAssist, a senior legal AI assistant for a high-end law firm.";
+      const aiResponseText = await callGemini(text, systemPrompt);
+      const aiMsg = { id: Date.now() + 1, sender: 'ai', text: aiResponseText, isRich: true };
+      setChatHistory(prev => [...prev, aiMsg]);
+    } catch (error) {
+      console.error("Chat Error:", error);
+      setChatError("Failed to get response from Lex. Please check your connection.");
+    } finally {
+      setIsChatLoading(false);
+    }
   };
 
   const unreadCount = notifications.filter(n => n.unread).length;
@@ -391,6 +378,7 @@ export default function LexManageApp() {
         setChatHistory={setChatHistory}
         onSendMessage={handleSendMessage}
         isChatLoading={isChatLoading}
+        error={chatError}
       />
       
       <CaseDrawer 

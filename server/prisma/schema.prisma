@@ -1,0 +1,59 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Cabinet {
+  id        String   @id @default(cuid())
+  name      String
+  users     User[]
+  cases     Case[]
+  createdAt DateTime @default(now())
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  name        String
+  role        Role     @default(USER)
+  status      String   @default("Active")
+  cabinetId   String
+  cabinet     Cabinet  @relation(fields: [cabinetId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model Case {
+  id          String     @id @default(cuid())
+  name        String
+  client      String
+  type        String
+  status      String
+  deadline    DateTime?
+  amount      String?
+  cabinetId   String
+  cabinet     Cabinet    @relation(fields: [cabinetId], references: [id])
+  documents   Document[]
+  createdAt   DateTime   @default(now())
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  name      String
+  url       String
+  caseId    String
+  case      Case     @relation(fields: [caseId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  USER
+}

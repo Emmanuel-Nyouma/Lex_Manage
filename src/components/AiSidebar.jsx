@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bot, X, FileText, Loader2, Send } from 'lucide-react';
 
-const AiSidebar = ({ isOpen, onClose, currentView, chatHistory, setChatHistory, onSendMessage, isChatLoading }) => {
+const AiSidebar = ({ isOpen, onClose, currentView, chatHistory, setChatHistory, onSendMessage, isChatLoading, error }) => {
   const chatEndRef = useRef(null);
   const [chatInput, setChatInput] = useState("");
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatHistory, isChatLoading]);
+  }, [chatHistory, isChatLoading, error]);
 
   const handleSend = () => {
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() || isChatLoading) return;
     onSendMessage(chatInput);
     setChatInput("");
   };
@@ -57,10 +57,15 @@ const AiSidebar = ({ isOpen, onClose, currentView, chatHistory, setChatHistory, 
         ))}
         {isChatLoading && (
           <div className="flex justify-start">
-            <div className="bg-white border border-slate-200 rounded-lg p-3 rounded-bl-none shadow-sm flex items-center gap-2">
+            <div className="bg-white border border-slate-200 rounded-lg p-3 rounded-bl-none shadow-sm flex items-center gap-2 animate-pulse">
               <Loader2 size={16} className="animate-spin text-amber-600" />
               <span className="text-xs text-slate-500">Processing legal query...</span>
             </div>
+          </div>
+        )}
+        {error && (
+          <div className="p-2 bg-red-50 border border-red-100 rounded text-red-600 text-[11px] text-center">
+            {error}
           </div>
         )}
         <div ref={chatEndRef} />
@@ -75,15 +80,26 @@ const AiSidebar = ({ isOpen, onClose, currentView, chatHistory, setChatHistory, 
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-            placeholder="Ask about precedents or draft a clause..."
-            className="w-full pl-3 pr-10 py-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 resize-none h-20"
+            placeholder={isChatLoading ? "Lex is thinking..." : "Ask about precedents or draft a clause..."}
+            disabled={isChatLoading}
+            className="w-full pl-3 pr-10 py-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 resize-none h-20 disabled:bg-slate-50 disabled:text-slate-400"
           />
           <button 
             onClick={handleSend}
             disabled={isChatLoading || !chatInput.trim()}
-            className="absolute right-2 bottom-2 p-1.5 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors disabled:opacity-50"
+            className="absolute right-2 bottom-2 px-3 py-1.5 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors disabled:opacity-50 flex items-center gap-2 text-xs font-medium"
           >
-            <Send size={14} />
+            {isChatLoading ? (
+              <>
+                <Loader2 size={12} className="animate-spin" />
+                Lex is thinking...
+              </>
+            ) : (
+              <>
+                <Send size={12} />
+                Send
+              </>
+            )}
           </button>
         </div>
       </div>
