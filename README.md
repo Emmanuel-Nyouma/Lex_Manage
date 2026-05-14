@@ -1,28 +1,29 @@
 # ⚖️ LexManage
 
-**LexManage** is a next-generation Legal Management Platform designed for the modern law firm. Unlike traditional tools, LexManage leverages the power of Generative AI (Google Gemini) to transform passive data into active legal strategy.
+**LexManage** is a next-generation Legal Management Platform designed for the modern law firm. Leveraging the power of **Google Gemini 1.5 Pro** and **Supabase**, it transforms passive legal data into active strategy through a 100% serverless architecture.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![React](https://img.shields.io/badge/frontend-React%2019-61dafb.svg)
-![Node](https://img.shields.io/badge/backend-Node.js-339933.svg)
+![Supabase](https://img.shields.io/badge/backend-Supabase-3ecf8e.svg)
+![Gemini](https://img.shields.io/badge/AI-Gemini%201.5%20Pro-blue.svg)
 ![Tailwind](https://img.shields.io/badge/styling-Tailwind%20CSS-38b2ac.svg)
 
 ## ✨ Core Innovations
 
-### 1. 📅 Automated AI Chronology (Fact-Mapping)
-Stop manually building timelines. LexManage uses AI to scan case files and automatically generate an interactive chronological map of past events and future deadlines, identifying critical risks and prescription dates instantly.
+### 1. 🤖 Native RAG with Gemini File API
+Unlike traditional vector-based systems, LexManage uses the **Gemini File API**. This allows for:
+- **Massive Context Window:** Analyze entire case files (PDF/Word) in a single prompt.
+- **High Fidelity:** No more "chunking" errors; the AI sees the document exactly as it is.
+- **Automated Citations:** Precise referencing of pages and articles.
 
-### 2. 🤖 AI Legal Assistant (LexAssist)
-A persistent sidebar assistant connected to your firm's context. 
-- **Strategy Generation:** Get a senior-partner level assessment of any case in seconds.
-- **Drafting:** Instant generation of professional client emails and legal briefs.
-- **Intelligent Search:** Query your entire case repository using natural language.
+### 2. 🛡️ Professional Grade Infrastructure
+- **Serverless Architecture:** Powered by Supabase Edge Functions for secure AI orchestration.
+- **Robust Data Handling:** Advanced drag-and-drop upload with strict validation and error boundaries.
+- **Persistence:** Automatic re-upload of expired AI files (48h lifecycle management).
 
-### 3. 🛡️ Advanced Security & Administration
-Built for compliance and scale:
-- **Audit Logs:** Full tracking of every file access and system modification.
-- **RAG Workflows:** Ready for n8n integration to sync with external data sources like SharePoint or local repositories.
-- **Dark Mode:** Optimized for long research hours.
+### 3. 📊 Strategic Insights
+- **Interactive Dashboard:** Real-time KPI tracking and workload visualization using Recharts.
+- **Data Export:** Instant CSV reporting for billing and matter management.
+- **Omnibar (Cmd+K):** Lightning-fast navigation across the entire firm repository.
 
 ---
 
@@ -30,59 +31,50 @@ Built for compliance and scale:
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) (v18+)
+- [Supabase CLI](https://supabase.com/docs/guides/cli)
 - [Google Gemini API Key](https://aistudio.google.com/)
 
 ### Installation
 
-1. **Clone the repository**
+1. **Clone and Install**
    ```bash
    git clone https://github.com/Emmanuel-Nyouma/Lex_Manage.git
    cd Lex_Manage
-   ```
-
-2. **Setup Backend**
-   ```bash
-   cd server
    npm install
    ```
-   Create a `.env` file in the `server` directory:
+
+2. **Environment Setup**
+   Create a `.env` file:
    ```env
-   PORT=5000
-   JWT_SECRET=your_secret_key
-   GEMINI_API_KEY=your_gemini_key
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   VITE_GEMINI_API_KEY=your_gemini_key
    ```
 
-3. **Setup Frontend**
+3. **Supabase Config**
+   Run the SQL scripts in `/supabase/setup.sql` and deploy functions:
    ```bash
-   cd ..
-   npm install
+   supabase functions deploy upload-to-gemini
+   supabase functions deploy chat-gemini
    ```
-
-### Running the App
-
-1. **Start Backend Server:**
-   ```bash
-   cd server
-   npm run dev
-   ```
-
-2. **Start Frontend App:**
-   ```bash
-   # In a new terminal
-   npm run dev
-   ```
-   Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
-## 🛠 Tech Stack
-- **Frontend:** React 19, Vite, Tailwind CSS, Lucide Icons.
-- **Backend:** Node.js, Express.
-- **AI Engine:** Google Gemini Pro / Flash.
-- **Automation:** n8n ready (via API).
+## 📂 Project Structure
 
-## 🔒 Security
-LexManage is designed with the principle of "Security by Design". All AI interactions are processed through secure gateways, and the system is built to support local-first data processing for sensitive legal documents.
+```text
+lex-manage/
+├── supabase/            # Database schema & Edge Functions
+│   ├── functions/       # chat-gemini, upload-to-gemini
+│   └── setup.sql        # Database initialization
+├── src/
+│   ├── components/      # UI Views & Atomic Elements
+│   ├── hooks/           # TanStack Query custom hooks
+│   ├── lib/             # Supabase & Gemini clients
+│   ├── store/           # Global state (Zustand)
+│   └── utils/           # Exports, helpers, & guard logic
+└── tailwind.config.js   # Custom legal-theme styling
+```
 
 ---
 

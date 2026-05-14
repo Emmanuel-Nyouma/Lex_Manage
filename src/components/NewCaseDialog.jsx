@@ -1,167 +1,167 @@
-import React, { useState } from 'react';
-import { X, Check, ChevronDown, Building2, User, FileText, DollarSign, Calendar as CalendarIcon } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { X, Check, FileText, User, Calendar as CalendarIcon, Gavel } from 'lucide-react';
+import { Button, Input } from './UI';
+import { useCreateCase } from '../hooks/useCases';
 
-const NewCaseDialog = ({ isOpen, onClose, onSubmit }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    client: '',
-    type: 'Civil Litigation',
-    amount: '',
-    deadline: '',
-    description: ''
+const caseSchema = z.object({
+  title: z.string().min(3, "Le titre doit faire au moins 3 caractères"),
+  client_name: z.string().min(2, "Le nom du client est requis"),
+  jurisdiction: z.string().optional(),
+  status: z.string().default("en cours"),
+  next_hearing_date: z.string().optional().or(z.literal('')),
+  description: z.string().optional(),
+});
+
+const NewCaseDialog = ({ isOpen, onClose }) => {
+  const createCase = useCreateCase();
+
+  const { 
+    register, 
+    handleSubmit, 
+    reset,
+    formState: { errors } 
+  } = useForm({
+    resolver: zodResolver(caseSchema),
+    defaultValues: {
+      status: "en cours",
+      next_hearing_date: ""
+    }
   });
 
-  // Task 2: Global Navigation & Close Triggers
+  // Gestion de la fermeture avec Echap
   useEffect(() => {
     const handleEsc = (event) => {
       if (event.key === 'Escape') onClose();
     };
-    if (isOpen) {
-      window.addEventListener('keydown', handleEsc);
-    }
+    if (isOpen) window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  const onSubmit = async (data) => {
+    // Nettoyage des dates vides pour Supabase
+    const payload = {
+      ...data,
+      next_hearing_date: data.next_hearing_date || null
+    };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit({
-      ...formData,
-      id: Date.now(),
-      status: 'Active',
-      members: ['SJ'], // Default to current user's initials
-      amount: formData.amount.startsWith('$') ? formData.amount : `$${formData.amount}`
+    createCase.mutate(payload, {
+      onSuccess: () => {
+        reset();
+        onClose();
+      }
     });
-    onClose();
-    setFormData({ name: '', client: '', type: 'Civil Litigation', amount: '', deadline: '', description: '' });
   };
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600">
+            <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600">
               <FileText size={18} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Open New Matter</h2>
-              <p className="text-xs text-slate-500 font-medium">Create a new case file in the firm repository.</p>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Ouvrir un nouveau dossier</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Créez une nouvelle fiche dans le référentiel du cabinet.</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors p-1 hover:bg-slate-200 rounded-full">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full">
             <X size={20} />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* Case Name */}
+            {/* Titre */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Case Reference / Title</label>
-              <div className="relative">
-                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input 
-                  name="name" required value={formData.name} onChange={handleChange}
-                  placeholder="e.g. Sterling v. Global Logistics Corp"
-                  className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all"
-                />
-              </div>
+              <Input 
+                {...register("title")}
+                label="Référence / Titre du Dossier"
+                placeholder="ex: Affaire Dupont vs État"
+                icon={FileText}
+                error={errors.title?.message}
+              />
             </div>
 
-            {/* Client Name */}
+            {/* Client */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Client Name</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input 
-                  name="client" required value={formData.client} onChange={handleChange}
-                  placeholder="e.g. Howard Sterling"
-                  className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
-                />
-              </div>
+              <Input 
+                {...register("client_name")}
+                label="Nom du Client"
+                placeholder="ex: Jean Dupont"
+                icon={User}
+                error={errors.client_name?.message}
+              />
             </div>
 
-            {/* Matter Type */}
+            {/* Juridiction */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Matter Type</label>
-              <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <select 
-                  name="type" value={formData.type} onChange={handleChange}
-                  className="w-full pl-10 pr-10 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none appearance-none bg-white"
-                >
-                  <option value="Civil Litigation">Civil Litigation</option>
-                  <option value="Criminal Defense">Criminal Defense</option>
-                  <option value="Corporate">Corporate</option>
-                  <option value="IP Litigation">IP Litigation</option>
-                  <option value="Probate">Probate</option>
-                  <option value="Real Estate">Real Estate</option>
-                  <option value="Employment">Employment Law</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
-              </div>
+              <Input 
+                {...register("jurisdiction")}
+                label="Juridiction"
+                placeholder="ex: TGI Paris"
+                icon={Gavel}
+                error={errors.jurisdiction?.message}
+              />
             </div>
 
-            {/* Estimated Value */}
+            {/* Prochaine Échéance */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Estimated Matter Value</label>
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input 
-                  name="amount" required value={formData.amount} onChange={handleChange}
-                  placeholder="e.g. 250,000"
-                  className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
-                />
-              </div>
+              <Input 
+                {...register("next_hearing_date")}
+                label="Prochaine Audience"
+                type="date"
+                icon={CalendarIcon}
+                error={errors.next_hearing_date?.message}
+              />
             </div>
 
-            {/* Deadline */}
+            {/* Statut */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Initial Deadline</label>
-              <div className="relative">
-                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input 
-                  name="deadline" type="date" required value={formData.deadline} onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
-                />
-              </div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Statut Initial</label>
+              <select 
+                {...register("status")}
+                className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:text-white"
+              >
+                <option value="en cours">En cours</option>
+                <option value="en attente">En attente</option>
+                <option value="clos">Clos</option>
+              </select>
             </div>
 
             {/* Description */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Case Description (Optional)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Description / Notes</label>
               <textarea 
-                name="description" value={formData.description} onChange={handleChange}
-                placeholder="Briefly describe the matter scope and objectives..."
+                {...register("description")}
+                placeholder="Décrivez brièvement l'objet du litige..."
                 rows={3}
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none resize-none"
+                className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:text-white resize-none"
               ></textarea>
             </div>
           </div>
 
-          {/* Footer Actions */}
-          <div className="mt-8 flex items-center justify-end gap-3 pt-6 border-t border-slate-100">
-            <button 
-              type="button" onClick={onClose}
-              className="px-6 py-2.5 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button 
+          {/* Footer */}
+          <div className="mt-8 flex items-center justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-700">
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Annuler
+            </Button>
+            <Button 
               type="submit"
-              className="px-6 py-2.5 bg-slate-900 text-white rounded-lg text-sm font-bold hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-all flex items-center gap-2"
+              isLoading={createCase.isPending}
+              icon={Check}
             >
-              <Check size={18} /> Open Matter
-            </button>
+              Créer le dossier
+            </Button>
           </div>
         </form>
       </div>
