@@ -8,12 +8,16 @@ import {
   ShieldCheck, 
   Settings,
   Gavel,
-  LogOut
+  LogOut,
+  Building2
 } from 'lucide-react';
 import useLexStore from '../store/useLexStore';
 
 const Sidebar = () => {
-  const { currentUser, logout } = useLexStore();
+  const { session, logout, currentUser } = useLexStore();
+  const user = session?.user;
+  const fullName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Utilisateur';
+  const isAdmin = currentUser?.role === 'admin' || user?.user_metadata?.role === 'admin';
 
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
@@ -21,6 +25,7 @@ const Sidebar = () => {
     { to: '/calendar', icon: Calendar, label: 'Calendrier' },
     { to: '/documents', icon: Files, label: 'Documents' },
     { to: '/admin', icon: ShieldCheck, label: 'Administration' },
+    ...(isAdmin ? [{ to: '/company-settings', icon: Building2, label: 'Gestion Cabinet' }] : []),
     { to: '/settings', icon: Settings, label: 'Paramètres' },
   ];
 
@@ -59,11 +64,11 @@ const Sidebar = () => {
           `}
         >
           <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-slate-900 text-xs font-bold">
-             {currentUser?.full_name?.charAt(0) || "U"}
+             {fullName.charAt(0).toUpperCase()}
           </div>
           <div className="overflow-hidden">
-            <p className="text-xs font-bold text-white truncate">{currentUser?.full_name || "Utilisateur"}</p>
-            <p className="text-[10px] text-slate-400 truncate capitalize">{currentUser?.role || "Avocat"}</p>
+            <p className="text-xs font-bold text-white truncate">{fullName}</p>
+            <p className="text-[10px] text-slate-400 truncate capitalize">Avocat</p>
           </div>
         </NavLink>
 

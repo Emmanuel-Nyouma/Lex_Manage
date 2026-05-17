@@ -1,11 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { supabase } from "./supabase";
-
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
+import { toast } from 'sonner';
 
 /**
- * Fonction de retry avec exponential backoff
+ * Fonction de retry avec exponential backoff et feedback utilisateur
  */
 const fetchWithRetry = async (fn, maxRetries = 3, initialDelay = 1000) => {
   let retries = 0;
@@ -13,10 +11,15 @@ const fetchWithRetry = async (fn, maxRetries = 3, initialDelay = 1000) => {
     try {
       return await fn();
     } catch (error) {
+      // 429 = Too Many Requests, 503 = Service Unavailable
       const isRetryable = error.message?.includes('429') || error.message?.includes('503');
+      
       if (isRetryable && retries < maxRetries - 1) {
         const delay = initialDelay * Math.pow(2, retries);
+        
+        toast.warning(`L'IA est très sollicitée, nouvelle tentative dans ${delay/1000}s...`);
         console.warn(`Gemini Busy. Retry ${retries + 1} in ${delay}ms...`);
+        
         await new Promise(resolve => setTimeout(resolve, delay));
         retries++;
       } else {
@@ -26,8 +29,11 @@ const fetchWithRetry = async (fn, maxRetries = 3, initialDelay = 1000) => {
   }
 };
 
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
+
 /**
- * Interroge un document via son URI Gemini avec gestion du Rate Limit
+ * Interroge un document via son URI Gemini avec gestion de la résilience
  */
 export const askDocument = async (fileUri, userPrompt) => {
   if (!genAI) throw new Error("Clé API Gemini manquante.");
@@ -35,7 +41,7 @@ export const askDocument = async (fileUri, userPrompt) => {
   return fetchWithRetry(async () => {
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
-      systemInstruction: "Tu es un Assistant Juridique Expert. Analyse le document et cite les sources."
+      systemInstruction: "Tu es un Assistant Juridique Expert. Analyse le document et cite les sources avec précision."
     });
 
     const result = await model.generateContent([
@@ -52,6 +58,9 @@ export const askDocument = async (fileUri, userPrompt) => {
   });
 };
 
+/**
+ * Upload d'un document vers Gemini File API via Supabase Edge Function
+ */
 export const uploadDocumentToGemini = async (file) => {
   try {
     const { data, error } = await supabase.functions.invoke('upload-to-gemini', {

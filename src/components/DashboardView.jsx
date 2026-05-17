@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Badge } from './UI';
 import { useCases } from '../hooks/useCases';
+import { exportToCSV } from '../utils/export';
 
 const data = [
   { day: 'Lun', hours: 6.5 },
@@ -29,10 +30,17 @@ const data = [
   { day: 'Dim', hours: 0 },
 ];
 
+const colorMap = {
+  amber: "text-amber-500",
+  blue: "text-blue-500",
+  purple: "text-purple-500",
+  red: "text-red-500"
+};
+
 const StatCard = ({ icon: Icon, label, value, trend, color }) => (
   <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
     <div className="flex justify-between items-start mb-4">
-      <div className={`p-3 rounded-xl bg-slate-50 dark:bg-slate-800 text-${color}-500`}>
+      <div className={`p-3 rounded-xl bg-slate-50 dark:bg-slate-800 ${colorMap[color] || "text-slate-500"}`}>
         <Icon size={24} />
       </div>
       {trend && (
@@ -47,8 +55,6 @@ const StatCard = ({ icon: Icon, label, value, trend, color }) => (
     </div>
   </div>
 );
-
-import { exportToCSV } from '../utils/export';
 
 const DashboardView = () => {
   const { data: cases } = useCases();

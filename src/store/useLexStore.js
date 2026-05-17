@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 
 const useLexStore = create((set, get) => ({
   cases: [],
-  currentUser: null,
+  currentUser: null, // Contiendra le profil complet (id, firm_id, role, etc.)
   session: null,
   isLoading: false,
   error: null,
@@ -12,14 +12,42 @@ const useLexStore = create((set, get) => ({
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error: error }),
 
-  // Initialize Auth listener
+  // Récupérer le profil complet depuis la table public.profiles
+  fetchProfile: async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*, firms(name)')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+      set({ currentUser: data });
+      return data;
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+      return null;
+    }
+  },
+
+  // Initialiser l'écouteur d'authentification
   initAuth: () => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      set({ session, currentUser: session?.user ?? null });
+    // 1. Check session initiale
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      set({ session });
+      if (session?.user) {
+        await get().fetchProfile(session.user.id);
+      }
     });
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-      set({ session, currentUser: session?.user ?? null });
+    // 2. Écouter les changements d'état
+    supabase.auth.onAuthStateChange(async (_event, session) => {
+      set({ session });
+      if (session?.user) {
+        await get().fetchProfile(session.user.id);
+      } else {
+        set({ currentUser: null });
+      }
     });
   },
 
@@ -29,6 +57,7 @@ const useLexStore = create((set, get) => ({
       const { data, error } = await supabase
         .from('cases')
         .select('*')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -36,28 +65,6 @@ const useLexStore = create((set, get) => ({
     } catch (err) {
       set({ error: err.message, isLoading: false });
       toast.error('Échec du chargement des dossiers');
-    }
-  },
-
-  addCase: async (newCase) => {
-    set({ isLoading: true, error: null });
-    try {
-      const { data, error } = await supabase
-        .from('cases')
-        .insert({
-          ...newCase,
-          user_id: get().currentUser?.id
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      
-      set({ cases: [data, ...get().cases], isLoading: false });
-      toast.success('Dossier créé avec succès !');
-    } catch (err) {
-      set({ error: err.message, isLoading: false });
-      toast.error(err.message);
     }
   },
 
