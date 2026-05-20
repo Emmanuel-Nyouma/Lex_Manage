@@ -20,7 +20,7 @@ const Sidebar = () => {
 
   const firstName = currentUser?.first_name || '';
   const lastName = currentUser?.last_name || '';
-  const fullName = firstName || lastName ? `${firstName} ${lastName}`.trim() : (user?.user_metadata?.full_name || 'Utilisateur');
+  const fullName = firstName || lastName ? `${firstName} ${lastName}`.trim() : 'Utilisateur';
   const role = currentUser?.role || 'Avocat';
   const isAdmin = role === 'admin';
 

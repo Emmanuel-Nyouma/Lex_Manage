@@ -11,10 +11,10 @@ const ProfileView = () => {
   
   const firstName = currentUser?.first_name || '';
   const lastName = currentUser?.last_name || '';
-  const fullName = firstName || lastName ? `${firstName} ${lastName}`.trim() : (user?.user_metadata?.full_name || '--');
-  const role = currentUser?.role || user?.user_metadata?.role || 'Avocat';
-  const firmName = currentUser?.firms?.name || user?.user_metadata?.firm_name || '--';
-  const phone = user?.user_metadata?.phone || '--'; // Fallback to metadata for fields not in profiles table
+  const fullName = firstName || lastName ? `${firstName} ${lastName}`.trim() : '--';
+  const role = currentUser?.role || 'Avocat';
+  const firmName = currentUser?.firms?.name || '--';
+  const phone = user?.user_metadata?.phone || '--'; // Kept as phone is not in the profiles table yet
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-6xl mx-auto">

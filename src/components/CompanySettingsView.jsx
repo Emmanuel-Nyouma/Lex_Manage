@@ -26,8 +26,7 @@ const CompanySettingsView = () => {
   const [lastGeneratedLink, setLastGeneratedLink] = useState('');
 
   // 1. Protection du rôle 'admin'
-  // Note: currentUser doit être l'objet profil de la DB, pas seulement l'user auth.
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.user_metadata?.role === 'admin';
+  const isAdmin = currentUser?.role === 'admin';
 
   useEffect(() => {
     if (isAdmin) {
@@ -38,8 +37,8 @@ const CompanySettingsView = () => {
   const fetchInvitations = async () => {
     setIsLoading(true);
     try {
-      // On récupère le firm_id soit depuis le profil, soit depuis les metadata
-      const firmId = currentUser?.firm_id || currentUser?.user_metadata?.firm_id;
+      // On récupère le firm_id strictement depuis le profil DB
+      const firmId = currentUser?.firm_id;
       
       if (!firmId) return;
 
@@ -75,7 +74,7 @@ const CompanySettingsView = () => {
     setLastGeneratedLink('');
 
     try {
-      const firmId = currentUser?.firm_id || currentUser?.user_metadata?.firm_id;
+      const firmId = currentUser?.firm_id;
       
       if (!firmId) throw new Error("Impossible de récupérer l'ID de votre cabinet.");
 

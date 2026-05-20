@@ -5,7 +5,6 @@ import { supabase } from '../lib/supabase';
 import { useNavigate, Link } from 'react-router-dom';
 import { useNotifications } from '../hooks/useNotifications';
 import useLexStore from '../store/useLexStore';
-import GlobalTimer from './GlobalTimer';
 
 const Header = ({ onOpenAi }) => {
   const { currentUser } = useLexStore();
@@ -188,9 +187,6 @@ const Header = ({ onOpenAi }) => {
 
         <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block"></div>
         
-        {/* Widget Chronomètre */}
-        <GlobalTimer />
-
         <div className="h-6 w-px bg-slate-200 dark:bg-slate-800"></div>
         <button onClick={onOpenAi} className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-sm font-bold transition-all shadow-sm">
           <Bot size={18} />
