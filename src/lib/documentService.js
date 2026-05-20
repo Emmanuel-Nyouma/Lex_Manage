@@ -38,7 +38,7 @@ export const softDeleteDocument = async (docId) => {
 /**
  * Upload multi-tenant (firm_id/user_id/file)
  */
-export const uploadLegalDocument = async (file, user) => {
+export const uploadLegalDocument = async (file, user, category = 'Autre') => {
   if (!file || !user) throw new Error("Paramètres manquants");
 
   // On récupère le firm_id du profil
@@ -68,13 +68,12 @@ export const uploadLegalDocument = async (file, user) => {
     .from('documents')
     .insert({
       name: file.name,
-      storage_path: filePath,
+      file_url: filePath,
       firm_id: firmId,
-      user_id: user.id,
+      uploaded_by: user.id,
       gemini_file_uri: geminiData?.uri,
-      gemini_file_name: geminiData?.name,
-      size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
-      type: fileExt.toUpperCase()
+      size: file.size,
+      file_type: fileExt.toUpperCase()
     })
     .select()
     .single();

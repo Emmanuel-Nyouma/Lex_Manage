@@ -57,8 +57,13 @@ const StatCard = ({ icon: Icon, label, value, trend, color }) => (
 );
 
 const DashboardView = () => {
+  const { currentUser } = useLexStore();
   const { data: cases } = useCases();
-  const activeCasesData = cases?.filter(c => c.status === 'en cours') || [];
+  
+  const firstName = currentUser?.first_name || '';
+  const greetingName = firstName ? `, Maître ${firstName}` : ', Maître';
+  // Matching 'active' as defined by the 'status' column default in setup.sql
+  const activeCasesData = cases?.filter(c => c.status === 'active' || c.status === 'en cours') || [];
   const activeCasesCount = activeCasesData.length;
 
   const handleExport = () => {
@@ -77,7 +82,7 @@ const DashboardView = () => {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Bonjour, Maître</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Bonjour{greetingName}</h1>
           <p className="text-slate-500 dark:text-slate-400">Voici un aperçu de l'activité de votre cabinet aujourd'hui.</p>
         </div>
         <button 

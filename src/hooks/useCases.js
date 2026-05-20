@@ -26,9 +26,14 @@ export const useCreateCase = () => {
   return useMutation({
     mutationFn: async (newCase) => {
       const { data: { user } } = await supabase.auth.getUser();
+      // Import the store to get the firm_id
+      const useLexStore = (await import('../store/useLexStore')).default;
+      const currentUser = useLexStore.getState().currentUser;
+      const firm_id = currentUser?.firm_id;
+
       const { data, error } = await supabase
         .from('cases')
-        .insert([{ ...newCase, user_id: user.id }])
+        .insert([{ ...newCase, created_by: user.id, firm_id }])
         .select()
         .single();
 

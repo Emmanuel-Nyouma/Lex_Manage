@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { Lock, ShieldCheck } from 'lucide-react';
+import { Lock, ShieldCheck, AlertTriangle, X as CloseIcon } from 'lucide-react';
 
 // Components
 import AuthScreen from './components/AuthScreen';
 import DashboardView from './components/DashboardView';
 import CaseManagementView from './components/CaseManagementView';
+import ClientsDirectoryView from './components/ClientsDirectoryView';
 import CalendarView from './components/CalendarView';
 import DocumentsView from './components/DocumentsView';
 import AdminView from './components/AdminView';
@@ -20,12 +21,16 @@ import Header from './components/Header';
 // Store & Lib
 import useLexStore from './store/useLexStore';
 import { useIdleTimeout } from './hooks/useIdleTimeout';
+import { useNotifications } from './hooks/useNotifications';
+import { supabase } from './lib/supabase';
 
 export default function LexManageApp() {
-  const { session, initAuth, isLoading } = useLexStore();
+  const { session, initAuth, isLoading, currentUser } = useLexStore();
   const { isIdle, setIsIdle } = useIdleTimeout(15 * 60 * 1000); // 15 minutes
   const location = useLocation();
   const isAuthenticated = !!session;
+
+  const { urgentNotification, clearUrgent } = useNotifications();
 
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [chatHistory, setChatHistory] = useState([
@@ -35,6 +40,16 @@ export default function LexManageApp() {
   useEffect(() => {
     initAuth();
   }, [initAuth]);
+
+  // Step 4: Lazy Trigger for reminders
+  useEffect(() => {
+    if (isAuthenticated && currentUser) {
+      // On lance le moteur de rappels une fois par session/rechargement
+      supabase.rpc('generate_event_reminders').then(({ error }) => {
+        if (error) console.error("Error generating reminders:", error);
+      });
+    }
+  }, [isAuthenticated, currentUser]);
 
   if (isLoading) {
     return (
@@ -54,6 +69,35 @@ export default function LexManageApp() {
 
   const MainLayout = ({ children }) => (
     <div className="relative flex h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-hidden">
+      {/* Pop-up Urgent (Étape 2/3) */}
+      {urgentNotification && (
+        <div className="fixed inset-0 z-[110] bg-red-950/20 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border-2 border-red-500 overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="bg-red-500 p-4 flex items-center justify-between text-white">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={24} />
+                <h2 className="font-bold text-lg">ALERTE URGENTE</h2>
+              </div>
+              <button onClick={clearUrgent} className="hover:rotate-90 transition-transform">
+                <CloseIcon size={20} />
+              </button>
+            </div>
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{urgentNotification.title}</h3>
+              <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
+                {urgentNotification.message}
+              </p>
+              <button 
+                onClick={clearUrgent}
+                className="w-full py-3 bg-slate-900 dark:bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg"
+              >
+                J'ai pris connaissance
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Overlay de verrouillage d'inactivité */}
       {isIdle && isAuthenticated && (
         <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-md flex items-center justify-center animate-in fade-in duration-500">
@@ -102,6 +146,7 @@ export default function LexManageApp() {
         } />
         
         <Route path="/dashboard" element={<MainLayout><DashboardView /></MainLayout>} />
+        <Route path="/clients" element={<MainLayout><ClientsDirectoryView /></MainLayout>} />
         <Route path="/cases" element={<MainLayout><CaseManagementView /></MainLayout>} />
         <Route path="/calendar" element={<MainLayout><CalendarView /></MainLayout>} />
         <Route path="/documents" element={<MainLayout><DocumentsView /></MainLayout>} />

@@ -9,18 +9,24 @@ import {
   Settings,
   Gavel,
   LogOut,
-  Building2
+  Building2,
+  Users
 } from 'lucide-react';
 import useLexStore from '../store/useLexStore';
 
 const Sidebar = () => {
   const { session, logout, currentUser } = useLexStore();
   const user = session?.user;
-  const fullName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Utilisateur';
-  const isAdmin = currentUser?.role === 'admin' || user?.user_metadata?.role === 'admin';
+
+  const firstName = currentUser?.first_name || '';
+  const lastName = currentUser?.last_name || '';
+  const fullName = firstName || lastName ? `${firstName} ${lastName}`.trim() : (user?.user_metadata?.full_name || 'Utilisateur');
+  const role = currentUser?.role || 'Avocat';
+  const isAdmin = role === 'admin';
 
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
+    { to: '/clients', icon: Users, label: 'Clients' },
     { to: '/cases', icon: Briefcase, label: 'Dossiers' },
     { to: '/calendar', icon: Calendar, label: 'Calendrier' },
     { to: '/documents', icon: Files, label: 'Documents' },
@@ -68,7 +74,7 @@ const Sidebar = () => {
           </div>
           <div className="overflow-hidden">
             <p className="text-xs font-bold text-white truncate">{fullName}</p>
-            <p className="text-[10px] text-slate-400 truncate capitalize">Avocat</p>
+            <p className="text-[10px] text-slate-400 truncate capitalize">{role}</p>
           </div>
         </NavLink>
 

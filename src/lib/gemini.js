@@ -1,4 +1,3 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { supabase } from "./supabase";
 import { toast } from 'sonner';
 
@@ -11,15 +10,11 @@ const fetchWithRetry = async (fn, maxRetries = 3, initialDelay = 1000) => {
     try {
       return await fn();
     } catch (error) {
-      // 429 = Too Many Requests, 503 = Service Unavailable
       const isRetryable = error.message?.includes('429') || error.message?.includes('503');
       
       if (isRetryable && retries < maxRetries - 1) {
         const delay = initialDelay * Math.pow(2, retries);
-        
         toast.warning(`L'IA est très sollicitée, nouvelle tentative dans ${delay/1000}s...`);
-        console.warn(`Gemini Busy. Retry ${retries + 1} in ${delay}ms...`);
-        
         await new Promise(resolve => setTimeout(resolve, delay));
         retries++;
       } else {
@@ -29,32 +24,25 @@ const fetchWithRetry = async (fn, maxRetries = 3, initialDelay = 1000) => {
   }
 };
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
-
 /**
- * Interroge un document via son URI Gemini avec gestion de la résilience
+ * Interroge un document via la Edge Function sécurisée
  */
 export const askDocument = async (fileUri, userPrompt) => {
-  if (!genAI) throw new Error("Clé API Gemini manquante.");
-
   return fetchWithRetry(async () => {
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      systemInstruction: "Tu es un Assistant Juridique Expert. Analyse le document et cite les sources avec précision."
+    const { data, error } = await supabase.functions.invoke('ask-gemini', {
+      body: { 
+        fileUri, 
+        userPrompt,
+        mimeType: "application/pdf"
+      },
     });
 
-    const result = await model.generateContent([
-      {
-        fileData: {
-          mimeType: "application/pdf",
-          fileUri: fileUri
-        }
-      },
-      { text: userPrompt },
-    ]);
+    if (error) {
+      console.error("Edge Function error:", error);
+      throw new Error(error.message || "Erreur lors de l'appel à l'IA.");
+    }
 
-    return result.response.text();
+    return data.text;
   });
 };
 

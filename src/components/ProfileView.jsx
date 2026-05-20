@@ -6,10 +6,15 @@ import { Card, Badge } from './UI';
 import useLexStore from '../store/useLexStore';
 
 const ProfileView = () => {
-  const { session } = useLexStore();
+  const { currentUser, session } = useLexStore();
   const user = session?.user;
-  const fullName = user?.user_metadata?.full_name || '--';
-  const role = user?.user_metadata?.role || 'Avocat';
+  
+  const firstName = currentUser?.first_name || '';
+  const lastName = currentUser?.last_name || '';
+  const fullName = firstName || lastName ? `${firstName} ${lastName}`.trim() : (user?.user_metadata?.full_name || '--');
+  const role = currentUser?.role || user?.user_metadata?.role || 'Avocat';
+  const firmName = currentUser?.firms?.name || user?.user_metadata?.firm_name || '--';
+  const phone = user?.user_metadata?.phone || '--'; // Fallback to metadata for fields not in profiles table
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-6xl mx-auto">
@@ -34,18 +39,18 @@ const ProfileView = () => {
                       </div>
                       {user?.email || '--'}
                    </div>
-                   <div className="flex items-center justify-center md:justify-start gap-3 text-slate-600 dark:text-slate-300 group cursor-default">
-                      <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30 transition-colors">
-                        <Phone size={16} className="text-amber-600 dark:text-amber-500"/>
-                      </div>
-                      {user?.user_metadata?.phone || '--'}
-                   </div>
-                   <div className="flex items-center justify-center md:justify-start gap-3 text-slate-600 dark:text-slate-300 group cursor-default">
-                      <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30 transition-colors">
-                        <MapPin size={16} className="text-amber-600 dark:text-amber-500"/>
-                      </div>
-                      {user?.user_metadata?.firm_name || '--'}
-                   </div>
+                    <div className="flex items-center justify-center md:justify-start gap-3 text-slate-600 dark:text-slate-300 group cursor-default">
+                       <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30 transition-colors">
+                         <Phone size={16} className="text-amber-600 dark:text-amber-500"/>
+                       </div>
+                       {phone}
+                    </div>
+                    <div className="flex items-center justify-center md:justify-start gap-3 text-slate-600 dark:text-slate-300 group cursor-default">
+                       <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30 transition-colors">
+                         <MapPin size={16} className="text-amber-600 dark:text-amber-500"/>
+                       </div>
+                       {firmName}
+                    </div>
                    <div className="flex items-center justify-center md:justify-start gap-3 text-slate-600 dark:text-slate-300 group cursor-default">
                       <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30 transition-colors">
                         <Award size={16} className="text-amber-600 dark:text-amber-500"/>
