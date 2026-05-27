@@ -21,7 +21,7 @@ import {
   Key,
   Check
 } from 'lucide-react';
-import { Button, Input, Badge } from './UI';
+import { apiClient } from '../store/useLexStore';
 import useLexStore from '../store/useLexStore';
 
 const loginSchema = z.object({
@@ -103,7 +103,7 @@ const AuthScreen = () => {
           invitationToken: invitationToken || undefined
         };
         
-        await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/v1/auth/register`, registerData);
+        await apiClient.post('/api/v1/auth/register', registerData);
         toast.success("Cabinet créé avec succès ! Connectez-vous.");
         setView('login');
       } else if (view === 'forgot_password') {
