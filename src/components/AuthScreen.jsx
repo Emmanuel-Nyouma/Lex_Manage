@@ -18,7 +18,8 @@ import {
   Briefcase,
   ChevronLeft,
   UserPlus,
-  Key
+  Key,
+  Check
 } from 'lucide-react';
 import { Button, Input, Badge } from './UI';
 import useLexStore from '../store/useLexStore';
