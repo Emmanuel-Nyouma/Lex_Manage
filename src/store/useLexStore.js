@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import axios from 'axios';
 
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001',
 });
 
 // Add a request interceptor to include the auth token
