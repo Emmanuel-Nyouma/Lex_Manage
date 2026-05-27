@@ -1,77 +1,109 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
-import { supabase } from '../lib/supabase';
+import axios from 'axios';
+
+export const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1',
+});
+
+// Add a request interceptor to include the auth token
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('accessToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
 
 const useLexStore = create((set, get) => ({
   cases: [],
-  currentUser: null, // Contiendra le profil complet (id, firm_id, role, etc.)
+  clients: [],
+  currentUser: null,
   session: null,
   isLoading: false,
   error: null,
 
   setLoading: (loading) => set({ isLoading: loading }),
-  setError: (error) => set({ error: error }),
-
-  // Récupérer le profil complet depuis la table public.profiles
-  fetchProfile: async (userId) => {
+  
+  fetchMe: async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*, firms(name)')
-        .eq('id', userId)
-        .single();
-
-      if (error) throw error;
-      set({ currentUser: data });
-      return data;
+      const { data: userData } = await apiClient.get('/api/v1/auth/me');
+      set({ currentUser: userData });
     } catch (err) {
-      console.error('Error fetching profile:', err);
-      return null;
+      console.error('Fetch me error', err);
     }
   },
 
-  // Initialiser l'écouteur d'authentification
-  initAuth: () => {
-    // 1. Check session initiale
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      set({ session });
-      if (session?.user) {
-        await get().fetchProfile(session.user.id);
-      }
-    });
+  initAuth: async () => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
 
-    // 2. Écouter les changements d'état
-    supabase.auth.onAuthStateChange(async (_event, session) => {
-      set({ session });
-      if (session?.user) {
-        await get().fetchProfile(session.user.id);
-      } else {
-        set({ currentUser: null });
-      }
-    });
+    set({ isLoading: true });
+    try {
+      // 1. Set session immediately to satisfy ProtectedRoute
+      set({ session: { access_token: token } });
+      
+      // 2. Fetch user profile, but don't fail session if profile fetch fails
+      await get().fetchMe(); 
+    } catch (err) {
+      console.error("Auth init failed", err);
+      localStorage.removeItem('accessToken');
+      set({ session: null, currentUser: null });
+    } finally {
+      set({ isLoading: false });
+    }
   },
 
-  fetchCases: async () => {
-    set({ isLoading: true, error: null });
+  login: async (email, password) => {
+    set({ isLoading: true });
     try {
-      const { data, error } = await supabase
-        .from('cases')
-        .select('*')
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      set({ cases: data || [], isLoading: false });
+      const { data } = await apiClient.post('/api/v1/auth/login', { email, password });
+      localStorage.setItem('accessToken', data.accessToken);
+      set({ session: { access_token: data.accessToken }, currentUser: data.user });
+      toast.success('Connexion réussie');
     } catch (err) {
-      set({ error: err.message, isLoading: false });
-      toast.error('Échec du chargement des dossiers');
+      console.error('Login error:', err.response?.data || err.message);
+      toast.error(err.response?.data?.message || 'Erreur de connexion');
+    } finally {
+      set({ isLoading: false });
     }
   },
 
   logout: async () => {
-    await supabase.auth.signOut();
-    set({ currentUser: null, session: null, cases: [], error: null });
-    toast.success('Déconnexion réussie');
+    try {
+      await apiClient.post('/api/v1/auth/logout');
+    } catch (err) {
+      console.error('Logout error', err);
+    } finally {
+      localStorage.removeItem('accessToken');
+      set({ currentUser: null, session: null, cases: [], clients: [], error: null });
+    }
+  },
+
+  sendAiMessage: async (message) => {
+    try {
+      const { data } = await apiClient.post('/ai/chat', { message });
+      return data;
+    } catch (err) {
+      const msg = err.response?.data?.message || "Erreur IA";
+      toast.error(msg);
+      return null;
+    }
+  },
+
+  callGemini: async (prompt, systemInstruction) => {
+    try {
+      const { data } = await apiClient.post('/ai/chat', { 
+        message: prompt,
+        systemInstruction // Note: Backend needs to support this or we use default
+      });
+      return data.text;
+    } catch (err) {
+      console.error("Gemini call error", err);
+      return "Une erreur est survenue lors de l'appel à l'IA.";
+    }
   }
 }));
 

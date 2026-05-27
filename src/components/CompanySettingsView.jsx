@@ -9,54 +9,47 @@ import {
   Loader2, 
   Clock,
   ExternalLink,
-  AlertCircle
+  AlertCircle,
+  ChevronDown,
+  Users
 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
-import useLexStore from '../store/useLexStore';
+import useLexStore, { apiClient } from '../store/useLexStore';
 import { toast } from 'sonner';
 import { Card, Badge } from './UI';
 
 const CompanySettingsView = () => {
   const { currentUser } = useLexStore();
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState('lawyer');
+  const [role, setRole] = useState('LAWYER');
   const [isInviting, setIsInviting] = useState(false);
   const [invitations, setInvitations] = useState([]);
+  const [members, setMembers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastGeneratedLink, setLastGeneratedLink] = useState('');
 
-  // 1. Protection du rôle 'admin'
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === 'CABINET_ADMIN';
 
-  useEffect(() => {
-    if (isAdmin) {
-      fetchInvitations();
-    }
-  }, [isAdmin]);
-
-  const fetchInvitations = async () => {
+  const fetchData = React.useCallback(async () => {
+    if (!isAdmin) return;
     setIsLoading(true);
     try {
-      // On récupère le firm_id strictement depuis le profil DB
-      const firmId = currentUser?.firm_id;
-      
-      if (!firmId) return;
-
-      const { data, error } = await supabase
-        .from('invitations')
-        .select('*')
-        .is('accepted_at', null)
-        .eq('firm_id', firmId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setInvitations(data || []);
+      const [invitesRes, membersRes] = await Promise.all([
+        apiClient.get('/tenants/invitations'),
+        apiClient.get('/tenants/members')
+      ]);
+      setInvitations(invitesRes.data || []);
+      setMembers(membersRes.data || []);
     } catch (err) {
-      toast.error('Erreur lors du chargement des invitations');
+      console.error(err);
+      toast.error('Erreur lors du chargement des données');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAdmin]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   if (!isAdmin) {
     return (
@@ -74,30 +67,14 @@ const CompanySettingsView = () => {
     setLastGeneratedLink('');
 
     try {
-      const firmId = currentUser?.firm_id;
-      
-      if (!firmId) throw new Error("Impossible de récupérer l'ID de votre cabinet.");
-
-      const { data, error } = await supabase
-        .from('invitations')
-        .insert({
-          email,
-          role,
-          firm_id: firmId,
-          invited_by: currentUser.id
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      const inviteLink = `${window.location.origin}/auth?invitation=${data.token}`;
+      const { data } = await apiClient.post('/tenants/invitations', { email, role });
+      const inviteLink = `${window.location.origin}/login?invitation=${data.token}`;
       setLastGeneratedLink(inviteLink);
       toast.success('Invitation créée avec succès !');
       setEmail('');
-      fetchInvitations();
+      fetchData();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.response?.data?.message || 'Erreur lors de l\'invitation');
     } finally {
       setIsInviting(false);
     }
@@ -105,17 +82,11 @@ const CompanySettingsView = () => {
 
   const revokeInvitation = async (id) => {
     if (!window.confirm('Voulez-vous vraiment révoquer cette invitation ?')) return;
-
     try {
-      const { error } = await supabase
-        .from('invitations')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await apiClient.delete(`/tenants/invitations/${id}`);
       toast.success('Invitation révoquée');
-      fetchInvitations();
-    } catch (err) {
+      fetchData();
+    } catch {
       toast.error('Erreur lors de la révocation');
     }
   };
@@ -126,23 +97,23 @@ const CompanySettingsView = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Paramètres du Cabinet</h1>
-        <p className="text-slate-500 dark:text-slate-400">Gérez vos collaborateurs et vos invitations en attente.</p>
+        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Paramètres du Cabinet</h1>
+        <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">Gérez votre équipe d'excellence et les accès sécurisés.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Colonne de gauche : Formulaire */}
-        <div className="lg:col-span-1">
-          <Card className="p-6 h-fit border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="font-bold text-slate-900 dark:text-white mb-5 flex items-center gap-2">
-              <UserPlus size={18} className="text-amber-600" /> Nouvel invité
+        {/* Colonne de gauche : Formulaire d'invitation */}
+        <div className="lg:col-span-1 space-y-6">
+          <Card className="p-6 border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/50">
+            <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+              <UserPlus size={20} className="text-amber-500" /> Inviter un membre
             </h3>
             
-            <form onSubmit={handleInvite} className="space-y-4">
+            <form onSubmit={handleInvite} className="space-y-5">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Email du collaborateur</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Email professionnel</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                   <input 
@@ -150,22 +121,24 @@ const CompanySettingsView = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="maitre.durand@justice.fr"
-                    className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Rôle attribué</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Rôle dans le cabinet</label>
                 <div className="relative">
                   <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                   <select 
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none appearance-none cursor-pointer focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+                    className="w-full pl-10 pr-10 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none appearance-none cursor-pointer focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
                   >
-                    <option value="lawyer">Collaborateur (Avocat)</option>
-                    <option value="paralegal">Assistant / Juriste</option>
+                    <option value="LAWYER">Avocat / Collaborateur</option>
+                    <option value="ASSISTANT">Assistant Juridique</option>
+                    <option value="SECRETARY">Secrétariat</option>
+                    <option value="CABINET_ADMIN">Administrateur</option>
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
                 </div>
@@ -174,45 +147,72 @@ const CompanySettingsView = () => {
               <button 
                 type="submit"
                 disabled={isInviting}
-                className="w-full py-3 bg-slate-900 dark:bg-amber-600 text-white rounded-xl text-sm font-bold hover:bg-slate-800 dark:hover:bg-amber-700 shadow-lg disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                className="w-full py-3.5 bg-slate-900 dark:bg-amber-600 text-white rounded-xl text-sm font-bold hover:bg-slate-800 dark:hover:bg-amber-700 shadow-lg disabled:opacity-50 transition-all flex items-center justify-center gap-2"
               >
-                {isInviting ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                Générer le lien
+                {isInviting ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+                Générer l'invitation
               </button>
             </form>
 
             {lastGeneratedLink && (
               <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 rounded-xl animate-in zoom-in-95">
-                <p className="text-[10px] font-bold text-amber-800 dark:text-amber-500 uppercase mb-2">Lien d'invitation généré :</p>
+                <p className="text-[10px] font-bold text-amber-800 dark:text-amber-500 uppercase mb-2">Lien d'invitation prêt :</p>
                 <div className="flex gap-2">
                   <input 
                     readOnly
                     value={lastGeneratedLink}
-                    className="flex-1 bg-white dark:bg-slate-950 border border-amber-200 dark:border-amber-800 rounded-lg px-2 py-1.5 text-[10px] text-slate-600 dark:text-slate-300 outline-none"
+                    className="flex-1 bg-white dark:bg-slate-950 border border-amber-200 dark:border-amber-800 rounded-lg px-2 py-2 text-[10px] text-slate-600 dark:text-slate-300 outline-none"
                   />
                   <button 
                     onClick={() => copyToClipboard(lastGeneratedLink)}
-                    className="p-2 bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors"
+                    className="p-2 bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors shadow-sm"
                   >
-                    <Copy size={14} className="text-amber-600" />
+                    <Copy size={16} className="text-amber-600" />
                   </button>
                 </div>
-                <p className="text-[9px] text-amber-700 dark:text-amber-500/70 mt-2 italic">Ce lien permet à votre collaborateur de rejoindre directement votre structure.</p>
+                <p className="text-[9px] text-amber-700 dark:text-amber-500/70 mt-3 italic leading-relaxed">Envoyez ce lien à votre collaborateur. Il pourra créer son compte et rejoindre automatiquement votre structure.</p>
               </div>
             )}
           </Card>
         </div>
 
-        {/* Colonne de droite : Liste des invitations */}
-        <div className="lg:col-span-2">
-          <Card className="p-6 border-slate-200 dark:border-slate-800 shadow-sm">
+        {/* Colonne de droite : Liste des membres et invitations */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Liste des membres */}
+          <Card className="p-6 border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden bg-white dark:bg-slate-900/50">
             <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-              <Clock size={18} className="text-slate-400" /> Invitations en attente
+              <Users size={20} className="text-slate-400" /> Équipe actuelle ({members.length})
+            </h3>
+
+            <div className="space-y-4">
+              {members.map((member) => (
+                <div key={member.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-500">
+                      {member.firstName[0]}{member.lastName[0]}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 dark:text-white text-sm">{member.firstName} {member.lastName}</h4>
+                      <p className="text-xs text-slate-500">{member.email}</p>
+                    </div>
+                  </div>
+                  <Badge variant={member.role === 'CABINET_ADMIN' ? 'info' : 'secondary'}>
+                    {member.role.replace('_', ' ')}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Invitations en attente */}
+          <Card className="p-6 border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/50">
+            <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+              <Clock size={20} className="text-slate-400" /> Invitations en attente
             </h3>
 
             {isLoading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="animate-spin text-amber-500" size={32} />
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="animate-spin text-amber-500" size={24} />
               </div>
             ) : invitations.length > 0 ? (
               <div className="overflow-x-auto">
@@ -221,7 +221,7 @@ const CompanySettingsView = () => {
                     <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
                       <th className="pb-4 px-2">Collaborateur</th>
                       <th className="pb-4 px-2">Rôle</th>
-                      <th className="pb-4 px-2">Généré le</th>
+                      <th className="pb-4 px-2">Expire le</th>
                       <th className="pb-4 px-2 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -230,33 +230,33 @@ const CompanySettingsView = () => {
                       <tr key={invite.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                         <td className="py-4 px-2">
                           <div className="text-sm font-semibold text-slate-900 dark:text-white">{invite.email}</div>
-                          <div className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
-                            <ExternalLink size={10} /> ID: {invite.token.slice(0, 8)}
+                          <div className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5 uppercase tracking-tighter">
+                            <ExternalLink size={10} /> TOKEN: {invite.token.slice(0, 8)}...
                           </div>
                         </td>
                         <td className="py-4 px-2">
-                          <Badge variant={invite.role === 'lawyer' ? 'info' : 'secondary'}>
-                            {invite.role === 'lawyer' ? 'Collaborateur' : 'Assistant'}
+                          <Badge variant="secondary">
+                            {invite.role.replace('_', ' ')}
                           </Badge>
                         </td>
-                        <td className="py-4 px-2 text-xs text-slate-500">
-                          {new Date(invite.created_at).toLocaleDateString()}
+                        <td className="py-4 px-2 text-xs text-slate-500 font-medium">
+                          {new Date(invite.expiresAt).toLocaleDateString()}
                         </td>
                         <td className="py-4 px-2 text-right">
                           <div className="flex justify-end gap-1">
                             <button 
-                              onClick={() => copyToClipboard(`${window.location.origin}/auth?invitation=${invite.token}`)}
+                              onClick={() => copyToClipboard(`${window.location.origin}/login?invitation=${invite.token}`)}
                               className="p-2 text-slate-400 hover:text-amber-600 transition-colors rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20"
                               title="Copier le lien"
                             >
-                              <Copy size={16} />
+                              <Copy size={18} />
                             </button>
                             <button 
                               onClick={() => revokeInvitation(invite.id)}
                               className="p-2 text-slate-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                               title="Révoquer"
                             >
-                              <Trash2 size={16} />
+                              <Trash2 size={18} />
                             </button>
                           </div>
                         </td>
@@ -266,11 +266,9 @@ const CompanySettingsView = () => {
                 </table>
               </div>
             ) : (
-              <div className="text-center py-20">
-                <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Mail className="text-slate-300" size={24} />
-                </div>
-                <p className="text-slate-400 italic text-sm">Aucune invitation active pour le moment.</p>
+              <div className="text-center py-10 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                <Mail className="text-slate-300 mx-auto mb-3" size={32} />
+                <p className="text-slate-400 italic text-sm">Aucune invitation active.</p>
               </div>
             )}
           </Card>

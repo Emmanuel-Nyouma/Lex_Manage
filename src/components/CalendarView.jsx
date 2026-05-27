@@ -14,7 +14,6 @@ import {
   Edit2,
   AlertCircle
 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import useLexStore from '../store/useLexStore';
 import { toast } from 'sonner';
 
@@ -48,6 +47,7 @@ const CalendarView = () => {
 
   const fetchEvents = async () => {
     setIsLoading(true);
+    /*
     try {
       const { data, error } = await supabase
         .from('cases')
@@ -74,6 +74,8 @@ const CalendarView = () => {
     } finally {
       setIsLoading(false);
     }
+    */
+    setIsLoading(false);
   };
 
   // Step 2: Optimization - Group events by date (O(1) lookup)
@@ -117,6 +119,8 @@ const CalendarView = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    toast.error("Le backend Supabase est désactivé.");
+    /*
     try {
       const dateTime = `${currentEvent.date}T${currentEvent.time}:00`;
       const payload = {
@@ -148,10 +152,13 @@ const CalendarView = () => {
     } catch (err) {
       toast.error(err.message);
     }
+    */
   };
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this event?')) {
+      toast.error("Le backend Supabase est désactivé.");
+      /*
       try {
         const { error } = await supabase
           .from('cases')
@@ -165,6 +172,7 @@ const CalendarView = () => {
       } catch (err) {
         toast.error(err.message);
       }
+      */
     }
   };
 

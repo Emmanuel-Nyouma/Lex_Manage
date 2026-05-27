@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Mail, Phone, MapPin, Award, TrendingUp, Sparkles, Settings, ToggleRight, ToggleLeft 
 } from 'lucide-react';
@@ -7,6 +7,9 @@ import useLexStore from '../store/useLexStore';
 
 const ProfileView = () => {
   const { currentUser, session } = useLexStore();
+  const [emailNotif, setEmailNotif] = useState(true);
+  const [dailyBrief, setDailyBrief] = useState(false);
+
   const user = session?.user;
   
   const firstName = currentUser?.first_name || '';
@@ -20,9 +23,9 @@ const ProfileView = () => {
     <div className="space-y-6 animate-in fade-in duration-500 max-w-6xl mx-auto">
        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Mon Profil</h1>
        
-       <Card className="p-8 dark:bg-slate-900 dark:border-slate-800 shadow-lg">
+       <Card className="p-8 shadow-lg">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-             <div className="w-28 h-28 rounded-full bg-slate-900 dark:bg-amber-600 text-white flex items-center justify-center text-4xl font-bold border-4 border-amber-100 dark:border-amber-900/30 shadow-xl ring-4 ring-slate-50 dark:ring-slate-950">
+             <div className="w-28 h-28 shrink-0 rounded-full bg-slate-900 dark:bg-amber-600 text-white flex items-center justify-center text-4xl font-bold border-4 border-amber-100 dark:border-amber-900/30 shadow-xl ring-4 ring-slate-50 dark:ring-slate-950">
                 {fullName.charAt(0).toUpperCase()}
              </div>
              <div className="flex-1 text-center md:text-left pt-2">
@@ -32,30 +35,30 @@ const ProfileView = () => {
                 </div>
                 <p className="text-slate-500 dark:text-slate-400 font-bold text-sm tracking-wide uppercase">Cabinet d'avocats</p>
                 
-                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-sm">
-                   <div className="flex items-center justify-center md:justify-start gap-3 text-slate-600 dark:text-slate-300 group cursor-default">
-                      <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30 transition-colors">
+                 <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-sm">
+                   <div className="flex items-center justify-center md:justify-start gap-3 text-slate-600 dark:text-slate-300 group cursor-default overflow-hidden">
+                      <div className="p-2 shrink-0 bg-slate-100 dark:bg-slate-800 rounded-lg group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30 transition-colors">
                         <Mail size={16} className="text-amber-600 dark:text-amber-500"/>
                       </div>
-                      {user?.email || '--'}
+                      <span className="truncate">{user?.email || '--'}</span>
                    </div>
-                    <div className="flex items-center justify-center md:justify-start gap-3 text-slate-600 dark:text-slate-300 group cursor-default">
-                       <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30 transition-colors">
+                    <div className="flex items-center justify-center md:justify-start gap-3 text-slate-600 dark:text-slate-300 group cursor-default overflow-hidden">
+                       <div className="p-2 shrink-0 bg-slate-100 dark:bg-slate-800 rounded-lg group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30 transition-colors">
                          <Phone size={16} className="text-amber-600 dark:text-amber-500"/>
                        </div>
-                       {phone}
+                       <span className="truncate">{phone}</span>
                     </div>
-                    <div className="flex items-center justify-center md:justify-start gap-3 text-slate-600 dark:text-slate-300 group cursor-default">
-                       <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30 transition-colors">
+                    <div className="flex items-center justify-center md:justify-start gap-3 text-slate-600 dark:text-slate-300 group cursor-default overflow-hidden">
+                       <div className="p-2 shrink-0 bg-slate-100 dark:bg-slate-800 rounded-lg group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30 transition-colors">
                          <MapPin size={16} className="text-amber-600 dark:text-amber-500"/>
                        </div>
-                       {firmName}
+                       <span className="truncate">{firmName}</span>
                     </div>
-                   <div className="flex items-center justify-center md:justify-start gap-3 text-slate-600 dark:text-slate-300 group cursor-default">
-                      <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30 transition-colors">
+                   <div className="flex items-center justify-center md:justify-start gap-3 text-slate-600 dark:text-slate-300 group cursor-default overflow-hidden">
+                      <div className="p-2 shrink-0 bg-slate-100 dark:bg-slate-800 rounded-lg group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30 transition-colors">
                         <Award size={16} className="text-amber-600 dark:text-amber-500"/>
                       </div>
-                      ID: {user?.id?.slice(0, 8) || '--'}
+                      <span className="truncate">ID: {user?.id?.slice(0, 8) || '--'}</span>
                    </div>
                 </div>
              </div>
@@ -105,11 +108,23 @@ const ProfileView = () => {
                 <div className="space-y-5">
                    <div className="flex items-center justify-between group">
                       <span className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">Notifications Email</span>
-                      <ToggleRight size={28} className="text-emerald-500 cursor-pointer hover:scale-110 transition-all"/>
+                      <button onClick={() => setEmailNotif(!emailNotif)} className="focus:outline-none" aria-label="Toggle Email Notifications">
+                        {emailNotif ? (
+                           <ToggleRight size={28} className="text-emerald-500 cursor-pointer hover:scale-110 transition-all"/>
+                        ) : (
+                           <ToggleLeft size={28} className="text-slate-400 cursor-pointer hover:scale-110 transition-all"/>
+                        )}
+                      </button>
                    </div>
                    <div className="flex items-center justify-between group">
                       <span className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">Briefing quotidien</span>
-                      <ToggleRight size={28} className="text-emerald-500 cursor-pointer hover:scale-110 transition-all"/>
+                      <button onClick={() => setDailyBrief(!dailyBrief)} className="focus:outline-none" aria-label="Toggle Daily Brief">
+                        {dailyBrief ? (
+                           <ToggleRight size={28} className="text-emerald-500 cursor-pointer hover:scale-110 transition-all"/>
+                        ) : (
+                           <ToggleLeft size={28} className="text-slate-400 cursor-pointer hover:scale-110 transition-all"/>
+                        )}
+                      </button>
                    </div>
                    <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-800 space-y-3">
                       <button className="w-full py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all shadow-sm">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bot, X, FileText, Loader2, Send, Sparkles, MessageSquare, Shield, Info } from 'lucide-react';
+import useLexStore from '../store/useLexStore';
 
 const SUGGESTED_PROMPTS = [
   { label: "Summarize current case", icon: FileText },
@@ -10,12 +11,12 @@ const SUGGESTED_PROMPTS = [
 const AiSidebar = ({ 
   isOpen = false, 
   onClose = () => {}, 
-  currentView = "", 
-  chatHistory = [], 
-  onSendMessage = () => {}, 
-  isChatLoading = false, 
-  error = null 
+  currentView = ""
 }) => {
+  const { sendAiMessage, isLoading: isChatLoading, error } = useLexStore();
+  const [chatHistory, setChatHistory] = useState([
+    { id: 1, sender: 'ai', text: "Bonjour Maître, je suis LexAssist. Comment puis-je vous aider aujourd'hui ?", isRich: false }
+  ]);
   const chatEndRef = useRef(null);
   const [chatInput, setChatInput] = useState("");
 
@@ -23,12 +24,26 @@ const AiSidebar = ({
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatHistory, isChatLoading, error]);
 
-  const handleSend = (text) => {
+  const handleSend = React.useCallback(async (text) => {
     const messageText = typeof text === 'string' ? text : chatInput;
     if (!messageText.trim() || isChatLoading) return;
-    onSendMessage(messageText);
+    
+    // 1. Add user message locally
+    const userMsg = { id: Date.now().toString(), sender: 'user', text: messageText };
+    setChatHistory(prev => [...prev, userMsg]);
     setChatInput("");
-  };
+
+    // 2. Call secure backend relayer via Zustand
+    const response = await sendAiMessage(messageText);
+    if (response) {
+      setChatHistory(prev => [...prev, { 
+        id: (Date.now() + 1).toString(), 
+        sender: 'ai', 
+        text: response.text,
+        isRich: response.text.length > 200 // Threshold for rich display
+      }]);
+    }
+  }, [chatInput, isChatLoading, sendAiMessage]);
 
   return (
     <div className={`fixed inset-y-0 right-0 w-full sm:w-[400px] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl transform transition-transform duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] z-[45] flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
@@ -83,7 +98,7 @@ const AiSidebar = ({
           </div>
         )}
 
-        {chatHistory.map((msg, idx) => (
+        {chatHistory.map((msg) => (
           <div key={msg.id} className={`flex gap-3 ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
             {/* Avatar */}
             <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold shadow-sm ${

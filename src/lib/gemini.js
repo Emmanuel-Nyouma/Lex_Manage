@@ -1,4 +1,3 @@
-import { supabase } from "./supabase";
 import { toast } from 'sonner';
 
 /**
@@ -28,36 +27,14 @@ const fetchWithRetry = async (fn, maxRetries = 3, initialDelay = 1000) => {
  * Interroge un document via la Edge Function sécurisée
  */
 export const askDocument = async (fileUri, userPrompt) => {
-  return fetchWithRetry(async () => {
-    const { data, error } = await supabase.functions.invoke('ask-gemini', {
-      body: { 
-        fileUri, 
-        userPrompt,
-        mimeType: "application/pdf"
-      },
-    });
-
-    if (error) {
-      console.error("Edge Function error:", error);
-      throw new Error(error.message || "Erreur lors de l'appel à l'IA.");
-    }
-
-    return data.text;
-  });
+  // Supabase removed - defaulting to mock response
+  return "Réponse de simulation de l'IA (Supabase déconnecté).";
 };
 
 /**
  * Upload d'un document vers Gemini File API via Supabase Edge Function
  */
 export const uploadDocumentToGemini = async (file) => {
-  try {
-    const { data, error } = await supabase.functions.invoke('upload-to-gemini', {
-      body: file,
-    });
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error("Upload to Gemini failed:", error);
-    throw new Error("Impossible d'envoyer le document à l'IA.");
-  }
+  // Supabase removed - defaulting to mock data
+  return { uri: 'mock-uri' };
 };

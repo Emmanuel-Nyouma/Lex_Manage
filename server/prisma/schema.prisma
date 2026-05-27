@@ -1,0 +1,118 @@
+// ==========================================
+// LEXMANAGE : ENTERPRISE SECURITY ARCHITECTURE
+// Prisma Schema Definition
+// Taxonomy: Data Immutability, Soft-Delete, Multi-Tenant
+// ==========================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// 1. Audit Log System (Immutability Pattern)
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  action     String   // e.g., "CREATE", "READ", "UPDATE", "SOFT_DELETE"
+  resource   String   // e.g., "CASE", "DOCUMENT"
+  resourceId String   @map("resource_id")
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("audit_logs")
+}
+
+model Firm {
+  id         String     @id @default(uuid())
+  name       String
+  createdAt  DateTime   @default(now()) @map("created_at")
+  profiles   Profile[]
+  cases      Case[]
+  documents    Document[]
+  invitations  Invitation[]
+  notifications Notification[]
+
+  @@map("firms")
+}
+
+model Profile {
+  id         String   @id // Corresponds to Auth User UUID
+  firmId     String   @map("firm_id")
+  firm       Firm     @relation(fields: [firmId], references: [id])
+  firstName  String?  @map("first_name")
+  lastName   String?  @map("last_name")
+  role       String   @default("lawyer") // admin, lawyer, paralegal
+  avatarUrl  String?  @map("avatar_url")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("profiles")
+}
+
+model Case {
+  id                String     @id @default(uuid())
+  firmId            String     @map("firm_id")
+  firm              Firm       @relation(fields: [firmId], references: [id])
+  title             String
+  description       String?
+  clientName        String     @map("client_name")
+  opponentName      String?    @map("opponent_name")
+  jurisdiction      String?
+  status            String     @default("active")
+  priority          String     @default("medium")
+  nextHearingDate   DateTime?  @map("next_hearing_date")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+  deletedAt         DateTime?  @map("deleted_at") // Architectural Rule: Soft-Delete only
+  documents         Document[]
+
+  @@map("cases")
+}
+
+model Document {
+  id              String    @id @default(uuid())
+  firmId          String    @map("firm_id")
+  firm            Firm      @relation(fields: [firmId], references: [id])
+  caseId          String?   @map("case_id")
+  case            Case?     @relation(fields: [caseId], references: [id])
+  uploadedBy      String    @map("uploaded_by")
+  name            String
+  fileUrl         String    @map("file_url")
+  fileType        String?   @map("file_type")
+  size            Int?
+  geminiFileUri   String?   @map("gemini_file_uri")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  deletedAt       DateTime? @map("deleted_at") // Architectural Rule: Soft-Delete only
+
+  @@map("documents")
+}
+
+model Invitation {
+  id         String   @id @default(uuid())
+  firmId     String   @map("firm_id")
+  firm       Firm     @relation(fields: [firmId], references: [id])
+  email      String
+  role       String   @default("lawyer")
+  token      String   @unique
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("invitations")
+}
+
+model Notification {
+  id         String   @id @default(uuid())
+  firmId     String   @map("firm_id")
+  firm       Firm     @relation(fields: [firmId], references: [id])
+  title      String
+  message    String
+  priority   String   @default("normal")
+  isRead     Boolean  @default(false) @map("is_read")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("notifications")
+}

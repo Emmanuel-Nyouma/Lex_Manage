@@ -14,83 +14,46 @@ import {
   Clock, 
   Calendar, 
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  ArrowRight
 } from 'lucide-react';
 import { Badge } from './UI';
-import { useCases } from '../hooks/useCases';
 import { exportToCSV } from '../utils/export';
-
-const data = [
-  { day: 'Lun', hours: 6.5 },
-  { day: 'Mar', hours: 8.2 },
-  { day: 'Mer', hours: 4.8 },
-  { day: 'Jeu', hours: 9.1 },
-  { day: 'Ven', hours: 7.4 },
-  { day: 'Sam', hours: 2.5 },
-  { day: 'Dim', hours: 0 },
-];
-
-const colorMap = {
-  amber: "text-amber-500",
-  blue: "text-blue-500",
-  purple: "text-purple-500",
-  red: "text-red-500"
-};
-
-const StatCard = ({ icon: Icon, label, value, trend, color }) => (
-  <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-    <div className="flex justify-between items-start mb-4">
-      <div className={`p-3 rounded-xl bg-slate-50 dark:bg-slate-800 ${colorMap[color] || "text-slate-500"}`}>
-        <Icon size={24} />
-      </div>
-      {trend && (
-        <Badge variant="success" className="bg-emerald-50 text-emerald-600 border-none">
-          <TrendingUp size={12} className="mr-1" /> {trend}
-        </Badge>
-      )}
-    </div>
-    <div className="space-y-1">
-      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</p>
-      <p className="text-3xl font-bold text-slate-900 dark:text-white">{value}</p>
-    </div>
-  </div>
-);
+import useLexStore from '../store/useLexStore';
+import { useCases, useDeadlines } from '../hooks/useCases';
+import { useNotifications } from '../hooks/useNotifications';
 
 const DashboardView = () => {
+  const [isMounted, setIsMounted] = React.useState(false);
   const { currentUser } = useLexStore();
   const { data: cases } = useCases();
+  const { notifications } = useNotifications();
   
-  const firstName = currentUser?.first_name || '';
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const firstName = currentUser?.firstName || '';
   const greetingName = firstName ? `, Maître ${firstName}` : ', Maître';
-  // Matching 'active' as defined by the 'status' column default in setup.sql
-  const activeCasesData = cases?.filter(c => c.status === 'active' || c.status === 'en cours') || [];
+  
+  const activeCasesData = cases?.filter(c => c.status === 'OPEN' || c.status === 'en cours') || [];
   const activeCasesCount = activeCasesData.length;
 
-  const handleExport = () => {
-    const dataToExport = activeCasesData.map(c => ({
-      Titre: c.title,
-      Client: c.client_name,
-      Juridiction: c.jurisdiction,
-      Statut: c.status,
-      "Date de création": new Date(c.created_at).toLocaleDateString()
-    }));
-    exportToCSV(dataToExport, `LexManage_Dossiers_${new Date().toISOString().split('T')[0]}.csv`);
-  };
+  const upcomingDeadlines = notifications.filter(n => n.type === 'DEADLINE_REMINDER' && !n.isRead).slice(0, 4);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Bonjour{greetingName}</h1>
-          <p className="text-slate-500 dark:text-slate-400">Voici un aperçu de l'activité de votre cabinet aujourd'hui.</p>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Bonjour{greetingName}</h1>
+          <p className="text-slate-500 dark:text-slate-400 font-medium">Voici un aperçu de l'activité de votre cabinet aujourd'hui.</p>
         </div>
         <button 
-          onClick={handleExport}
-          className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-all shadow-sm"
+          className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 dark:bg-amber-600 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 dark:shadow-none"
         >
           <TrendingUp size={16} className="rotate-90" />
-          Exporter (CSV)
+          Exporter le rapport
         </button>
       </div>
 
@@ -105,9 +68,9 @@ const DashboardView = () => {
         />
         <StatCard 
           icon={Clock} 
-          label="Heures Facturées" 
-          value="38.5h" 
-          trend="+12%" 
+          label="Délais en cours" 
+          value="12" 
+          trend="Action requise" 
           color="blue" 
         />
         <StatCard 
@@ -118,8 +81,8 @@ const DashboardView = () => {
         />
         <StatCard 
           icon={AlertCircle} 
-          label="Prescriptions imminentes" 
-          value="1" 
+          label="Urgences" 
+          value={upcomingDeadlines.length} 
           color="red" 
         />
       </div>
@@ -127,60 +90,74 @@ const DashboardView = () => {
       {/* Analytics Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Workload Chart */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex justify-between items-center mb-8">
-            <h3 className="font-bold text-slate-900 dark:text-white">Charge de travail (7 derniers jours)</h3>
-            <select className="text-xs bg-slate-50 dark:bg-slate-800 border-none rounded-lg p-2 outline-none">
-              <option>Cette semaine</option>
-              <option>Semaine dernière</option>
-            </select>
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <TrendingUp size={18} className="text-blue-500" /> Charge de travail hebdomadaire
+              </h3>
+            </div>
+            <div className="h-[280px] w-full">
+              {isMounted && (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
+                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                    <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
+                    <Bar dataKey="hours" radius={[4, 4, 0, 0]} barSize={32}>
+                      {data.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.hours > 8 ? '#f59e0b' : '#3b82f6'} fillOpacity={0.9} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
           </div>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis 
-                  dataKey="day" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#94a3b8', fontSize: 12 }} 
-                  dy={10}
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#94a3b8', fontSize: 12 }} 
-                />
-                <Tooltip 
-                  cursor={{ fill: '#f8fafc' }}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                />
-                <Bar dataKey="hours" radius={[6, 6, 0, 0]}>
-                  {data.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.hours > 8 ? '#f59e0b' : '#3b82f6'} fillOpacity={0.8} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+
+          {/* New Section: Upcoming Deadlines List */}
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+              <Clock size={18} className="text-amber-500" /> Échéances Imminentes
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {upcomingDeadlines.length > 0 ? upcomingDeadlines.map((notif) => (
+                <div key={notif.id} className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 hover:border-amber-200 dark:hover:border-amber-900/50 transition-all group">
+                  <div className="flex justify-between items-start mb-2">
+                    <Badge variant="warning" className="text-[10px]">{notif.priority}</Badge>
+                    <span className="text-[10px] font-mono text-slate-400">RAPPEL</span>
+                  </div>
+                  <p className="text-xs font-bold text-slate-900 dark:text-white line-clamp-2 leading-relaxed">{notif.message.split('(Ref:')[0]}</p>
+                </div>
+              )) : (
+                <div className="col-span-2 py-8 text-center bg-slate-50 dark:bg-slate-800/20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                  <p className="text-sm text-slate-400 italic">Aucune échéance critique à court terme.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Recent Activity / Feed */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <h3 className="font-bold text-slate-900 dark:text-white mb-6">Activités Récentes</h3>
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm h-fit">
+          <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+             <AlertCircle size={18} className="text-amber-500" /> Journal d'Activité
+          </h3>
           <div className="space-y-6">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex gap-4">
-                <div className="w-2 h-2 mt-2 rounded-full bg-amber-500 shrink-0"></div>
+            {notifications.slice(0, 6).map((notif) => (
+              <div key={notif.id} className="flex gap-4 relative group">
+                <div className={`w-2 h-2 mt-1.5 rounded-full shrink-0 ${notif.isRead ? 'bg-slate-200 dark:bg-slate-700' : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]'}`}></div>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-slate-900 dark:text-white">Nouveau document versé</p>
-                  <p className="text-xs text-slate-500 italic">Affaire Dupont vs État • Il y a 2h</p>
+                  <p className={`text-xs font-bold ${notif.isRead ? 'text-slate-500' : 'text-slate-900 dark:text-white'}`}>{notif.title}</p>
+                  <p className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed">{notif.message.split('(Ref:')[0]}</p>
+                  <p className="text-[9px] text-slate-400 font-medium uppercase tracking-tighter pt-1">{new Date(notif.createdAt).toLocaleTimeString()} • AUJOURD'HUI</p>
                 </div>
               </div>
             ))}
           </div>
-          <button className="w-full mt-8 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors border-t border-slate-100 dark:border-slate-800 pt-4">
-            Voir tout l'historique
+          <button className="w-full mt-8 py-3 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-amber-600 transition-all border-t border-slate-100 dark:border-slate-800 pt-4 flex items-center justify-center gap-2">
+            VOIR TOUTES LES NOTIFICATIONS <ArrowRight size={14} />
           </button>
         </div>
       </div>

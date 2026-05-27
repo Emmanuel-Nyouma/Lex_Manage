@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 export const useKeyboardShortcut = (key, callback, metaKey = true) => {
   useEffect(() => {

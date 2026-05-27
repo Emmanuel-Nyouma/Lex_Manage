@@ -3,13 +3,28 @@ import {
   Users, UserPlus, Shield, Mail, Trash2, Loader2, CheckCircle2 
 } from 'lucide-react';
 import { Card, Button, Input, Badge } from './UI';
-import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
 
+// SECURITY FIX #5: Import store for role-based access control
+import useLexStore from '../store/useLexStore';
+
 const AdminView = () => {
+  const { currentUser } = useLexStore();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("avocat");
   const [isInviting, setIsInviting] = useState(false);
+
+  // SECURITY FIX #5: Role-Based Access Control
+  const isAdmin = currentUser?.role === 'admin';
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-slate-500 animate-in fade-in duration-500">
+        <Shield size={48} className="mb-4 text-slate-300" />
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Accès Restreint</h2>
+        <p>Seuls les administrateurs peuvent accéder à cette section.</p>
+      </div>
+    );
+  }
 
   const handleInvite = async (e) => {
     e.preventDefault();
@@ -19,14 +34,17 @@ const AdminView = () => {
     const toastId = toast.loading(`Envoi de l'invitation à ${email}...`);
 
     try {
+      /* 
       // Note: On appelle une Edge Function car le frontend n'a pas les droits 'service_role'
-      const { data, error } = await supabase.functions.invoke('invite-member', {
+      const { error } = await supabase.functions.invoke('invite-member', {
         body: { email, role }
       });
 
       if (error) throw error;
-
-      toast.success("Invitation envoyée avec succès !", { id: toastId });
+      */
+      
+      toast.error("Le backend Supabase est désactivé.");
+      // toast.success("Invitation envoyée avec succès !", { id: toastId });
       setEmail("");
     } catch (err) {
       console.error(err);
@@ -97,30 +115,32 @@ const AdminView = () => {
               <Badge variant="info">3 Membres</Badge>
             </div>
 
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 text-[10px] uppercase font-bold text-slate-500">
-                <tr>
-                  <th className="px-6 py-4">Nom / Email</th>
-                  <th className="px-6 py-4">Rôle</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y dark:divide-slate-800">
-                <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                  <td className="px-6 py-4">
-                    <div className="font-medium">Maitre Emmanuel</div>
-                    <div className="text-xs text-slate-400 font-mono">admin@lexmanage.com</div>
-                  </td>
-                  <td className="px-6 py-4"><Badge variant="info">Admin</Badge></td>
-                  <td className="px-6 py-4 text-emerald-500"><CheckCircle2 size={16} /></td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="p-2 text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
-                  </td>
-                </tr>
-                {/* D'autres lignes ici... */}
-              </tbody>
-            </table>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 text-[10px] uppercase font-bold text-slate-500">
+                  <tr>
+                    <th className="px-6 py-4">Nom / Email</th>
+                    <th className="px-6 py-4">Rôle</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y dark:divide-slate-800">
+                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <td className="px-6 py-4">
+                      <div className="font-medium">Maitre Emmanuel</div>
+                      <div className="text-xs text-slate-400 font-mono">admin@lexmanage.com</div>
+                    </td>
+                    <td className="px-6 py-4"><Badge variant="info">Admin</Badge></td>
+                    <td className="px-6 py-4 text-emerald-500"><CheckCircle2 size={16} /></td>
+                    <td className="px-6 py-4 text-right">
+                      <button className="p-2 text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
+                    </td>
+                  </tr>
+                  {/* D'autres lignes ici... */}
+                </tbody>
+              </table>
+            </div>
           </Card>
         </div>
       </div>

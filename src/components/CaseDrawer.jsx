@@ -4,14 +4,21 @@ import {
 } from 'lucide-react';
 import { Badge } from './UI';
 
+import { useDeadlines, useCreateDeadline, useMarkDeadlineDone } from '../hooks/useCases';
+
 const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [draftEmail, setDraftEmail] = useState(null);
-  const [timelineEvents, setTimelineEvents] = useState([
-    { id: 1, date: '2023-10-30', event: 'Motion to Dismiss', description: 'Scheduled hearing in federal court.', status: 'upcoming' },
-    { id: 2, date: '2023-09-15', event: 'Discovery Phase', description: 'All relevant documents exchanged.', status: 'completed' },
-  ]);
+  
+  // Real Deadlines Hooks
+  const { data: deadlines, isLoading: isLoadingDeadlines } = useDeadlines(activeCase?.id);
+  const createDeadline = useCreateDeadline(activeCase?.id);
+  const markDone = useMarkDeadlineDone(activeCase?.id);
+
+  const [newDeadlineTitle, setNewDeadlineTitle] = useState('');
+  const [newDeadlineDate, setNewDeadlineDate] = useState('');
+  const [isAddingDeadline, setIsNewAddingDeadline] = useState(false);
 
   // Task 2: Global Navigation & Close Triggers
   useEffect(() => {
@@ -24,21 +31,35 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
 
   if (!activeCase) return null;
 
+  const handleAddDeadline = async (e) => {
+    e.preventDefault();
+    if (!newDeadlineTitle || !newDeadlineDate) return;
+    
+    await createDeadline.mutateAsync({
+      title: newDeadlineTitle,
+      dueAt: newDeadlineDate,
+      priority: 'MEDIUM'
+    });
+    
+    setNewDeadlineTitle('');
+    setNewDeadlineDate('');
+    setIsNewAddingDeadline(false);
+  };
+
   const generateTimeline = async () => {
     setIsAnalyzing(true);
     setAiAnalysis(null);
     setDraftEmail(null);
     
-    const prompt = `Based on this case: ${activeCase.name} (${activeCase.type}), create a realistic, professional chronological timeline of 4 key events (past and future). 
-    Return ONLY a JSON array of objects with fields: date (YYYY-MM-DD), event (short title), description (one sentence), status (either 'completed' or 'upcoming').
-    The dates should be around late 2023 and early 2024.`;
+    const prompt = `Based on this case: ${activeCase.title} (Client: ${activeCase.client_name}), create a realistic, professional chronological timeline of 4 key events (past and future). 
+    Return ONLY a JSON array of objects with fields: date (YYYY-MM-DD), event (short title), description (one sentence), status (either 'completed' or 'upcoming').`;
     
     try {
       const result = await onCallGemini(prompt, "You are a legal operations expert. Output ONLY valid JSON.");
-      // Clean result in case of markdown blocks
       const jsonStr = result.replace(/```json|```/g, '').trim();
       const events = JSON.parse(jsonStr);
-      setTimelineEvents(events);
+      // We could ideally sync this to DB, but for now we just show it
+      // setTimelineEvents(events); 
     } catch (e) {
       console.error("Failed to parse timeline JSON", e);
     } finally {
@@ -50,11 +71,9 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
     setIsAnalyzing(true);
     setDraftEmail(null); 
     const prompt = `Act as a senior partner at a top law firm. Provide a brief, strategic assessment for the following case:
-    Case Name: ${activeCase.name}
-    Type: ${activeCase.type}
-    Client: ${activeCase.client}
+    Case Name: ${activeCase.title}
+    Client: ${activeCase.client_name}
     Status: ${activeCase.status}
-    Amount: ${activeCase.amount}
     
     Format the output with bold headings for "Risk Assessment", "Key Precedent", and "Recommended Strategy". Keep it concise (under 150 words).`;
     
@@ -66,8 +85,8 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
   const generateClientEmail = async () => {
     setIsAnalyzing(true);
     setAiAnalysis(null);
-    const prompt = `Draft a professional email to the client '${activeCase.client}' regarding their case '${activeCase.name}'. 
-    The current status is '${activeCase.status}' and the next deadline is '${activeCase.deadline}'.
+    const prompt = `Draft a professional email to the client '${activeCase.client_name}' regarding their case '${activeCase.title}'. 
+    The current status is '${activeCase.status}'.
     The tone should be professional, reassuring, and concise.`;
     
     const result = await onCallGemini(prompt, "You are an expert legal secretary.");
@@ -81,9 +100,9 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
       <div className={`fixed inset-y-0 right-0 w-full sm:w-[500px] bg-white dark:bg-slate-900 shadow-2xl z-50 animate-in slide-in-from-right duration-300 flex flex-col border-l border-slate-200 dark:border-slate-800 transition-all ${activeCase ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-white dark:bg-slate-900 sticky top-0 z-10">
            <div>
-              <Badge variant={activeCase.status === 'Active' ? 'success' : 'default'}>{activeCase.status}</Badge>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white mt-2 leading-tight">{activeCase.name}</h2>
-              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium">{activeCase.client} • {activeCase.type}</p>
+              <Badge variant={activeCase.status === 'Active' || activeCase.status === 'en cours' ? 'success' : 'default'}>{activeCase.status}</Badge>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white mt-2 leading-tight">{activeCase.title}</h2>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium">{activeCase.client_name} • {activeCase.courtName || 'Juridiction non définie'}</p>
            </div>
            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
              <X size={20} />
@@ -128,62 +147,88 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
              )}
            </div>
 
-           <div className="grid grid-cols-2 gap-4">
-             <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800/50 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800">
-                <div className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest mb-1">Value</div>
-                <div className="font-bold text-slate-900 dark:text-white text-lg">{activeCase.amount}</div>
-             </div>
-             <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800/50 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800">
-                <div className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest mb-1">Deadline</div>
-                <div className="font-bold text-red-600 dark:text-red-500 text-lg">{activeCase.deadline}</div>
-             </div>
-           </div>
-
            <div>
               <div className="flex justify-between items-center mb-5">
-                <h3 className="font-bold text-slate-800 dark:text-slate-200 tracking-tight">Case Timeline</h3>
+                <h3 className="font-bold text-slate-800 dark:text-slate-200 tracking-tight flex items-center gap-2">
+                  <Clock size={18} className="text-amber-500" /> Échéances Critiques
+                </h3>
                 <button 
-                  onClick={generateTimeline}
-                  disabled={isAnalyzing}
-                  className="text-[10px] flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-amber-900/30 text-slate-600 dark:text-slate-400 px-2.5 py-1.5 rounded-lg transition-all font-bold uppercase tracking-wider"
+                  onClick={() => setIsNewAddingDeadline(true)}
+                  className="text-[10px] flex items-center gap-1.5 bg-slate-900 dark:bg-slate-800 text-white px-2.5 py-1.5 rounded-lg transition-all font-bold uppercase tracking-wider"
                 >
-                  {isAnalyzing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} className="text-amber-500" />}
-                  Smart Scan
+                  <Plus size={12} /> Ajouter
                 </button>
               </div>
+
+              {isAddingDeadline && (
+                <form onSubmit={handleAddDeadline} className="mb-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3 animate-in zoom-in-95">
+                  <input 
+                    autoFocus
+                    placeholder="Titre de l'échéance..."
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-500/20"
+                    value={newDeadlineTitle}
+                    onChange={(e) => setNewDeadlineTitle(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <input 
+                      type="date"
+                      className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none"
+                      value={newDeadlineDate}
+                      onChange={(e) => setNewDeadlineDate(e.target.value)}
+                    />
+                    <button type="submit" className="bg-amber-600 text-white px-4 rounded-lg font-bold text-xs">OK</button>
+                    <button type="button" onClick={() => setIsNewAddingDeadline(false)} className="text-slate-400 px-2">Annuler</button>
+                  </div>
+                </form>
+              )}
+
               <div className="relative border-l-2 border-slate-200 dark:border-slate-800 ml-3 space-y-8">
-                 {timelineEvents.map((event, idx) => (
-                   <div key={idx} className={`ml-6 relative ${event.status === 'completed' ? 'opacity-50' : ''}`}>
-                      <div className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border-4 border-white dark:border-slate-900 shadow-sm ${event.status === 'completed' ? 'bg-slate-300 dark:bg-slate-700' : 'bg-amber-500 ring-4 ring-amber-500/20 animate-pulse'}`}></div>
-                      <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">{event.event}</p>
-                      <p className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">{event.date}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">{event.description}</p>
-                   </div>
-                 ))}
+                 {isLoadingDeadlines ? (
+                   <div className="ml-6 py-4"><Loader2 className="animate-spin text-amber-500" size={16} /></div>
+                 ) : deadlines?.length > 0 ? (
+                   deadlines.map((deadline) => (
+                     <div key={deadline.id} className={`ml-6 relative ${deadline.isDone ? 'opacity-50' : ''}`}>
+                        <button 
+                          onClick={() => !deadline.isDone && markDone.mutate(deadline.id)}
+                          className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border-4 border-white dark:border-slate-900 shadow-sm transition-all ${deadline.isDone ? 'bg-emerald-500' : 'bg-amber-500 ring-4 ring-amber-500/20 hover:scale-125'}`}
+                        ></button>
+                        <p className={`text-sm font-bold leading-tight ${deadline.isDone ? 'line-through text-slate-500' : 'text-slate-900 dark:text-white'}`}>{deadline.title}</p>
+                        <p className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">{new Date(deadline.dueAt).toLocaleDateString()}</p>
+                     </div>
+                   ))
+                 ) : (
+                   <div className="ml-6 text-xs text-slate-400 italic">Aucune échéance planifiée.</div>
+                 )}
               </div>
            </div>
 
            <div>
-              <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-4 tracking-tight">Legal Team</h3>
-              <div className="flex flex-wrap gap-2">
-                 {activeCase.members.map((m,i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-sm hover:border-amber-300 dark:hover:border-amber-900/50 transition-colors">
-                       <div className="w-6 h-6 bg-slate-900 dark:bg-slate-700 rounded-full text-white flex items-center justify-center text-[10px] font-bold shadow-sm">{m}</div>
-                       <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Attorney</span>
+              <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-4 tracking-tight flex items-center gap-2">
+                <FileText size={18} className="text-blue-500" /> Documents Associés
+              </h3>
+              <div className="space-y-3">
+                {activeCase.documents?.map((doc) => (
+                  <div key={doc.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg">
+                        <FileText size={14} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{doc.title}</p>
+                        <p className="text-[10px] text-slate-500 uppercase">{doc.fileType}</p>
+                      </div>
                     </div>
-                 ))}
-                 <button className="w-9 h-9 rounded-full border-2 border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:border-amber-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-all">
-                    <Plus size={16} />
-                 </button>
+                  </div>
+                ))}
+                {(!activeCase.documents || activeCase.documents.length === 0) && (
+                  <p className="text-xs text-slate-400 italic">Aucun document.</p>
+                )}
               </div>
            </div>
         </div>
         <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex gap-3 sticky bottom-0">
            <button className="flex-1 py-3 bg-slate-900 dark:bg-amber-600 text-white rounded-xl text-sm font-bold hover:bg-slate-800 dark:hover:bg-amber-700 transition-all active:scale-[0.98] shadow-lg shadow-slate-200 dark:shadow-none">
-             Open Full File
-           </button>
-           <button className="flex-1 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-[0.98] shadow-sm">
-             Log Hours
+             Ouvrir le dossier complet
            </button>
         </div>
       </div>

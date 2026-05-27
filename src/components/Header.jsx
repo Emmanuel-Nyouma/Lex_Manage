@@ -1,55 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Bell, Bot, FileText, Briefcase, Loader2, X, Check, Clock } from 'lucide-react';
-import { toast } from 'sonner';
-import { supabase } from '../lib/supabase';
+import { Search, Bell, Bot, FileText, Briefcase, Loader2, X as XIcon, Check, Clock, Menu, AlertCircle, User, Users } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useNotifications } from '../hooks/useNotifications';
 import useLexStore from '../store/useLexStore';
+import { SearchPalette } from './search/SearchPalette';
 
-const Header = ({ onOpenAi }) => {
+const Header = ({ onOpenAi, onToggleMobileSidebar }) => {
   const { currentUser } = useLexStore();
   const navigate = useNavigate();
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showResults, setShowResults] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   
-  const searchRef = useRef(null);
   const notificationRef = useRef(null);
 
   const { notifications, unreadCount, markAsRead } = useNotifications();
 
-  // Debounce Search
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (query.trim().length < 2) {
-        setResults([]);
-        return;
-      }
-
-      setIsSearching(true);
-      try {
-        const { data, error } = await supabase.rpc('search_app', { query_text: query });
-        if (error) throw error;
-        setResults(data || []);
-        setShowResults(true);
-      } catch (err) {
-        console.error("Search error:", err);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [query]);
-
   // Close menus on click outside
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (searchRef.current && !searchRef.current.contains(e.target)) {
-        setShowResults(false);
-      }
       if (notificationRef.current && !notificationRef.current.contains(e.target)) {
         setShowNotifications(false);
       }
@@ -58,66 +26,37 @@ const Header = ({ onOpenAi }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleResultClick = (res) => {
-    setShowResults(false);
-    setQuery('');
-    if (res.type === 'case') navigate(`/cases/${res.id}`);
-    else navigate(`/documents`);
-  };
-
   const handleNotificationRead = async (e, id) => {
     e.stopPropagation();
     await markAsRead(id);
   };
 
   return (
-    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 sticky top-0 z-20 shadow-sm">
+    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-20 shadow-sm gap-4">
       
-      {/* Barre de Recherche Globale */}
-      <div className="flex items-center flex-1 max-w-xl relative" ref={searchRef}>
-        <div className="w-full flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl px-4 py-2 focus-within:ring-2 focus-within:ring-amber-500/50 transition-all group">
-          {isSearching ? (
-            <Loader2 size={18} className="text-amber-500 animate-spin mr-2" />
-          ) : (
-            <Search size={18} className="text-slate-400 mr-2 group-focus-within:text-amber-500 transition-colors" />
-          )}
-          <input 
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => query.length > 1 && setShowResults(true)}
-            className="bg-transparent border-none focus:outline-none text-sm w-full text-slate-700 dark:text-slate-200 placeholder:text-slate-400" 
-            placeholder="Chercher un dossier ou une pièce... (⌘K)" 
-          />
-          {query && (
-            <button onClick={() => setQuery('')} className="text-slate-400 hover:text-slate-600 p-1">
-              <X size={14} />
-            </button>
-          )}
-        </div>
+      {/* Mobile Hamburger Menu */}
+      <button 
+        onClick={onToggleMobileSidebar}
+        className="md:hidden p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+        aria-label="Ouvrir le menu de navigation"
+      >
+        <Menu size={20} aria-hidden="true" />
+      </button>
 
-        {/* Menu Déroulant des Résultats */}
-        {showResults && results.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 z-50">
-            <div className="max-h-[400px] overflow-y-auto">
-              {results.map((res) => (
-                <button
-                  key={`${res.type}-${res.id}`}
-                  onClick={() => handleResultClick(res)}
-                  className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left border-b border-slate-50 dark:border-slate-800 last:border-0"
-                >
-                  <div className={`p-2 rounded-lg ${res.type === 'case' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
-                    {res.type === 'case' ? <Briefcase size={16} /> : <FileText size={16} />}
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-slate-900 dark:text-white">{res.title}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">{res.subtitle}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+      {/* Global Search Button */}
+      <div className="flex items-center flex-1 max-w-xl">
+        <button 
+          onClick={() => setIsSearchOpen(true)}
+          className="w-full flex items-center gap-3 bg-slate-100 dark:bg-slate-800 rounded-xl px-4 py-2 text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+        >
+          <Search size={18} />
+          <span className="text-sm">Rechercher...</span>
+          <span className="ml-auto text-[10px] bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-500 font-mono">⌘K</span>
+        </button>
       </div>
+
+      <SearchPalette isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+
 
       <div className="flex items-center gap-4">
         {/* Notifications Dropdown */}
@@ -125,8 +64,9 @@ const Header = ({ onOpenAi }) => {
           <button 
             onClick={() => setShowNotifications(!showNotifications)} 
             className={`relative p-2 rounded-lg transition-colors ${showNotifications ? 'bg-slate-100 dark:bg-slate-800 text-amber-500' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+            aria-label="Ouvrir les notifications"
           >
-            <Bell size={20} />
+            <Bell size={20} aria-hidden="true" />
             {unreadCount > 0 && (
               <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center animate-in zoom-in">
                 {unreadCount > 9 ? '9+' : unreadCount}
@@ -135,7 +75,7 @@ const Header = ({ onOpenAi }) => {
           </button>
 
           {showNotifications && (
-            <div className="absolute top-full right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 z-50">
+            <div className="absolute top-full right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 z-50 ring-1 ring-slate-200 dark:ring-slate-800">
               <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                 <h3 className="font-bold text-slate-900 dark:text-white">Notifications</h3>
                 {unreadCount > 0 && <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider">{unreadCount} nouvelles</span>}
@@ -145,7 +85,7 @@ const Header = ({ onOpenAi }) => {
                   notifications.map((notif) => (
                     <div 
                       key={notif.id}
-                      className={`p-4 border-b border-slate-50 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors relative group ${!notif.is_read ? 'bg-amber-50/30 dark:bg-amber-900/10' : ''}`}
+                      className={`p-4 border-b border-slate-50 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors relative group ${!notif.isRead ? 'bg-amber-50/30 dark:bg-amber-900/10' : ''}`}
                     >
                       <div className="flex gap-3">
                         <div className={`p-2 h-fit rounded-lg ${notif.priority === 'high' ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
@@ -154,19 +94,20 @@ const Header = ({ onOpenAi }) => {
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-start mb-1">
                             <span className="text-sm font-bold text-slate-900 dark:text-white truncate">{notif.title}</span>
-                            {!notif.is_read && (
+                            {!notif.isRead && (
                               <button 
                                 onClick={(e) => handleNotificationRead(e, notif.id)}
                                 className="p-1 text-slate-400 hover:text-emerald-500 transition-colors opacity-0 group-hover:opacity-100"
+                                aria-label="Marquer la notification comme lue"
                                 title="Marquer comme lu"
                               >
-                                <Check size={14} />
+                                <Check size={14} aria-hidden="true" />
                               </button>
                             )}
                           </div>
                           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{notif.message}</p>
                           <span className="text-[10px] text-slate-400 mt-2 block italic">
-                            {new Date(notif.created_at).toLocaleString()}
+                            {new Date(notif.createdAt).toLocaleString()}
                           </span>
                         </div>
                       </div>
@@ -187,23 +128,26 @@ const Header = ({ onOpenAi }) => {
 
         <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block"></div>
         
-        <div className="h-6 w-px bg-slate-200 dark:bg-slate-800"></div>
-        <button onClick={onOpenAi} className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-sm font-bold transition-all shadow-sm">
-          <Bot size={18} />
-          <span className="hidden sm:inline">Assistant IA</span>
+        <button 
+          onClick={onOpenAi} 
+          className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-sm font-bold transition-all shadow-sm ring-1 ring-amber-400/50"
+          aria-label="Ouvrir l'assistant iA LexAssist"
+        >
+          <Bot size={18} aria-hidden="true" />
+          <span className="hidden sm:inline">LexAssist IA</span>
         </button>
 
         <div className="h-6 w-px bg-slate-200 dark:bg-slate-800"></div>
 
         {/* User Profile Summary */}
         <Link to="/profile" className="flex items-center gap-3 p-1 pr-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all group">
-          <div className="w-9 h-9 rounded-full bg-slate-900 dark:bg-amber-600 text-white flex items-center justify-center text-xs font-bold border-2 border-white dark:border-slate-800 shadow-sm">
-             {currentUser?.first_name?.charAt(0) || currentUser?.last_name?.charAt(0) || '?'}
+          <div className="w-9 h-9 rounded-full bg-slate-900 dark:bg-amber-600 text-white flex items-center justify-center text-xs font-bold border-2 border-white dark:border-slate-800 shadow-sm transition-transform group-hover:scale-105">
+             {currentUser?.firstName?.charAt(0) || currentUser?.lastName?.charAt(0) || '?'}
           </div>
           <div className="hidden md:block text-left">
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">Maître</div>
             <div className="text-sm font-bold text-slate-900 dark:text-white leading-none">
-              {currentUser?.first_name} {currentUser?.last_name}
+              {currentUser?.firstName} {currentUser?.lastName}
             </div>
           </div>
         </Link>

@@ -46,7 +46,7 @@ class GlobalErrorBoundary extends React.Component {
             Recharger l'application
           </button>
 
-          {process.env.NODE_ENV === 'development' && (
+          {import.meta.env.DEV && (
             <div className="mt-8 p-4 bg-slate-200 dark:bg-slate-800 rounded-lg text-xs text-left overflow-auto max-w-full font-mono text-red-500">
               <p className="font-bold mb-2 underline">Détails techniques (Dev uniquement) :</p>
               {this.state.error?.toString()}

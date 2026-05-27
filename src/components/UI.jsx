@@ -1,5 +1,5 @@
-import React, { forwardRef } from 'react';
-import { Loader2 } from 'lucide-react';
+import React, { forwardRef, useId, useState } from 'react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 export const Button = forwardRef(({ 
   children, 
@@ -14,7 +14,7 @@ export const Button = forwardRef(({
   const baseStyles = "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]";
   
   const variants = {
-    primary: "bg-slate-900 dark:bg-amber-600 text-white hover:bg-slate-800 dark:hover:bg-amber-700 shadow-sm",
+    primary: "bg-slate-900 dark:bg-amber-500 text-white dark:text-slate-950 hover:bg-slate-800 dark:hover:bg-amber-600 shadow-sm",
     secondary: "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700",
     ghost: "bg-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800",
     danger: "bg-red-600 text-white hover:bg-red-700 shadow-sm"
@@ -31,6 +31,7 @@ export const Button = forwardRef(({
       ref={ref}
       className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
       disabled={isLoading || disabled}
+      aria-busy={isLoading}
       {...props}
     >
       {isLoading ? (
@@ -50,26 +51,41 @@ export const Input = forwardRef(({
   error, 
   icon: Icon, 
   className = '', 
+  type,
+  id,
   ...props 
 }, ref) => {
+  const generatedId = useId();
+  const inputId = id || generatedId;
+  const errorId = error ? `${inputId}-error` : undefined;
+  
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === 'password';
+  const inputType = isPassword ? (showPassword ? 'text' : 'password') : type;
+
   return (
     <div className="w-full space-y-1.5">
       {label && (
-        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+        <label htmlFor={inputId} className="block text-sm font-medium text-slate-700 dark:text-slate-300">
           {label}
         </label>
       )}
       <div className="relative group">
         {Icon && (
           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors">
-            <Icon size={18} />
+            <Icon size={18} aria-hidden="true" />
           </div>
         )}
         <input
           ref={ref}
+          id={inputId}
+          type={inputType}
+          aria-invalid={!!error}
+          aria-errormessage={errorId}
           className={`
             w-full bg-white dark:bg-slate-900 border rounded-lg py-2.5 text-sm transition-all outline-none
-            ${Icon ? 'pl-10 pr-4' : 'px-4'}
+            ${Icon ? 'pl-10' : 'pl-4'}
+            ${isPassword ? 'pr-10' : 'pr-4'}
             ${error 
               ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' 
               : 'border-slate-200 dark:border-slate-800 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20'
@@ -79,9 +95,20 @@ export const Input = forwardRef(({
           `}
           {...props}
         />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors"
+            aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+            title={showPassword ? "Masquer" : "Afficher"}
+          >
+            {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+          </button>
+        )}
       </div>
       {error && (
-        <p className="text-xs text-red-500 font-medium animate-in fade-in slide-in-from-top-1">
+        <p id={errorId} className="text-xs text-red-500 font-medium animate-in fade-in slide-in-from-top-1">
           {error}
         </p>
       )}

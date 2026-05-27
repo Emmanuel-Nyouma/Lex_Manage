@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --primary: 43 96% 56%;
+    --primary-foreground: 222 84% 4.9%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 43 96% 56%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; }
+}
+
+/* Custom scrollbar – global defaults */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: hsl(222 84% 4.9%); }
+::-webkit-scrollbar-thumb { background: hsl(217 33% 22%); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(43 96% 56% / 0.5); }
+
+/* Scoped scrollbar class (used in chat, cases, settings) */
+.custom-scrollbar::-webkit-scrollbar { width: 5px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: hsl(217 33% 22%); border-radius: 9999px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: hsl(43 96% 56% / 0.4); }
+.custom-scrollbar { scrollbar-width: thin; scrollbar-color: hsl(217 33% 22%) transparent; }
+
+/* Shared form input component (login, register, modals) */
+@layer components {
+  .input-field {
+    @apply w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all;
+  }
+}

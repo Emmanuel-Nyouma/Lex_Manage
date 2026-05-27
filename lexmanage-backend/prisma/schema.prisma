@@ -1,0 +1,278 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum Role {
+  SUPER_ADMIN
+  CABINET_ADMIN
+  LAWYER
+  ASSISTANT
+  SECRETARY
+}
+
+enum CaseStatus {
+  OPEN
+  IN_PROGRESS
+  PENDING
+  CLOSED
+  ARCHIVED
+}
+
+enum DocumentStatus {
+  UPLOADED
+  OCR_PENDING
+  OCR_DONE
+  INDEXED
+  ERROR
+}
+
+// ==========================================
+// CORE MULTI-TENANT MODELS
+// ==========================================
+
+model Client {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name        String
+  email       String?
+  phone       String?
+  address     String?
+  type_client String   // 'physique' | 'morale'
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@map("clients")
+}
+
+model Tenant {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  plan        String   @default("FREE")
+  country     String?
+  city        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  users         User[]
+  cases         Case[]
+  clients       Client[]
+  documents     Document[]
+  conversations ChatConversation[]
+  auditLogs     AuditLog[]
+  invitations   Invitation[]
+  notifications Notification[]
+  deadlines     Deadline[]
+
+  @@map("tenants")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  phone        String?
+  role         Role     @default(LAWYER)
+  barreau      String?  @map("barreau")
+  specialty    String?  @map("specialty")
+  isActive     Boolean  @default(true) @map("is_active")
+  avatarUrl    String?  @map("avatar_url")
+
+  refreshToken         String?  @map("refresh_token")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  cases         Case[]             @relation("CaseAssignee")
+  documents     Document[]         @relation("DocumentUploader")
+  conversations ChatConversation[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+
+  @@index([tenantId])
+  @@map("users")
+}
+
+model Invitation {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  email     String
+  role      Role     @default(LAWYER)
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId])
+  @@index([token])
+  @@map("invitations")
+}
+
+model Case {
+  id           String     @id @default(uuid())
+  tenantId     String     @map("tenant_id")
+  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  title        String
+  description  String?
+  clientName   String     @map("client_name")
+  caseNumber   String?    @map("case_number")
+  courtName    String?    @map("court_name")
+  status       CaseStatus @default(OPEN)
+  priority     String     @default("MEDIUM")
+
+  assigneeId   String?    @map("assignee_id")
+  assignee     User?      @relation("CaseAssignee", fields: [assigneeId], references: [id])
+
+  documents    Document[]
+  deadlines    Deadline[]
+
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  closedAt     DateTime?  @map("closed_at")
+
+  @@index([tenantId])
+  @@index([status])
+  @@map("cases")
+}
+
+model Document {
+  id         String         @id @default(uuid())
+  tenantId   String         @map("tenant_id")
+  tenant     Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  caseId     String?        @map("case_id")
+  case       Case?          @relation(fields: [caseId], references: [id])
+
+  uploaderId String         @map("uploader_id")
+  uploader   User           @relation("DocumentUploader", fields: [uploaderId], references: [id])
+
+  title      String
+  fileName   String         @map("file_name")
+  fileUrl    String         @map("file_url")   // MinIO URL
+  fileType   String         @map("file_type")
+  fileSize   Int            @map("file_size")
+  status     DocumentStatus @default(UPLOADED)
+  qdrantId   String?        @map("qdrant_id")  // ID of the vector in Qdrant
+
+  createdAt  DateTime       @default(now()) @map("created_at")
+
+  @@index([tenantId])
+  @@index([caseId])
+  @@map("documents")
+}
+
+model ChatConversation {
+  id       String  @id @default(uuid())
+  tenantId String  @map("tenant_id")
+  tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId   String  @map("user_id")
+  user     User    @relation(fields: [userId], references: [id])
+  title    String  @default("Nouvelle conversation")
+
+  messages ChatMessage[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@index([userId])
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id             String           @id @default(uuid())
+  conversationId String           @map("conversation_id")
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String           // "user" | "assistant"
+  content        String
+  sources        Json?            // RAG sources used from Qdrant
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([conversationId])
+  @@map("chat_messages")
+}
+
+model AuditLog {
+  id       String  @id @default(uuid())
+  tenantId String  @map("tenant_id")
+  tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId   String  @map("user_id")
+  user     User    @relation(fields: [userId], references: [id])
+
+  action   String  // e.g. CREATE_CASE, DELETE_DOCUMENT
+  entity   String  // e.g. CASE, DOCUMENT, USER
+  entityId String  @map("entity_id")
+  details  Json?
+  ipAddress String? @map("ip_address")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId])
+  @@index([userId])
+  @@map("audit_logs")
+}
+
+model Deadline {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  caseId    String   @map("case_id")
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  title     String
+  dueAt     DateTime @map("due_at")
+  priority  String   @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  isDone    Boolean  @default(false) @map("is_done")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@index([caseId])
+  @@map("deadlines")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title     String
+  message   String
+  priority  String   @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  isRead    Boolean  @default(false) @map("is_read")
+  type      String?  @map("type") // e.g. DEADLINE_REMINDER, SYSTEM
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId])
+  @@index([userId])
+  @@map("notifications")
+}
