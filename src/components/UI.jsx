@@ -139,3 +139,7 @@ export const Badge = ({ children, variant = 'neutral', className = '' }) => {
     </span>
   );
 };
+
+export const Skeleton = ({ className = "" }) => (
+  <div className={`animate-pulse bg-slate-200 dark:bg-slate-800 rounded-lg ${className}`} />
+);

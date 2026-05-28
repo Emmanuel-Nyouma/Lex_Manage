@@ -40,10 +40,27 @@ const CaseManagementView = () => {
     );
   }, [cases, searchQuery]);
 
+import { Skeleton } from './UI';
+// ... existing imports
+
+const CaseManagementView = () => {
+  // ... existing hooks
+  
   if (isLoading) {
     return (
-      <div className="h-64 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
+      <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+           <Skeleton className="h-10 w-64" />
+           <Skeleton className="h-10 w-40" />
+        </div>
+        <Card className="p-0 overflow-hidden">
+          <div className="p-4 border-b border-slate-100 dark:border-slate-800"><Skeleton className="h-8 w-full" /></div>
+          <div className="p-6 space-y-4">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        </Card>
       </div>
     );
   }
