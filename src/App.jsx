@@ -36,12 +36,12 @@ const ProtectedRoute = ({ children, session }) => {
 const AdminRoute = ({ children, session, currentUser }) => {
   if (!session) return <Navigate to="/login" replace />;
   
-  // Wait if currentUser is not yet loaded but session exists
-  if (!currentUser) return null; 
-
-  const isAdmin = currentUser.role === 'CABINET_ADMIN' || currentUser.role === 'SUPER_ADMIN';
-  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+  // If we already have the user and they aren't an admin, redirect
+  if (currentUser && currentUser.role !== 'CABINET_ADMIN' && currentUser.role !== 'SUPER_ADMIN') {
+    return <Navigate to="/dashboard" replace />;
+  }
   
+  // Otherwise, render children (AdminView will handle its own loading/role check)
   return children;
 };
 
