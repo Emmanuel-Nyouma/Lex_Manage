@@ -1,25 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import apiClient from '../lib/api';
+import { QUERY_KEYS } from '../lib/queryKeys';
 import { toast } from 'sonner';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
-
-const apiClient = axios.create({
-  baseURL: API_URL,
-});
-
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
 
 // Hook pour récupérer tous les dossiers actifs
 export const useCases = () => {
   return useQuery({
-    queryKey: ['cases'],
+    queryKey: QUERY_KEYS.cases,
     queryFn: async () => {
-      const { data } = await apiClient.get('/cases');
+      const { data } = await apiClient.get('/api/v1/cases');
       return data;
     },
   });
@@ -31,11 +20,11 @@ export const useCreateCase = () => {
 
   return useMutation({
     mutationFn: async (newCase) => {
-      const { data } = await apiClient.post('/cases', newCase);
+      const { data } = await apiClient.post('/api/v1/cases', newCase);
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cases'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.cases });
       toast.success("Le dossier a été créé avec succès");
     },
     onError: (error) => {
@@ -50,10 +39,10 @@ export const useDeleteCase = () => {
 
   return useMutation({
     mutationFn: async (id) => {
-      await apiClient.delete(`/cases/${id}`);
+      await apiClient.delete(`/api/v1/cases/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cases'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.cases });
       toast.success("Dossier supprimé avec succès");
     },
     onError: (error) => {
@@ -65,10 +54,10 @@ export const useDeleteCase = () => {
 // Hook pour récupérer les délais d'un dossier
 export const useDeadlines = (caseId) => {
   return useQuery({
-    queryKey: ['deadlines', caseId],
+    queryKey: [...QUERY_KEYS.cases, caseId, 'deadlines'],
     queryFn: async () => {
       if (!caseId) return [];
-      const { data } = await apiClient.get(`/cases/${caseId}/deadlines`);
+      const { data } = await apiClient.get(`/api/v1/cases/${caseId}/deadlines`);
       return data;
     },
     enabled: !!caseId,
@@ -81,11 +70,11 @@ export const useCreateDeadline = (caseId) => {
 
   return useMutation({
     mutationFn: async (newDeadline) => {
-      const { data } = await apiClient.post(`/cases/${caseId}/deadlines`, newDeadline);
+      const { data } = await apiClient.post(`/api/v1/cases/${caseId}/deadlines`, newDeadline);
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['deadlines', caseId] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.cases, caseId, 'deadlines'] });
       toast.success("Échéance ajoutée");
     },
   });
@@ -97,10 +86,10 @@ export const useMarkDeadlineDone = (caseId) => {
 
   return useMutation({
     mutationFn: async (id) => {
-      await apiClient.patch(`/cases/${caseId}/deadlines/${id}/done`);
+      await apiClient.patch(`/api/v1/cases/${caseId}/deadlines/${id}/done`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['deadlines', caseId] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.cases, caseId, 'deadlines'] });
       toast.success("Échéance complétée");
     },
   });
