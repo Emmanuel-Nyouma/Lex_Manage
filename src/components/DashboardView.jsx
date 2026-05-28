@@ -12,11 +12,8 @@ import {
 import { 
   Briefcase, 
   Clock, 
-  Calendar, 
   TrendingUp,
-  AlertCircle,
   AlertTriangle,
-  ArrowRight,
   Send,
   Brain,
   FileText,
@@ -80,7 +77,8 @@ const DashboardChat = ({ firmId }) => {
   );
 };
 
-const StatCard = ({ icon: Icon, label, value, trend, color, subValue }) => {
+const StatCard = ({ icon, label, value, trend, color, subValue }) => {
+  const StatIcon = icon;
   const colorMap = {
     amber: "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-500",
     blue: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-500",
@@ -92,7 +90,7 @@ const StatCard = ({ icon: Icon, label, value, trend, color, subValue }) => {
     <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm group hover:shadow-md transition-all">
       <div className="flex justify-between items-start mb-4">
         <div className={`p-3 rounded-xl ${colorMap[color] || colorMap.amber}`}>
-          <Icon size={24} />
+          <StatIcon size={24} />
         </div>
         {trend && <Badge variant="success" className="text-[10px]">{trend}</Badge>}
       </div>
@@ -125,68 +123,77 @@ const DashboardView = () => {
   React.useEffect(() => { setIsMounted(true); }, []);
 
   const activeCasesCount = cases?.filter(c => c.status === 'OPEN' || c.status === 'en cours')?.length || 0;
-  const upcomingDeadlines = notifications.filter(n => n.type === 'DEADLINE_REMINDER' && !n.isRead).slice(0, 4);
-
+  
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Dashboard & AI Insights</h1>
-
-      {/* KPI Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
-        <StatCard icon={Briefcase} label="Active Cases" value={activeCasesCount} color="amber" />
-        <StatCard icon={Clock} label="Deadlines" value={notifications.filter(n => n.type === 'DEADLINE').length} color="blue" />
-        <StatCard icon={Brain} label="Summaries (AI)" value={aiData?.metrics.summariesGenerated || 0} color="purple" subValue="This week" />
-        <StatCard icon={AlertTriangle} label="At-risk" value={aiData?.metrics.urgentCases || 0} color="red" subValue="Hearing < 7d" />
-        <StatCard icon={FileText} label="Docs Analyzed" value={aiData?.metrics.docsAnalyzed || 0} color="amber" subValue="Today" />
+    <div className="space-y-10 animate-in fade-in duration-500 pb-10">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Executive Dashboard</h1>
+        <p className="text-slate-500 dark:text-slate-400 font-medium">Welcome back, {currentUser?.firstName}. Here's your firm's overview.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="font-bold mb-6 flex items-center gap-2">
-              <TrendingUp size={18} className="text-blue-500" /> Weekly Workload
-            </h3>
-            <div className="h-[280px] w-full">
-              {isMounted && (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
-                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                    <Tooltip />
-                    <Bar dataKey="hours" radius={[4, 4, 0, 0]} barSize={32}>
-                      {data.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.hours > 8 ? '#f59e0b' : '#3b82f6'} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
+      {/* KPI Section */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+        <StatCard icon={Briefcase} label="Active Cases" value={activeCasesCount} color="amber" />
+        <StatCard icon={Clock} label="Upcoming Deadlines" value={notifications.filter(n => n.type === 'DEADLINE').length} color="blue" />
+        <StatCard icon={Brain} label="AI Summaries" value={aiData?.metrics.summariesGenerated || 0} color="purple" subValue="Generated this week" />
+        <StatCard icon={AlertTriangle} label="At-risk Cases" value={aiData?.metrics.urgentCases || 0} color="red" subValue="Hearings < 7 days" />
+        <StatCard icon={FileText} label="Documents Analyzed" value={aiData?.metrics.docsAnalyzed || 0} color="amber" subValue="Processed today" />
+      </section>
+
+      {/* Main Content */}
+      <section className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        {/* Weekly Workload Chart */}
+        <div className="xl:col-span-2 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-8 flex items-center gap-2">
+            <TrendingUp size={20} className="text-blue-500" /> Weekly Workload
+          </h3>
+          <div className="h-[300px] w-full">
+            {isMounted && (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
+                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} dy={15} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
+                  <Tooltip 
+                    cursor={{fill: '#f1f5f9'}}
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} 
+                  />
+                  <Bar dataKey="hours" radius={[6, 6, 0, 0]} barSize={40}>
+                    {data.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.hours > 8 ? '#f59e0b' : '#3b82f6'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="font-bold mb-6 flex items-center gap-2">
-              <FileText size={18} className="text-purple-500" /> Automatic Summaries <Badge variant="neutral">AI</Badge>
+        {/* Sidebar Widgets */}
+        <div className="xl:col-span-1 space-y-8">
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+              <FileText size={20} className="text-purple-500" /> AI Summaries <Badge variant="neutral">AI</Badge>
             </h3>
-            {aiData?.casesWithSummary.map(c => (
-              <div key={c.id} className="py-3 border-b last:border-0 border-slate-100 dark:border-slate-800">
-                <p className="font-semibold text-sm">{c.title}</p>
-                <p className="text-xs text-slate-500 truncate">{c.description}</p>
-              </div>
-            ))}
+            <div className="space-y-4">
+              {aiData?.casesWithSummary.map(c => (
+                <div key={c.id} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <p className="font-bold text-sm text-slate-900 dark:text-white">{c.title}</p>
+                  <p className="text-xs text-slate-500 mt-1 line-clamp-2">{c.description}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="font-bold mb-6 flex items-center gap-2">
-              <Bot size={18} className="text-purple-500" /> AI Assistant <Badge variant="neutral">Chat</Badge>
+          <div className="bg-slate-900 dark:bg-slate-950 p-8 rounded-3xl text-white shadow-xl">
+            <h3 className="text-lg font-bold mb-6 flex items-center gap-2 text-white">
+              <Bot size={20} className="text-purple-400" /> AI Assistant
             </h3>
             <DashboardChat firmId={currentUser?.tenantId} />
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };
