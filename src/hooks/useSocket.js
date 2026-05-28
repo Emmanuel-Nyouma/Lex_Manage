@@ -1,28 +1,32 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import useLexStore from '../store/useLexStore';
 
 export const useSocket = () => {
-  const socket = useRef(null);
+  const socketRef = useRef(null);
+  const [socketInstance, setSocketInstance] = useState(null);
   const { currentUser } = useLexStore();
+  const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3001';
 
   useEffect(() => {
     if (!currentUser?.tenantId) return;
 
-    socket.current = io('http://localhost:3001', {
+    socketRef.current = io(WS_URL, {
       query: { tenantId: currentUser.tenantId }
     });
 
-    socket.current.on('connect', () => {
+    socketRef.current.on('connect', () => {
       console.log('Socket connected');
+      setSocketInstance(socketRef.current);
     });
 
     return () => {
-      if (socket.current) {
-        socket.current.disconnect();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
       }
+      setSocketInstance(null);
     };
-  }, [currentUser?.tenantId]);
+  }, [currentUser?.tenantId, WS_URL]);
 
-  return socket.current;
+  return socketInstance;
 };

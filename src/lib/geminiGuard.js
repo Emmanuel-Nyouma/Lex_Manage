@@ -1,7 +1,6 @@
-/**
- * Vérifie et rafraîchit le lien Gemini si expiré (seuil 44h)
- */
+import apiClient from './api';
+
 export const ensureGeminiFileActive = async (docId) => {
-  // Supabase removed - defaulting to mock URI
-  return 'mock-active-uri';
+  const { data } = await apiClient.get(`/api/v1/documents/${docId}`);
+  return data.geminiFileUri;
 };

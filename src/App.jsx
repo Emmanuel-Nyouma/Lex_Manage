@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 import { Lock, ShieldCheck, AlertTriangle, X as CloseIcon } from 'lucide-react';
 
 // Components
@@ -28,6 +28,12 @@ import { useQueryClient } from '@tanstack/react-query';
 // SECURITY FIX #4: Protected route wrapper
 const ProtectedRoute = ({ children, session }) => {
   if (!session) return <Navigate to="/login" replace />;
+  return children;
+};
+
+const AdminRoute = ({ children, session, currentUser }) => {
+  if (!session) return <Navigate to="/login" replace />;
+  if (currentUser?.role !== 'admin') return <Navigate to="/dashboard" replace />;
   return children;
 };
 
@@ -144,7 +150,11 @@ export default function LexManageApp() {
         <Route path="/cases" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><CaseManagementView /></MainLayout></ProtectedRoute>} />
         <Route path="/calendar" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><CalendarView /></MainLayout></ProtectedRoute>} />
         <Route path="/documents" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><DocumentsView /></MainLayout></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><AdminView /></MainLayout></ProtectedRoute>} />
+        <Route path="/admin" element={
+          <AdminRoute session={session} currentUser={currentUser}>
+            <MainLayout {...layoutProps}><AdminView /></MainLayout>
+          </AdminRoute>
+        } />
         <Route path="/company-settings" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><CompanySettingsView /></MainLayout></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><ProfileView /></MainLayout></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><SettingsView /></MainLayout></ProtectedRoute>} />

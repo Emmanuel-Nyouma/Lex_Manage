@@ -1,21 +1,6 @@
 import { create } from 'zustand';
 import { toast } from 'sonner';
-import axios from 'axios';
-
-export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001',
-});
-
-// Add a request interceptor to include the auth token
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-}, (error) => {
-  return Promise.reject(error);
-});
+import apiClient from '../lib/api';
 
 const useLexStore = create((set, get) => ({
   cases: [],
@@ -37,19 +22,16 @@ const useLexStore = create((set, get) => ({
   },
 
   initAuth: async () => {
-    const token = localStorage.getItem('accessToken');
+    const token = sessionStorage.getItem('access_token');
     if (!token) return;
 
     set({ isLoading: true });
     try {
-      // 1. Set session immediately to satisfy ProtectedRoute
       set({ session: { access_token: token } });
-      
-      // 2. Fetch user profile, but don't fail session if profile fetch fails
       await get().fetchMe(); 
     } catch (err) {
       console.error("Auth init failed", err);
-      localStorage.removeItem('accessToken');
+      sessionStorage.removeItem('access_token');
       set({ session: null, currentUser: null });
     } finally {
       set({ isLoading: false });
@@ -60,7 +42,7 @@ const useLexStore = create((set, get) => ({
     set({ isLoading: true });
     try {
       const { data } = await apiClient.post('/api/v1/auth/login', { email, password });
-      localStorage.setItem('accessToken', data.accessToken);
+      sessionStorage.setItem('access_token', data.accessToken);
       set({ session: { access_token: data.accessToken }, currentUser: data.user });
       toast.success('Login successful');
     } catch (err) {
@@ -77,14 +59,14 @@ const useLexStore = create((set, get) => ({
     } catch (err) {
       console.error('Logout error', err);
     } finally {
-      localStorage.removeItem('accessToken');
+      sessionStorage.removeItem('access_token');
       set({ currentUser: null, session: null, cases: [], clients: [], error: null });
     }
   },
 
   sendAiMessage: async (message) => {
     try {
-      const { data } = await apiClient.post('/ai/chat', { message });
+      const { data } = await apiClient.post('/api/v1/ai/chat', { message });
       return data;
     } catch (err) {
       const msg = err.response?.data?.message || "AI Error";
@@ -95,9 +77,9 @@ const useLexStore = create((set, get) => ({
 
   callGemini: async (prompt, systemInstruction) => {
     try {
-      const { data } = await apiClient.post('/ai/chat', { 
+      const { data } = await apiClient.post('/api/v1/ai/chat', { 
         message: prompt,
-        systemInstruction // Note: Backend needs to support this or we use default
+        systemInstruction
       });
       return data.text;
     } catch (err) {

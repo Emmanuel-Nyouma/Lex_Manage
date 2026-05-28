@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
-import useLexStore, { apiClient } from '../store/useLexStore';
+import apiClient from '../lib/api';
+import useLexStore from '../store/useLexStore';
 import { toast } from 'sonner';
 import { create } from 'zustand';
 
@@ -27,7 +28,7 @@ export const useNotificationStore = create((set) => ({
   
   markAsRead: async (id) => {
     try {
-      await apiClient.patch(`/notifications/${id}/read`);
+      await apiClient.patch(`/api/v1/notifications/${id}/read`);
       set((state) => {
         const updated = state.notifications.map(n => n.id === id ? { ...n, isRead: true } : n);
         return {
@@ -48,6 +49,7 @@ export const useNotifications = () => {
     unreadCount, 
     urgentNotification, 
     setNotifications,
+    addNotification,
     clearUrgent,
     markAsRead
   } = useNotificationStore();
@@ -55,7 +57,7 @@ export const useNotifications = () => {
   const fetchNotifications = useCallback(async () => {
     if (!currentUser || !session) return;
     try {
-      const { data } = await apiClient.get('/notifications');
+      const { data } = await apiClient.get('/api/v1/notifications');
       setNotifications(data);
     } catch (err) {
       console.error("Error fetching notifications:", err);
@@ -67,10 +69,26 @@ export const useNotifications = () => {
 
     fetchNotifications();
 
-    // Polling simple toutes les 30 secondes pour simuler le Realtime si WebSockets non configurés
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, [currentUser, session, fetchNotifications]);
+    const token = session.access_token;
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const eventSource = new EventSource(`${apiBase}/api/v1/notifications/stream?token=${token}`);
+
+    eventSource.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      if (data.type === 'notification') {
+        addNotification(data);
+        if (data.priority !== 'HIGH') {
+          toast.info(data.title);
+        }
+      }
+    };
+
+    eventSource.onerror = () => {
+      console.warn('SSE connection lost, reconnecting...');
+    };
+
+    return () => eventSource.close();
+  }, [currentUser, session, fetchNotifications, addNotification]);
 
   return { notifications, unreadCount, urgentNotification, clearUrgent, markAsRead };
 };
