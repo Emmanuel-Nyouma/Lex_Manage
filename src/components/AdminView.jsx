@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Users, UserPlus, Shield, Mail, Trash2, Loader2, CheckCircle2 
 } from 'lucide-react';
-import { Card, Button, Input, Badge } from './UI';
+import { Card, Button, Input, Badge } from './ui';
 import { toast } from 'sonner';
 
 // SECURITY FIX #5: Import store for role-based access control
@@ -156,3 +156,5 @@ const AdminView = () => {
 };
 
 export default AdminView;
+
+

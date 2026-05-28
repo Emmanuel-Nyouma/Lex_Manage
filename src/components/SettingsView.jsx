@@ -8,7 +8,7 @@ import {
   Check,
   Type
 } from 'lucide-react';
-import { Card } from './UI';
+import { Card } from './ui';
 import { translations } from '../utils/translations';
 
 const SettingsView = ({ language, setLanguage, theme, setTheme }) => {
@@ -101,3 +101,5 @@ const SettingsView = ({ language, setLanguage, theme, setTheme }) => {
 };
 
 export default SettingsView;
+
+

@@ -192,3 +192,5 @@ export const SearchPalette = ({ isOpen, onClose }) => {
     </div>
   );
 };
+
+

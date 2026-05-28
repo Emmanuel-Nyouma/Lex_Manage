@@ -16,7 +16,7 @@ import {
   User as UserIcon,
   Loader2
 } from 'lucide-react';
-import { Card, Button, Input, Badge } from './UI';
+import { Card, Button, Input, Badge } from './ui';
 import { useClients, useCreateClient, useDeleteClient } from '../hooks/useClients';
 
 const ClientsDirectoryView = () => {
@@ -254,3 +254,5 @@ const ClientsDirectoryView = () => {
 };
 
 export default ClientsDirectoryView;
+
+

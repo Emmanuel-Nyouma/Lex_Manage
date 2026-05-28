@@ -3,7 +3,7 @@ import {
   Files, Search, Folder, FileText, Trash2, Loader2, Sparkles, Plus, ChevronDown, ChevronRight, X
 } from 'lucide-react';
 import DocumentUpload from './DocumentUpload';
-import { Badge, Card } from './UI';
+import { Badge, Card } from './ui';
 import { useDocuments, useDeleteDocument } from '../hooks/useDocuments';
 
 const CATEGORIES = ['Pièces', 'Correspondances', 'Actes', 'Client', 'Autre'];
@@ -164,3 +164,5 @@ const DocumentsView = () => {
 };
 
 export default DocumentsView;
+
+

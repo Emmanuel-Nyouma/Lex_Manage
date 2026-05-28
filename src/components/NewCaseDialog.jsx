@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { X, Check, FileText, User, Calendar as CalendarIcon, Gavel, Hash } from 'lucide-react';
-import { Button, Input } from './UI';
+import { Button, Input } from './ui';
 import { useCreateCase } from '../hooks/useCases';
 
 const caseSchema = z.object({
@@ -179,3 +179,5 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
 };
 
 export default NewCaseDialog;
+
+

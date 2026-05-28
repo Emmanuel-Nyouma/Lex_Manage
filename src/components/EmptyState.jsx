@@ -25,3 +25,5 @@ const EmptyState = ({ icon: Icon, title, description, action }) => {
 };
 
 export default EmptyState;
+
+

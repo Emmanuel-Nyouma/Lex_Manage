@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../lib/api';
-import { Badge } from './UI';
+import { Badge } from './ui';
 import { Send } from 'lucide-react';
 
 const useAiDashboard = () => {
@@ -113,3 +113,5 @@ const AiDashboardView = () => {
 };
 
 export default AiDashboardView;
+
+

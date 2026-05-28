@@ -19,7 +19,7 @@ import {
   FileText,
   Bot
 } from 'lucide-react';
-import { Badge, Skeleton } from './UI';
+import { Badge, Skeleton } from './ui';
 import useLexStore from '../store/useLexStore';
 import { useCases } from '../hooks/useCases';
 import { useNotifications } from '../hooks/useNotifications';
@@ -205,3 +205,5 @@ const DashboardView = () => {
 };
 
 export default DashboardView;
+
+

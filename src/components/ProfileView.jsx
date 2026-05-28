@@ -3,7 +3,7 @@ import {
   Mail, Phone, Shield, ShieldCheck, Lock, User, 
   ExternalLink, Check, AlertCircle, Loader2 
 } from 'lucide-react';
-import { Card, Badge, Button, Input } from './UI';
+import { Card, Badge, Button, Input } from './ui';
 import useLexStore from '../store/useLexStore';
 import { useUpdateProfile } from '../hooks/useProfile';
 
@@ -182,3 +182,5 @@ const ProfileView = () => {
 };
 
 export default ProfileView;
+
+

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, Sparkles, Loader2, Lightbulb, Mail, Plus, FileText, Clock 
 } from 'lucide-react';
-import { Badge } from './UI';
+import { Badge } from './ui';
 
 import { useDeadlines, useCreateDeadline, useMarkDeadlineDone } from '../hooks/useCases';
 
@@ -216,3 +216,5 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
 }
 
 export default CaseDrawer;
+
+

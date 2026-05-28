@@ -16,7 +16,7 @@ import {
 import useLexStore from '../store/useLexStore';
 import apiClient from '../lib/api';
 import { toast } from 'sonner';
-import { Card, Badge } from './UI';
+import { Card, Badge } from './ui';
 
 const CompanySettingsView = () => {
   const { currentUser } = useLexStore();
@@ -280,3 +280,5 @@ const CompanySettingsView = () => {
 };
 
 export default CompanySettingsView;
+
+

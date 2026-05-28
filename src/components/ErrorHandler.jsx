@@ -27,3 +27,5 @@ const ErrorHandler = ({ error }) => {
 };
 
 export default ErrorHandler;
+
+

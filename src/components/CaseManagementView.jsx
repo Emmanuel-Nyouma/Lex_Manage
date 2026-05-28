@@ -11,7 +11,7 @@ import {
   Search,
   X
 } from 'lucide-react';
-import { Button, Badge, Input, Skeleton } from './UI';
+import { Button, Badge, Input, Skeleton } from './ui';
 import NewCaseDialog from './NewCaseDialog';
 import CaseDrawer from './CaseDrawer';
 import { useCases } from '../hooks/useCases';
@@ -238,3 +238,5 @@ const CaseManagementView = () => {
 };
 
 export default CaseManagementView;
+
+
