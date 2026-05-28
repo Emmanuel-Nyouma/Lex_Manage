@@ -18,11 +18,11 @@ import useLexStore from '../store/useLexStore';
 const Sidebar = ({ isMobileOpen, onCloseMobile }) => {
   const { logout, currentUser } = useLexStore();
 
-  const firstName = currentUser?.first_name || '';
-  const lastName = currentUser?.last_name || '';
+  const firstName = currentUser?.firstName || '';
+  const lastName = currentUser?.lastName || '';
   const fullName = firstName || lastName ? `${firstName} ${lastName}`.trim() : 'User';
-  const role = currentUser?.role || 'Attorney';
-  const isAdmin = role === 'admin';
+  const role = currentUser?.role || 'LAWYER';
+  const isAdmin = role === 'CABINET_ADMIN';
 
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
