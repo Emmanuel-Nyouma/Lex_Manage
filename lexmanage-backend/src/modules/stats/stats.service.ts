@@ -78,24 +78,15 @@ export class StatsService {
 
   async getAiDashboardData(tenantId: string) {
     const now = new Date();
-    const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
     const [
       summariesGenerated,
-      urgentCases,
       docsAnalyzed,
       casesWithSummary,
       casesByStatus,
-      insights
     ] = await Promise.all([
       this.prisma.case.count({
         where: { tenantId, description: { not: null } }
-      }),
-      this.prisma.case.count({
-        where: {
-          tenantId,
-          nextHearingDate: { gte: now, lte: in7Days }
-        }
       }),
       this.prisma.document.count({
         where: { tenantId, status: 'INDEXED' }
@@ -111,9 +102,7 @@ export class StatsService {
           status: true,
           priority: true,
           clientName: true,
-          nextHearingDate: true,
           updatedAt: true,
-          _count: { select: { documents: true } }
         }
       }),
       this.prisma.case.groupBy({
@@ -121,36 +110,13 @@ export class StatsService {
         where: { tenantId },
         _count: { id: true }
       }),
-      this.prisma.case.findMany({
-        where: {
-          tenantId,
-          nextHearingDate: { gte: now, lte: in7Days }
-        },
-        select: {
-          id: true,
-          title: true,
-          nextHearingDate: true,
-          _count: { select: { documents: true } }
-        },
-        take: 5
-      })
     ]);
 
-    const autoInsights = [];
-    insights.forEach(c => {
-      const daysLeft = Math.ceil((new Date(c.nextHearingDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      autoInsights.push({
-        type: 'warning',
-        icon: 'alert-triangle',
-        message: `Case ${c.title} : hearing in ${daysLeft} day(s), ${c._count.documents} document(s) linked`
-      });
-    });
-
     return {
-      metrics: { summariesGenerated, urgentCases, docsAnalyzed },
+      metrics: { summariesGenerated, urgentCases: 0, docsAnalyzed },
       casesWithSummary,
       casesByStatus,
-      insights: autoInsights
+      insights: []
     };
   }
 }
