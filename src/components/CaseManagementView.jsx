@@ -16,14 +16,18 @@ import NewCaseDialog from './NewCaseDialog';
 import CaseDrawer from './CaseDrawer';
 import { useCases } from '../hooks/useCases';
 import useLexStore from '../store/useLexStore';
-
 const CaseManagementView = () => {
   const [isNewCaseOpen, setIsNewCaseOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  
-  const { data: cases, isLoading, error } = useCases();
+  const [page, setPage] = useState(1);
+
+  const { data, isLoading, error } = useCases(page, 10);
+  const cases = data?.data || [];
+  const meta = data?.meta;
   const { callGemini } = useLexStore();
+
+  // ... (rest of the component)
 
   // Optimized client-side filtering
   const filteredCases = useMemo(() => {

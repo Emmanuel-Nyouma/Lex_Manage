@@ -4,13 +4,14 @@ import { QUERY_KEYS } from '../lib/queryKeys';
 import { toast } from 'sonner';
 
 // Hook pour récupérer tous les dossiers actifs
-export const useCases = () => {
+export const useCases = (page = 1, limit = 10) => {
   return useQuery({
-    queryKey: QUERY_KEYS.cases,
+    queryKey: [...QUERY_KEYS.cases, page, limit],
     queryFn: async () => {
-      const { data } = await apiClient.get('/api/v1/cases');
-      return data;
+      const { data } = await apiClient.get(`/api/v1/cases?page=${page}&limit=${limit}`);
+      return data; // Now returns { data: [], meta: {...} }
     },
+    keepPreviousData: true,
   });
 };
 
