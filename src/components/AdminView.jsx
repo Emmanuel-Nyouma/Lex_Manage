@@ -11,17 +11,28 @@ import useLexStore from '../store/useLexStore';
 const AdminView = () => {
   const { currentUser } = useLexStore();
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("avocat");
+  const [role, setRole] = useState("LAWYER");
   const [isInviting, setIsInviting] = useState(false);
 
-  // SECURITY FIX #5: Role-Based Access Control
+  // Debug check
+  console.log("AdminView rendering, user:", currentUser);
+
   const isAdmin = currentUser?.role === 'CABINET_ADMIN' || currentUser?.role === 'SUPER_ADMIN';
+
+  if (!currentUser) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin text-amber-500" size={32} />
+      </div>
+    );
+  }
+
   if (!isAdmin) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-slate-500 animate-in fade-in duration-500">
+      <div className="flex flex-col items-center justify-center h-full text-slate-500 animate-in fade-in duration-500 py-20">
         <Shield size={48} className="mb-4 text-slate-300" />
         <h2 className="text-xl font-bold text-slate-900 dark:text-white">Restricted Access</h2>
-        <p>Only administrators can access this section.</p>
+        <p>Only administrators can access this section. Your current role is: {currentUser?.role}</p>
       </div>
     );
   }
@@ -34,28 +45,24 @@ const AdminView = () => {
     const toastId = toast.loading(`Sending invitation to ${email}...`);
 
     try {
-      /* 
-      // Note: We call an Edge Function because the frontend doesn't have 'service_role' rights
-      const { error } = await supabase.functions.invoke('invite-member', {
-        body: { email, role }
-      });
-
-      if (error) throw error;
-      */
+      // TODO: Implement invitation logic with the new NestJS backend
+      console.log("Invitation to be implemented with NestJS:", { email, role });
       
-      toast.error("Supabase backend is disabled.");
-      // toast.success("Invitation sent successfully!", { id: toastId });
+      toast.success("Invitation logic placeholder active.");
       setEmail("");
     } catch (err) {
       console.error(err);
-      toast.error("Invitation failed. Check your admin permissions.", { id: toastId });
+      toast.error("Invitation failed.", { id: toastId });
     } finally {
       setIsInviting(false);
     }
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="p-8 space-y-8">
+      <div className="bg-amber-100 p-2 text-[10px] text-amber-800 rounded">
+        Debug: AdminView Loaded - Role: {currentUser?.role}
+      </div>
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Firm Administration</h1>
         <p className="text-slate-500 dark:text-slate-400">Manage your team and your structure's access.</p>
