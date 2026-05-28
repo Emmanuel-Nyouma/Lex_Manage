@@ -47,7 +47,7 @@ const AdminRoute = ({ children, session, currentUser }) => {
   return children;
 };
 
-const MainLayout = ({ children, isAiOpen, setIsAiOpen, isMobileSidebarOpen, setIsMobileSidebarOpen }) => {
+const MainLayout = ({ children, isAiOpen, setIsAiOpen, isMobileSidebarOpen, setIsMobileSidebarOpen, isSearchOpen, setIsSearchOpen }) => {
   const location = useLocation();
   const { urgentNotification, clearUrgent } = useNotifications();
 
@@ -90,6 +90,8 @@ const MainLayout = ({ children, isAiOpen, setIsAiOpen, isMobileSidebarOpen, setI
         <Header 
           onOpenAi={() => setIsAiOpen(true)} 
           onToggleMobileSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
+          isSearchOpen={isSearchOpen}
+          setIsSearchOpen={setIsSearchOpen}
         />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 dark:bg-slate-950 focus:outline-none" tabIndex="-1">
           {children}
@@ -113,9 +115,18 @@ export default function LexManageApp() {
 
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
     initAuth();
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [initAuth]);
 
   useEffect(() => {
@@ -145,7 +156,7 @@ export default function LexManageApp() {
     );
   }
 
-  const layoutProps = { isAiOpen, setIsAiOpen, isMobileSidebarOpen, setIsMobileSidebarOpen };
+  const layoutProps = { isAiOpen, setIsAiOpen, isMobileSidebarOpen, setIsMobileSidebarOpen, isSearchOpen, setIsSearchOpen };
 
   return (
     <>

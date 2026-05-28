@@ -5,10 +5,9 @@ import { useNotifications } from '../hooks/useNotifications';
 import useLexStore from '../store/useLexStore';
 import { SearchPalette } from './search/SearchPalette';
 
-const Header = ({ onOpenAi, onToggleMobileSidebar }) => {
+const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen }) => {
   const { currentUser } = useLexStore();
   const [showNotifications, setShowNotifications] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   
   const notificationRef = useRef(null);
 
