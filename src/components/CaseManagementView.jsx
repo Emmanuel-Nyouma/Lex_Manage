@@ -11,7 +11,7 @@ import {
   Search,
   X
 } from 'lucide-react';
-import { Button, Badge, Input } from './UI';
+import { Button, Badge, Input, Skeleton } from './UI';
 import NewCaseDialog from './NewCaseDialog';
 import CaseDrawer from './CaseDrawer';
 import { useCases } from '../hooks/useCases';
@@ -40,12 +40,6 @@ const CaseManagementView = () => {
     );
   }, [cases, searchQuery]);
 
-import { Skeleton } from './UI';
-// ... existing imports
-
-const CaseManagementView = () => {
-  // ... existing hooks
-  
   if (isLoading) {
     return (
       <div className="space-y-6 animate-in fade-in duration-500">
@@ -167,18 +161,19 @@ const CaseManagementView = () => {
         </div>
 
         {/* VUE CARTES (Mobile < md) */}
-        <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+        <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800" role="list">
           {filteredCases.map((c) => (
             <div 
               key={c.id} 
               onClick={() => setSelectedCase(c)}
-              className="p-5 space-y-4 active:bg-slate-50 dark:active:bg-slate-800 transition-colors"
+              className="p-5 space-y-4 active:bg-slate-50 dark:active:bg-slate-800 transition-colors cursor-pointer"
+              role="listitem"
             >
               <div className="flex justify-between items-start">
                 <div className="space-y-1.5">
                   <h3 className="font-bold text-slate-900 dark:text-white leading-tight">{c.title}</h3>
                   <div className="flex items-center gap-2 text-[10px] text-slate-500 font-black uppercase tracking-widest">
-                    <Gavel size={12} className="text-amber-600" /> {c.courtName || 'N/A'}
+                    <Gavel size={12} className="text-amber-600" aria-hidden="true" /> {c.courtName || 'N/A'}
                   </div>
                 </div>
                 <Badge variant={c.status === 'OPEN' ? 'warning' : 'info'}>{c.status}</Badge>
@@ -186,9 +181,17 @@ const CaseManagementView = () => {
               
               <div className="flex items-center justify-between text-xs pt-2">
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-bold">
-                  <User size={14} className="text-slate-400" /> {c.clientName}
+                  <User size={14} className="text-slate-400" aria-hidden="true" /> {c.clientName}
                 </div>
-                <div className="text-slate-400 font-medium">Ref: #{c.id.slice(0, 8)}</div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setSelectedCase(c); }}
+                    className="p-2 text-slate-500 hover:text-amber-600 transition-colors"
+                    aria-label={`View details for ${c.title}`}
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
