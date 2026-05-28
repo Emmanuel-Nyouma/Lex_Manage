@@ -100,8 +100,8 @@ export const Input = forwardRef(({
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors"
-            aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-            title={showPassword ? "Masquer" : "Afficher"}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            title={showPassword ? "Hide" : "Show"}
           >
             {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
           </button>

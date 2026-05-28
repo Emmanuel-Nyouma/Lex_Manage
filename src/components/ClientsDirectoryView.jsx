@@ -46,7 +46,7 @@ const ClientsDirectoryView = () => {
   };
 
   const handleDeleteClient = async (id) => {
-    if (window.confirm("Voulez-vous supprimer ce client ?")) {
+    if (window.confirm("Are you sure you want to delete this client?")) {
       deleteClient.mutate(id);
     }
   };
@@ -59,7 +59,7 @@ const ClientsDirectoryView = () => {
   if (error) {
     return (
       <div className="p-8 bg-red-50 text-red-600 rounded-2xl border border-red-100 font-bold">
-        Erreur de chargement du répertoire : {error.message}
+        Error loading directory: {error.message}
       </div>
     );
   }
@@ -69,12 +69,12 @@ const ClientsDirectoryView = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-            <Users className="text-amber-500" /> Répertoire Clients
+            <Users className="text-amber-500" /> Clients Directory
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium">Gérez la base de données de contacts de votre cabinet.</p>
+          <p className="text-slate-500 dark:text-slate-400 font-medium">Manage your firm's contact database.</p>
         </div>
         <Button onClick={() => setIsModalOpen(true)} icon={UserPlus} className="shadow-lg shadow-amber-500/20">
-          Nouveau Client
+          New Client
         </Button>
       </div>
 
@@ -83,7 +83,7 @@ const ClientsDirectoryView = () => {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input 
             type="text"
-            placeholder="Rechercher un client par nom ou email..."
+            placeholder="Search for a client by name or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all font-medium"
@@ -93,7 +93,7 @@ const ClientsDirectoryView = () => {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <Loader2 className="animate-spin text-amber-500" size={40} />
-            <p className="text-slate-400 font-bold animate-pulse">Accès au répertoire...</p>
+            <p className="text-slate-400 font-bold animate-pulse">Accessing directory...</p>
           </div>
         ) : filteredClients.length > 0 ? (
           <div className="overflow-x-auto">
@@ -103,7 +103,7 @@ const ClientsDirectoryView = () => {
                   <th className="pb-4 px-4">Client</th>
                   <th className="pb-4 px-4">Type</th>
                   <th className="pb-4 px-4">Contact</th>
-                  <th className="pb-4 px-4">Adresse</th>
+                  <th className="pb-4 px-4">Address</th>
                   <th className="pb-4 px-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -120,7 +120,7 @@ const ClientsDirectoryView = () => {
                     </td>
                     <td className="py-4 px-4">
                       <Badge variant={client.type_client === 'morale' ? 'info' : 'secondary'} className="px-3">
-                        {client.type_client === 'morale' ? 'Société' : 'Particulier'}
+                        {client.type_client === 'morale' ? 'Company' : 'Individual'}
                       </Badge>
                     </td>
                     <td className="py-4 px-4">
@@ -165,8 +165,8 @@ const ClientsDirectoryView = () => {
             <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto text-slate-300">
                <UserIcon size={32} />
             </div>
-            <p className="text-slate-500 font-medium italic">Aucun client ne correspond à votre recherche.</p>
-            <Button onClick={() => setIsModalOpen(true)} variant="secondary" size="sm">Ajouter un nouveau client</Button>
+            <p className="text-slate-500 font-medium italic">No clients match your search.</p>
+            <Button onClick={() => setIsModalOpen(true)} variant="secondary" size="sm">Add a new client</Button>
           </div>
         )}
       </Card>
@@ -180,7 +180,7 @@ const ClientsDirectoryView = () => {
                  <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600">
                     <UserPlus size={20} />
                  </div>
-                 <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Ajouter un client</h2>
+                 <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Add a client</h2>
               </div>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-all p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full">
                 <X size={20} />
@@ -194,37 +194,37 @@ const ClientsDirectoryView = () => {
                   onClick={() => setNewClient({...newClient, type_client: 'physique'})}
                   className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-black transition-all ${newClient.type_client === 'physique' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-slate-700' : 'text-slate-500 hover:text-slate-700'}`}
                 >
-                  <UserIcon size={14} /> PARTICULIER
+                  <UserIcon size={14} /> INDIVIDUAL
                 </button>
                 <button 
                   type="button"
                   onClick={() => setNewClient({...newClient, type_client: 'morale'})}
                   className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-black transition-all ${newClient.type_client === 'morale' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-slate-700' : 'text-slate-500 hover:text-slate-700'}`}
                 >
-                  <Building2 size={14} /> SOCIÉTÉ
+                  <Building2 size={14} /> COMPANY
                 </button>
               </div>
 
               <Input 
-                label="Nom complet ou Raison sociale" 
+                label="Full Name or Company Name" 
                 required
-                value={newClient}
+                value={newClient.name}
                 onChange={(e) => setNewClient({...newClient, name: e.target.value})}
-                placeholder="ex: Emmanuel Kamdem ou SARL Tech Africa"
+                placeholder="e.g. John Doe or Tech Africa Ltd"
                 className="font-bold"
               />
 
               <div className="grid grid-cols-2 gap-4">
                 <Input 
-                  label="Email professionnel" 
+                  label="Professional Email" 
                   type="email"
                   value={newClient.email}
                   onChange={(e) => setNewClient({...newClient, email: e.target.value})}
                   icon={Mail}
-                  placeholder="contact@exemple.com"
+                  placeholder="contact@example.com"
                 />
                 <Input 
-                  label="Téléphone" 
+                  label="Phone" 
                   value={newClient.phone}
                   onChange={(e) => setNewClient({...newClient, phone: e.target.value})}
                   icon={Phone}
@@ -233,18 +233,18 @@ const ClientsDirectoryView = () => {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Adresse de résidence ou siège</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Residential or Headquarters Address</label>
                 <textarea 
                   value={newClient.address}
                   onChange={(e) => setNewClient({...newClient, address: e.target.value})}
                   className="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all dark:text-white min-h-[100px] resize-none font-medium"
-                  placeholder="Rue, Ville, BP..."
+                  placeholder="Street, City, P.O. Box..."
                 />
               </div>
 
               <div className="pt-4 flex gap-3">
-                <Button variant="secondary" className="flex-1 font-bold" onClick={() => setIsModalOpen(false)}>Annuler</Button>
-                <Button type="submit" className="flex-1 font-bold" isLoading={createClient.isPending} icon={Check}>Enregistrer le client</Button>
+                <Button variant="secondary" className="flex-1 font-bold" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                <Button type="submit" className="flex-1 font-bold" isLoading={createClient.isPending} icon={Check}>Save Client</Button>
               </div>
             </form>
           </div>

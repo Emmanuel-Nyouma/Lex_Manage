@@ -38,7 +38,7 @@ const Header = ({ onOpenAi, onToggleMobileSidebar }) => {
       <button 
         onClick={onToggleMobileSidebar}
         className="md:hidden p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-        aria-label="Ouvrir le menu de navigation"
+        aria-label="Open navigation menu"
       >
         <Menu size={20} aria-hidden="true" />
       </button>
@@ -50,7 +50,7 @@ const Header = ({ onOpenAi, onToggleMobileSidebar }) => {
           className="w-full flex items-center gap-3 bg-slate-100 dark:bg-slate-800 rounded-xl px-4 py-2 text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500/50"
         >
           <Search size={18} />
-          <span className="text-sm">Rechercher...</span>
+          <span className="text-sm">Search...</span>
           <span className="ml-auto text-[10px] bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-500 font-mono">⌘K</span>
         </button>
       </div>
@@ -64,7 +64,7 @@ const Header = ({ onOpenAi, onToggleMobileSidebar }) => {
           <button 
             onClick={() => setShowNotifications(!showNotifications)} 
             className={`relative p-2 rounded-lg transition-colors ${showNotifications ? 'bg-slate-100 dark:bg-slate-800 text-amber-500' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-            aria-label="Ouvrir les notifications"
+            aria-label="Open notifications"
           >
             <Bell size={20} aria-hidden="true" />
             {unreadCount > 0 && (
@@ -78,7 +78,7 @@ const Header = ({ onOpenAi, onToggleMobileSidebar }) => {
             <div className="absolute top-full right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 z-50 ring-1 ring-slate-200 dark:ring-slate-800">
               <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                 <h3 className="font-bold text-slate-900 dark:text-white">Notifications</h3>
-                {unreadCount > 0 && <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider">{unreadCount} nouvelles</span>}
+                {unreadCount > 0 && <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider">{unreadCount} new</span>}
               </div>
               <div className="max-h-[400px] overflow-y-auto">
                 {notifications.length > 0 ? (
@@ -98,8 +98,8 @@ const Header = ({ onOpenAi, onToggleMobileSidebar }) => {
                               <button 
                                 onClick={(e) => handleNotificationRead(e, notif.id)}
                                 className="p-1 text-slate-400 hover:text-emerald-500 transition-colors opacity-0 group-hover:opacity-100"
-                                aria-label="Marquer la notification comme lue"
-                                title="Marquer comme lu"
+                                aria-label="Mark notification as read"
+                                title="Mark as read"
                               >
                                 <Check size={14} aria-hidden="true" />
                               </button>
@@ -118,7 +118,7 @@ const Header = ({ onOpenAi, onToggleMobileSidebar }) => {
                     <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
                       <Bell size={20} className="text-slate-300" />
                     </div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 italic">Aucune notification.</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 italic">No notifications.</p>
                   </div>
                 )}
               </div>
@@ -131,10 +131,10 @@ const Header = ({ onOpenAi, onToggleMobileSidebar }) => {
         <button 
           onClick={onOpenAi} 
           className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-sm font-bold transition-all shadow-sm ring-1 ring-amber-400/50"
-          aria-label="Ouvrir l'assistant iA LexAssist"
+          aria-label="Open LexAssist AI assistant"
         >
           <Bot size={18} aria-hidden="true" />
-          <span className="hidden sm:inline">LexAssist IA</span>
+          <span className="hidden sm:inline">LexAssist AI</span>
         </button>
 
         <div className="h-6 w-px bg-slate-200 dark:bg-slate-800"></div>
@@ -145,7 +145,7 @@ const Header = ({ onOpenAi, onToggleMobileSidebar }) => {
              {currentUser?.firstName?.charAt(0) || currentUser?.lastName?.charAt(0) || '?'}
           </div>
           <div className="hidden md:block text-left">
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">Maître</div>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">Counsel</div>
             <div className="text-sm font-bold text-slate-900 dark:text-white leading-none">
               {currentUser?.firstName} {currentUser?.lastName}
             </div>

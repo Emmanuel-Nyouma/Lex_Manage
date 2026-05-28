@@ -41,7 +41,7 @@ const CompanySettingsView = () => {
       setMembers(membersRes.data || []);
     } catch (err) {
       console.error(err);
-      toast.error('Erreur lors du chargement des données');
+      toast.error('Error loading data');
     } finally {
       setIsLoading(false);
     }
@@ -55,8 +55,8 @@ const CompanySettingsView = () => {
     return (
       <div className="flex flex-col items-center justify-center h-full text-slate-500 animate-in fade-in duration-500">
         <AlertCircle size={48} className="mb-4 text-slate-300" />
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Accès Restreint</h2>
-        <p>Seuls les administrateurs du cabinet peuvent accéder à ces paramètres.</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Restricted Access</h2>
+        <p>Only firm administrators can access these settings.</p>
       </div>
     );
   }
@@ -70,64 +70,64 @@ const CompanySettingsView = () => {
       const { data } = await apiClient.post('/tenants/invitations', { email, role });
       const inviteLink = `${window.location.origin}/login?invitation=${data.token}`;
       setLastGeneratedLink(inviteLink);
-      toast.success('Invitation créée avec succès !');
+      toast.success('Invitation created successfully!');
       setEmail('');
       fetchData();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Erreur lors de l\'invitation');
+      toast.error(err.response?.data?.message || 'Error during invitation');
     } finally {
       setIsInviting(false);
     }
   };
 
   const revokeInvitation = async (id) => {
-    if (!window.confirm('Voulez-vous vraiment révoquer cette invitation ?')) return;
+    if (!window.confirm('Are you sure you want to revoke this invitation?')) return;
     try {
       await apiClient.delete(`/tenants/invitations/${id}`);
-      toast.success('Invitation révoquée');
+      toast.success('Invitation revoked');
       fetchData();
     } catch {
-      toast.error('Erreur lors de la révocation');
+      toast.error('Error during revocation');
     }
   };
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    toast.success('Lien copié dans le presse-papier !');
+    toast.success('Link copied to clipboard!');
   };
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       <div>
-        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Paramètres du Cabinet</h1>
-        <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">Gérez votre équipe d'excellence et les accès sécurisés.</p>
+        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Firm Settings</h1>
+        <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">Manage your professional team and secure access.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Colonne de gauche : Formulaire d'invitation */}
+        {/* Left Column: Invitation Form */}
         <div className="lg:col-span-1 space-y-6">
           <Card className="p-6 border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/50">
             <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-              <UserPlus size={20} className="text-amber-500" /> Inviter un membre
+              <UserPlus size={20} className="text-amber-500" /> Invite a member
             </h3>
             
             <form onSubmit={handleInvite} className="space-y-5">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Email professionnel</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Professional Email</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                   <input 
                     type="email" required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="maitre.durand@justice.fr"
+                    placeholder="john.doe@lawfirm.com"
                     className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Rôle dans le cabinet</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Role in the firm</label>
                 <div className="relative">
                   <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                   <select 
@@ -135,10 +135,10 @@ const CompanySettingsView = () => {
                     onChange={(e) => setRole(e.target.value)}
                     className="w-full pl-10 pr-10 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none appearance-none cursor-pointer focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
                   >
-                    <option value="LAWYER">Avocat / Collaborateur</option>
-                    <option value="ASSISTANT">Assistant Juridique</option>
-                    <option value="SECRETARY">Secrétariat</option>
-                    <option value="CABINET_ADMIN">Administrateur</option>
+                    <option value="LAWYER">Lawyer / Associate</option>
+                    <option value="ASSISTANT">Legal Assistant</option>
+                    <option value="SECRETARY">Secretary</option>
+                    <option value="CABINET_ADMIN">Administrator</option>
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
                 </div>
@@ -150,13 +150,13 @@ const CompanySettingsView = () => {
                 className="w-full py-3.5 bg-slate-900 dark:bg-amber-600 text-white rounded-xl text-sm font-bold hover:bg-slate-800 dark:hover:bg-amber-700 shadow-lg disabled:opacity-50 transition-all flex items-center justify-center gap-2"
               >
                 {isInviting ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
-                Générer l'invitation
+                Generate invitation
               </button>
             </form>
 
             {lastGeneratedLink && (
               <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 rounded-xl animate-in zoom-in-95">
-                <p className="text-[10px] font-bold text-amber-800 dark:text-amber-500 uppercase mb-2">Lien d'invitation prêt :</p>
+                <p className="text-[10px] font-bold text-amber-800 dark:text-amber-500 uppercase mb-2">Invitation link ready:</p>
                 <div className="flex gap-2">
                   <input 
                     readOnly
@@ -170,18 +170,18 @@ const CompanySettingsView = () => {
                     <Copy size={16} className="text-amber-600" />
                   </button>
                 </div>
-                <p className="text-[9px] text-amber-700 dark:text-amber-500/70 mt-3 italic leading-relaxed">Envoyez ce lien à votre collaborateur. Il pourra créer son compte et rejoindre automatiquement votre structure.</p>
+                <p className="text-[9px] text-amber-700 dark:text-amber-500/70 mt-3 italic leading-relaxed">Send this link to your associate. They can create their account and automatically join your firm.</p>
               </div>
             )}
           </Card>
         </div>
 
-        {/* Colonne de droite : Liste des membres et invitations */}
+        {/* Right Column: Members and invitations list */}
         <div className="lg:col-span-2 space-y-8">
-          {/* Liste des membres */}
+          {/* Members list */}
           <Card className="p-6 border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden bg-white dark:bg-slate-900/50">
             <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-              <Users size={20} className="text-slate-400" /> Équipe actuelle ({members.length})
+              <Users size={20} className="text-slate-400" /> Current Team ({members.length})
             </h3>
 
             <div className="space-y-4">
@@ -204,10 +204,10 @@ const CompanySettingsView = () => {
             </div>
           </Card>
 
-          {/* Invitations en attente */}
+          {/* Pending invitations */}
           <Card className="p-6 border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/50">
             <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-              <Clock size={20} className="text-slate-400" /> Invitations en attente
+              <Clock size={20} className="text-slate-400" /> Pending Invitations
             </h3>
 
             {isLoading ? (
@@ -219,9 +219,9 @@ const CompanySettingsView = () => {
                 <table className="w-full text-left">
                   <thead>
                     <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
-                      <th className="pb-4 px-2">Collaborateur</th>
-                      <th className="pb-4 px-2">Rôle</th>
-                      <th className="pb-4 px-2">Expire le</th>
+                      <th className="pb-4 px-2">Associate</th>
+                      <th className="pb-4 px-2">Role</th>
+                      <th className="pb-4 px-2">Expires on</th>
                       <th className="pb-4 px-2 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -247,14 +247,14 @@ const CompanySettingsView = () => {
                             <button 
                               onClick={() => copyToClipboard(`${window.location.origin}/login?invitation=${invite.token}`)}
                               className="p-2 text-slate-400 hover:text-amber-600 transition-colors rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                              title="Copier le lien"
+                              title="Copy link"
                             >
                               <Copy size={18} />
                             </button>
                             <button 
                               onClick={() => revokeInvitation(invite.id)}
                               className="p-2 text-slate-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
-                              title="Révoquer"
+                              title="Revoke"
                             >
                               <Trash2 size={18} />
                             </button>
@@ -268,7 +268,7 @@ const CompanySettingsView = () => {
             ) : (
               <div className="text-center py-10 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
                 <Mail className="text-slate-300 mx-auto mb-3" size={32} />
-                <p className="text-slate-400 italic text-sm">Aucune invitation active.</p>
+                <p className="text-slate-400 italic text-sm">No active invitations.</p>
               </div>
             )}
           </Card>

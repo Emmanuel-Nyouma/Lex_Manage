@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, Sparkles, Loader2, Lightbulb, Mail, Plus, FileText 
+  X, Sparkles, Loader2, Lightbulb, Mail, Plus, FileText, Clock 
 } from 'lucide-react';
 import { Badge } from './UI';
 
@@ -102,7 +102,7 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
            <div>
               <Badge variant={activeCase.status === 'Active' || activeCase.status === 'en cours' ? 'success' : 'default'}>{activeCase.status}</Badge>
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mt-2 leading-tight">{activeCase.title}</h2>
-              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium">{activeCase.client_name} • {activeCase.courtName || 'Juridiction non définie'}</p>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium">{activeCase.client_name} • {activeCase.courtName || 'Jurisdiction not defined'}</p>
            </div>
            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
              <X size={20} />
@@ -150,13 +150,13 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
            <div>
               <div className="flex justify-between items-center mb-5">
                 <h3 className="font-bold text-slate-800 dark:text-slate-200 tracking-tight flex items-center gap-2">
-                  <Clock size={18} className="text-amber-500" /> Échéances Critiques
+                  <Clock size={18} className="text-amber-500" /> Critical Deadlines
                 </h3>
                 <button 
                   onClick={() => setIsNewAddingDeadline(true)}
                   className="text-[10px] flex items-center gap-1.5 bg-slate-900 dark:bg-slate-800 text-white px-2.5 py-1.5 rounded-lg transition-all font-bold uppercase tracking-wider"
                 >
-                  <Plus size={12} /> Ajouter
+                  <Plus size={12} /> Add
                 </button>
               </div>
 
@@ -164,7 +164,7 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
                 <form onSubmit={handleAddDeadline} className="mb-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3 animate-in zoom-in-95">
                   <input 
                     autoFocus
-                    placeholder="Titre de l'échéance..."
+                    placeholder="Deadline title..."
                     className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-500/20"
                     value={newDeadlineTitle}
                     onChange={(e) => setNewDeadlineTitle(e.target.value)}
@@ -177,7 +177,7 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
                       onChange={(e) => setNewDeadlineDate(e.target.value)}
                     />
                     <button type="submit" className="bg-amber-600 text-white px-4 rounded-lg font-bold text-xs">OK</button>
-                    <button type="button" onClick={() => setIsNewAddingDeadline(false)} className="text-slate-400 px-2">Annuler</button>
+                    <button type="button" onClick={() => setIsNewAddingDeadline(false)} className="text-slate-400 px-2">Cancel</button>
                   </div>
                 </form>
               )}
@@ -197,14 +197,14 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
                      </div>
                    ))
                  ) : (
-                   <div className="ml-6 text-xs text-slate-400 italic">Aucune échéance planifiée.</div>
+                   <div className="ml-6 text-xs text-slate-400 italic">No deadlines scheduled.</div>
                  )}
               </div>
            </div>
 
            <div>
               <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-4 tracking-tight flex items-center gap-2">
-                <FileText size={18} className="text-blue-500" /> Documents Associés
+                <FileText size={18} className="text-blue-500" /> Related Documents
               </h3>
               <div className="space-y-3">
                 {activeCase.documents?.map((doc) => (
@@ -221,14 +221,14 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
                   </div>
                 ))}
                 {(!activeCase.documents || activeCase.documents.length === 0) && (
-                  <p className="text-xs text-slate-400 italic">Aucun document.</p>
+                  <p className="text-xs text-slate-400 italic">No documents.</p>
                 )}
               </div>
            </div>
         </div>
         <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex gap-3 sticky bottom-0">
            <button className="flex-1 py-3 bg-slate-900 dark:bg-amber-600 text-white rounded-xl text-sm font-bold hover:bg-slate-800 dark:hover:bg-amber-700 transition-all active:scale-[0.98] shadow-lg shadow-slate-200 dark:shadow-none">
-             Ouvrir le dossier complet
+             Open full case
            </button>
         </div>
       </div>

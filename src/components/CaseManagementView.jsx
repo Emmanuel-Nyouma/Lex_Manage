@@ -32,7 +32,7 @@ const CaseManagementView = () => {
   if (error) {
     return (
       <div className="p-4 bg-red-50 text-red-600 rounded-lg">
-        Erreur de chargement des dossiers : {error.message}
+        Error loading cases: {error.message}
       </div>
     );
   }
@@ -41,11 +41,11 @@ const CaseManagementView = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Gestion des Dossiers</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">Gérez l'ensemble de vos procédures juridiques en cours.</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Case Management</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Manage all your ongoing legal proceedings.</p>
         </div>
         <Button onClick={() => setIsNewCaseOpen(true)} icon={Plus} className="w-full sm:w-auto shadow-lg shadow-amber-500/20">
-          Nouveau Dossier
+          New Case
         </Button>
       </div>
 
@@ -54,7 +54,7 @@ const CaseManagementView = () => {
           <div className="flex items-center gap-2">
             <Badge variant="info" className="px-3">Total ({cases?.length || 0})</Badge>
           </div>
-          <Button variant="secondary" size="sm" icon={Filter}>Filtrer</Button>
+          <Button variant="secondary" size="sm" icon={Filter}>Filter</Button>
         </div>
 
         {/* VUE TABLEAU (Desktop >= md) */}
@@ -62,10 +62,10 @@ const CaseManagementView = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 dark:bg-slate-800/30 text-slate-500 dark:text-slate-400 text-[10px] uppercase tracking-widest font-bold">
-                <th className="px-6 py-4">Dossier</th>
+                <th className="px-6 py-4">Case</th>
                 <th className="px-6 py-4">Client</th>
-                <th className="px-6 py-4">Assigné</th>
-                <th className="px-6 py-4">Statut</th>
+                <th className="px-6 py-4">Assigned To</th>
+                <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4 text-right">Action</th>
               </tr>
             </thead>
@@ -79,7 +79,7 @@ const CaseManagementView = () => {
                   <td className="px-6 py-4">
                     <div className="font-bold text-slate-900 dark:text-white group-hover:text-amber-600 transition-colors">{c.title}</div>
                     <div className="text-[10px] text-slate-500 flex items-center gap-1 font-medium">
-                       <Gavel size={10} /> {c.courtName || 'Juridiction non définie'}
+                       <Gavel size={10} /> {c.courtName || 'Jurisdiction not defined'}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm font-medium text-slate-600 dark:text-slate-400">{c.clientName}</td>
@@ -88,7 +88,7 @@ const CaseManagementView = () => {
                        <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold">
                          {c.assignee?.firstName?.[0] || '?'}{c.assignee?.lastName?.[0] || ''}
                        </div>
-                       <span className="text-xs text-slate-500 font-medium">{c.assignee?.firstName || 'Non assigné'}</span>
+                       <span className="text-xs text-slate-500 font-medium">{c.assignee?.firstName || 'Unassigned'}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -137,8 +137,8 @@ const CaseManagementView = () => {
             <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto text-slate-300">
                <Briefcase size={32} />
             </div>
-            <p className="text-slate-500 font-medium">Aucun dossier trouvé.</p>
-            <Button onClick={() => setIsNewCaseOpen(true)} variant="secondary" size="sm">Créer le premier dossier</Button>
+            <p className="text-slate-500 font-medium">No cases found.</p>
+            <Button onClick={() => setIsNewCaseOpen(true)} variant="secondary" size="sm">Create the first case</Button>
           </div>
         )}
       </div>

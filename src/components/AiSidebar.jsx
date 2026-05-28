@@ -15,7 +15,7 @@ const AiSidebar = ({
 }) => {
   const { sendAiMessage, isLoading: isChatLoading, error } = useLexStore();
   const [chatHistory, setChatHistory] = useState([
-    { id: 1, sender: 'ai', text: "Bonjour Maître, je suis LexAssist. Comment puis-je vous aider aujourd'hui ?", isRich: false }
+    { id: 1, sender: 'ai', text: "Hello, I am LexAssist. How can I help you today?", isRich: false }
   ]);
   const chatEndRef = useRef(null);
   const [chatInput, setChatInput] = useState("");

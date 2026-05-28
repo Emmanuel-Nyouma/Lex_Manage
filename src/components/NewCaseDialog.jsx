@@ -7,8 +7,8 @@ import { Button, Input } from './UI';
 import { useCreateCase } from '../hooks/useCases';
 
 const caseSchema = z.object({
-  title: z.string().min(3, "Le titre doit faire au moins 3 caractères"),
-  clientName: z.string().min(2, "Le nom du client est requis"),
+  title: z.string().min(3, "Title must be at least 3 characters long"),
+  clientName: z.string().min(2, "Client name is required"),
   courtName: z.string().optional().or(z.literal('')),
   caseNumber: z.string().optional().or(z.literal('')),
   status: z.string().default("OPEN"),
@@ -30,7 +30,7 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
     }
   });
 
-  // Gestion de la fermeture avec Echap
+  // Handle close with Escape
   useEffect(() => {
     const handleEsc = (event) => {
       if (event.key === 'Escape') onClose();
@@ -61,8 +61,8 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
               <FileText size={22} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Ouvrir un nouveau dossier</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Créez une nouvelle fiche dans le référentiel sécurisé du cabinet.</p>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Open New Case</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Create a new file in the firm's secure repository.</p>
             </div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full">
@@ -74,12 +74,12 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
         <form onSubmit={handleSubmit(onSubmit)} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* Titre */}
+            {/* Title */}
             <div className="md:col-span-2">
               <Input 
                 {...register("title")}
-                label="Objet / Titre du Dossier"
-                placeholder="ex: Litige Foncier Famille Kamdem"
+                label="Subject / Case Title"
+                placeholder="ex: Commercial Dispute - Smith Corp"
                 icon={FileText}
                 error={errors.title?.message}
               />
@@ -89,8 +89,8 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
             <div>
               <Input 
                 {...register("clientName")}
-                label="Nom du Client"
-                placeholder="ex: Emmanuel Kamdem"
+                label="Client Name"
+                placeholder="ex: John Smith"
                 icon={User}
                 error={errors.clientName?.message}
               />
@@ -100,35 +100,35 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
             <div>
               <Input 
                 {...register("caseNumber")}
-                label="N° de Dossier / Référence"
+                label="Case Number / Reference"
                 placeholder="ex: LEX-2026-001"
                 icon={Hash}
                 error={errors.caseNumber?.message}
               />
             </div>
 
-            {/* Juridiction */}
+            {/* Jurisdiction */}
             <div>
               <Input 
                 {...register("courtName")}
-                label="Juridiction / Tribunal"
-                placeholder="ex: Tribunal de Grande Instance de Douala"
+                label="Jurisdiction / Court"
+                placeholder="ex: Supreme Court of Justice"
                 icon={Gavel}
                 error={errors.courtName?.message}
               />
             </div>
 
-            {/* Statut */}
+            {/* Status */}
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Statut Initial</label>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Initial Status</label>
               <div className="relative">
                  <select 
                    {...register("status")}
                    className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:text-white appearance-none cursor-pointer"
                  >
-                   <option value="OPEN">Ouvert (Open)</option>
-                   <option value="IN_PROGRESS">En cours (In Progress)</option>
-                   <option value="PENDING">En attente (Pending)</option>
+                   <option value="OPEN">Open</option>
+                   <option value="IN_PROGRESS">In Progress</option>
+                   <option value="PENDING">Pending</option>
                  </select>
                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                     <Check size={14} />
@@ -138,10 +138,10 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
 
             {/* Description */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Description / Notes Stratégiques</label>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Description / Strategic Notes</label>
               <textarea 
                 {...register("description")}
-                placeholder="Détails confidentiels sur l'objet du litige..."
+                placeholder="Confidential details about the dispute..."
                 rows={3}
                 className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:text-white resize-none"
               ></textarea>
@@ -151,7 +151,7 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
           {/* Footer */}
           <div className="mt-8 flex items-center justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-700">
             <Button type="button" variant="secondary" onClick={onClose} className="font-bold">
-              Annuler
+              Cancel
             </Button>
             <Button 
               type="submit"
@@ -159,7 +159,7 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
               icon={Check}
               className="px-8 font-bold"
             >
-              Ouvrir le dossier
+              Open Case
             </Button>
           </div>
         </form>

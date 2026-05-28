@@ -19,19 +19,19 @@ const Sidebar = ({ isMobileOpen, onCloseMobile }) => {
 
   const firstName = currentUser?.first_name || '';
   const lastName = currentUser?.last_name || '';
-  const fullName = firstName || lastName ? `${firstName} ${lastName}`.trim() : 'Utilisateur';
-  const role = currentUser?.role || 'Avocat';
+  const fullName = firstName || lastName ? `${firstName} ${lastName}`.trim() : 'User';
+  const role = currentUser?.role || 'Attorney';
   const isAdmin = role === 'admin';
 
   const navItems = [
-    { to: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
+    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/clients', icon: Users, label: 'Clients' },
-    { to: '/cases', icon: Briefcase, label: 'Dossiers' },
-    { to: '/calendar', icon: Calendar, label: 'Calendrier' },
+    { to: '/cases', icon: Briefcase, label: 'Cases' },
+    { to: '/calendar', icon: Calendar, label: 'Calendar' },
     { to: '/documents', icon: Files, label: 'Documents' },
     { to: '/admin', icon: ShieldCheck, label: 'Administration' },
-    ...(isAdmin ? [{ to: '/company-settings', icon: Building2, label: 'Gestion Cabinet' }] : []),
-    { to: '/settings', icon: Settings, label: 'Paramètres' },
+    ...(isAdmin ? [{ to: '/company-settings', icon: Building2, label: 'Firm Management' }] : []),
+    { to: '/settings', icon: Settings, label: 'Settings' },
   ];
 
   const handleNavClick = () => {
@@ -59,7 +59,7 @@ const Sidebar = ({ isMobileOpen, onCloseMobile }) => {
             <span className="text-white font-bold text-lg tracking-wide">LEX<span className="text-slate-400 font-light">MANAGE</span></span>
           </div>
           {isMobileOpen && (
-            <button onClick={onCloseMobile} className="md:hidden text-slate-400 hover:text-white" aria-label="Fermer le menu">
+            <button onClick={onCloseMobile} className="md:hidden text-slate-400 hover:text-white" aria-label="Close menu">
               <span className="text-2xl">&times;</span>
             </button>
           )}
@@ -106,8 +106,8 @@ const Sidebar = ({ isMobileOpen, onCloseMobile }) => {
           <button 
             onClick={logout}
             className="p-2 text-slate-500 hover:text-red-400 hover:bg-slate-800 rounded-lg transition-colors shrink-0"
-            aria-label="Déconnexion"
-            title="Déconnexion"
+            aria-label="Logout"
+            title="Logout"
           >
             <LogOut size={18} aria-hidden="true" />
           </button>

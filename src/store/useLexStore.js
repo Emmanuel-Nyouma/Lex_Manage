@@ -62,10 +62,10 @@ const useLexStore = create((set, get) => ({
       const { data } = await apiClient.post('/api/v1/auth/login', { email, password });
       localStorage.setItem('accessToken', data.accessToken);
       set({ session: { access_token: data.accessToken }, currentUser: data.user });
-      toast.success('Connexion réussie');
+      toast.success('Login successful');
     } catch (err) {
       console.error('Login error:', err.response?.data || err.message);
-      toast.error(err.response?.data?.message || 'Erreur de connexion');
+      toast.error(err.response?.data?.message || 'Login error');
     } finally {
       set({ isLoading: false });
     }
@@ -87,7 +87,7 @@ const useLexStore = create((set, get) => ({
       const { data } = await apiClient.post('/ai/chat', { message });
       return data;
     } catch (err) {
-      const msg = err.response?.data?.message || "Erreur IA";
+      const msg = err.response?.data?.message || "AI Error";
       toast.error(msg);
       return null;
     }
@@ -102,7 +102,7 @@ const useLexStore = create((set, get) => ({
       return data.text;
     } catch (err) {
       console.error("Gemini call error", err);
-      return "Une erreur est survenue lors de l'appel à l'IA.";
+      return "An error occurred during the AI call.";
     }
   }
 }));

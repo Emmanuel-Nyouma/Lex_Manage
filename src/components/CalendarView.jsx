@@ -119,7 +119,7 @@ const CalendarView = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    toast.error("Le backend Supabase est désactivé.");
+    toast.error("The Supabase backend is disabled.");
     /*
     try {
       const dateTime = `${currentEvent.date}T${currentEvent.time}:00`;
@@ -157,7 +157,7 @@ const CalendarView = () => {
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this event?')) {
-      toast.error("Le backend Supabase est désactivé.");
+      toast.error("The Supabase backend is disabled.");
       /*
       try {
         const { error } = await supabase
@@ -354,7 +354,7 @@ const CalendarView = () => {
         <div className="w-80 hidden lg:flex flex-col gap-6">
           <div className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
             <h3 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-              <AlertCircle size={18} className="text-amber-600" /> Upcoming HearDates
+              <AlertCircle size={18} className="text-amber-600" /> Upcoming Hearing Dates
             </h3>
             <div className="space-y-4">
               {events
