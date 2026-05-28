@@ -28,50 +28,62 @@ const AiSidebar = ({
     const messageText = typeof text === 'string' ? text : chatInput;
     if (!messageText.trim() || isChatLoading) return;
     
-    // 1. Add user message locally
     const userMsg = { id: Date.now().toString(), sender: 'user', text: messageText };
     setChatHistory(prev => [...prev, userMsg]);
     setChatInput("");
 
-    // 2. Call secure backend relayer via Zustand
     const response = await sendAiMessage(messageText);
     if (response) {
       setChatHistory(prev => [...prev, { 
         id: (Date.now() + 1).toString(), 
         sender: 'ai', 
         text: response.text,
-        isRich: response.text.length > 200 // Threshold for rich display
+        isRich: response.text.length > 200 
       }]);
     }
   }, [chatInput, isChatLoading, sendAiMessage]);
 
   return (
-    <div className={`fixed inset-y-0 right-0 w-full sm:w-[400px] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl transform transition-transform duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] z-[45] flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+    <>
+      {/* Overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/50 z-40 backdrop-blur-sm transition-opacity" 
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Drawer */}
+      <div className={`
+        fixed inset-y-0 right-0 w-full sm:w-[400px] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl 
+        transform transition-transform duration-300 ease-in-out z-50 flex flex-col 
+        ${isOpen ? 'translate-x-0' : 'translate-x-full'}
+      `}>
       {/* Header */}
-      <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-between items-center z-10 shadow-sm">
+      <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-between items-center shadow-sm">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center text-white shadow-lg shadow-amber-500/20">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center text-white shadow-lg">
               <Bot size={22} />
             </div>
             <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full"></span>
           </div>
           <div>
-            <h3 className="font-bold text-slate-900 dark:text-white text-sm tracking-tight">LexAssist AI</h3>
-            <div className="flex items-center gap-1.5">
-               <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest">Active</span>
-               <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
-               <span className="text-[10px] text-slate-400 font-medium">GPT-4 Legal Core</span>
-            </div>
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">LexAssist AI</h3>
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase">Active</span>
           </div>
         </div>
         <button 
           onClick={onClose} 
           className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
+          aria-label="Close AI assistant"
         >
           <X size={20} />
         </button>
       </div>
+
+      {/* ... (rest of chat area) */}
 
       {/* Chat Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50/30 dark:bg-slate-950/30 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
