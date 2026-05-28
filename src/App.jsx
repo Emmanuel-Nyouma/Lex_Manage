@@ -7,7 +7,6 @@ import { Lock, ShieldCheck, AlertTriangle, X as CloseIcon } from 'lucide-react';
 import AuthScreen from './components/AuthScreen';
 import DashboardView from './components/DashboardView';
 import CaseManagementView from './components/CaseManagementView';
-import ClientsDirectoryView from './components/ClientsDirectoryView';
 import CalendarView from './components/CalendarView';
 import DocumentsView from './components/DocumentsView';
 import AdminView from './components/AdminView';
@@ -25,8 +24,6 @@ import { useNotifications } from './hooks/useNotifications';
 import { useSocket } from './hooks/useSocket';
 import { useQueryClient } from '@tanstack/react-query';
 
-import AiDashboardView from './components/AiDashboardView';
-
 // SECURITY FIX #4: Protected route wrapper
 const ProtectedRoute = ({ children, session }) => {
   if (!session) return <Navigate to="/login" replace />;
@@ -34,14 +31,19 @@ const ProtectedRoute = ({ children, session }) => {
 };
 
 const AdminRoute = ({ children, session, currentUser }) => {
-  if (!session) return <Navigate to="/login" replace />;
+  console.log("AdminRoute checking access:", { session: !!session, role: currentUser?.role });
   
-  // If we already have the user and they aren't an admin, redirect
+  if (!session) {
+    console.log("AdminRoute: No session, redirecting to login");
+    return <Navigate to="/login" replace />;
+  }
+  
   if (currentUser && currentUser.role !== 'CABINET_ADMIN' && currentUser.role !== 'SUPER_ADMIN') {
+    console.log("AdminRoute: User is not admin, redirecting to dashboard. Role:", currentUser.role);
     return <Navigate to="/dashboard" replace />;
   }
   
-  // Otherwise, render children (AdminView will handle its own loading/role check)
+  console.log("AdminRoute: Access granted or user loading...");
   return children;
 };
 
@@ -103,7 +105,7 @@ const MainLayout = ({ children, isAiOpen, setIsAiOpen, isMobileSidebarOpen, setI
 };
 
 export default function LexManageApp() {
-  const { session, initAuth, isLoading, currentUser, logout } = useLexStore();
+  const { session, initAuth, isLoading, logout } = useLexStore();
   const queryClient = useQueryClient();
   const socket = useSocket();
   const { isIdle } = useIdleTimeout(15 * 60 * 1000); // 15 minutes
@@ -154,12 +156,6 @@ export default function LexManageApp() {
         } />
         
         <Route path="/dashboard" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><DashboardView /></MainLayout></ProtectedRoute>} />
-        <Route path="/ai-dashboard" element={
-          <ProtectedRoute session={session}>
-            <MainLayout {...layoutProps}><AiDashboardView /></MainLayout>
-          </ProtectedRoute>
-        } />
-        <Route path="/clients" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><ClientsDirectoryView /></MainLayout></ProtectedRoute>} />
         <Route path="/cases" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><CaseManagementView /></MainLayout></ProtectedRoute>} />
         <Route path="/calendar" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><CalendarView /></MainLayout></ProtectedRoute>} />
         <Route path="/documents" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><DocumentsView /></MainLayout></ProtectedRoute>} />
@@ -168,6 +164,7 @@ export default function LexManageApp() {
             <MainLayout {...layoutProps}><AdminView /></MainLayout>
           </AdminRoute>
         } />
+
         <Route path="/company-settings" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><CompanySettingsView /></MainLayout></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><ProfileView /></MainLayout></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><SettingsView /></MainLayout></ProtectedRoute>} />
