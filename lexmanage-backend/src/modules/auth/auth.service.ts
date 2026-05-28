@@ -8,7 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../../prisma/prisma.service';
-import { LoginDto, RegisterDto } from './dto/auth.dto';
+import { LoginDto, RegisterDto, UpdateProfileDto } from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +16,8 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
   ) {}
+
+  // ... (register method)
 
   // ── REGISTER (Creates a new Tenant + Admin user OR Joins via Invitation) ─
   async register(dto: RegisterDto) {
@@ -87,6 +89,18 @@ export class AuthService {
       where: { id: userId },
     });
     if (!user) throw new NotFoundException('User not found');
+    return this.sanitizeUser(user);
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        phone: dto.phone,
+      },
+    });
     return this.sanitizeUser(user);
   }
 

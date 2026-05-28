@@ -64,3 +64,23 @@ export class RefreshTokenDto {
   @IsString()
   refreshToken: string;
 }
+
+export class UpdateProfileDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  firstName?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  lastName?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  @MinLength(8)
+  phone?: string;
+}
