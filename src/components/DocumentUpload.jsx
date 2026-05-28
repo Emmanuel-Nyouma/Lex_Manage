@@ -19,39 +19,37 @@ const DocumentUpload = ({ onUploadSuccess }) => {
   const { currentUser } = useLexStore();
   const [isUploading, setIsUploading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Pièces');
+  const [uploadProgress, setUploadProgress] = useState({});
 
-  const onDrop = useCallback(async (acceptedFiles, rejectedFiles) => {
-    if (rejectedFiles.length > 0) {
-      rejectedFiles.forEach(({ file, errors }) => {
-        errors.forEach(err => {
-          if (err.code === 'file-too-large') {
-            toast.error(`${file.name} is too large (max 50 MB)`);
-          } else if (err.code === 'file-invalid-type') {
-            toast.error(`${file.name} is not an accepted format (PDF/Word only)`);
-          } else {
-            toast.error(`Error on ${file.name}: ${err.message}`);
-          }
-        });
-      });
-      return;
-    }
-
+  const onDrop = useCallback(async (acceptedFiles) => {
     if (acceptedFiles.length === 0) return;
 
     setIsUploading(true);
-    const toastId = toast.loading(`Analyzing ${acceptedFiles.length} file(s)...`);
+    
+    // Initialize progress for files
+    const initialProgress = acceptedFiles.reduce((acc, file) => {
+      acc[file.name] = 0;
+      return acc;
+    }, {});
+    setUploadProgress(initialProgress);
 
     try {
       for (const file of acceptedFiles) {
+        // Simulate progress for visual feedback
+        setUploadProgress(prev => ({ ...prev, [file.name]: 20 }));
+        
         await uploadLegalDocument(file, currentUser, selectedCategory);
+        
+        setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));
       }
-      toast.success("Documents imported and analyzed", { id: toastId });
+      toast.success("Documents imported and analyzed");
       if (onUploadSuccess) onUploadSuccess();
     } catch (error) {
       console.error(error);
-      toast.error("Processing failed", { id: toastId });
+      toast.error("Processing failed");
     } finally {
       setIsUploading(false);
+      setUploadProgress({});
     }
   }, [currentUser, onUploadSuccess, selectedCategory]);
 
@@ -100,15 +98,24 @@ const DocumentUpload = ({ onUploadSuccess }) => {
           <p className="text-lg font-bold text-slate-900 dark:text-white">
             {isDragActive ? "Drop to import" : "Click or drag your documents"}
           </p>
-          <p className="text-sm text-slate-500 mt-2">
-            Documents will be filed under <span className="text-amber-600 font-bold">"{CATEGORY_LABELS[selectedCategory]}"</span>
-          </p>
-          <div className="mt-6 flex gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            <span className="flex items-center gap-1"><Check size={12} /> PDF / DOCX</span>
-            <span className="flex items-center gap-1"><Check size={12} /> Max 50 MB</span>
-          </div>
         </div>
       </div>
+
+      {/* Progress Bars */}
+      {Object.entries(uploadProgress).map(([fileName, progress]) => (
+        <div key={fileName} className="space-y-1">
+          <div className="flex justify-between text-xs font-medium text-slate-600 dark:text-slate-400">
+            <span className="truncate max-w-[200px]">{fileName}</span>
+            <span>{progress}%</span>
+          </div>
+          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">
+            <div 
+              className="bg-amber-500 h-2 rounded-full transition-all duration-300" 
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      ))}
     </div>
   );
 };
