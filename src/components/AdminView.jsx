@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  Users, UserPlus, Shield, Mail, Trash2, Loader2, CheckCircle2 
+  Users, UserPlus, Shield, Mail, Trash2, Loader2, CheckCircle2, Power 
 } from 'lucide-react';
 import { Card, Button, Input, Badge } from './ui';
 import { toast } from 'sonner';
@@ -138,10 +138,23 @@ const AdminView = () => {
                       <div className="font-medium">Maitre Emmanuel</div>
                       <div className="text-xs text-slate-400 font-mono">admin@lexmanage.com</div>
                     </td>
-                    <td className="px-6 py-4"><Badge variant="info">Admin</Badge></td>
+                    <td className="px-6 py-4">
+                      <Badge 
+                        variant="error" 
+                        className="cursor-help" 
+                        title="CABINET_ADMIN: Full access to all firm settings and user management."
+                      >
+                        Admin
+                      </Badge>
+                    </td>
                     <td className="px-6 py-4 text-emerald-500"><CheckCircle2 size={16} /></td>
                     <td className="px-6 py-4 text-right">
-                      <button className="p-2 text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
+                      <button 
+                        className="p-2 text-slate-400 hover:text-amber-600 transition-colors"
+                        title="Deactivate user access"
+                      >
+                        <Power size={16} />
+                      </button>
                     </td>
                   </tr>
                   {/* More rows here... */}
