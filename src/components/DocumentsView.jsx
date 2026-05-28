@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { 
   Files, Search, Folder, FileText, Trash2, Loader2, Sparkles, Plus, ChevronDown, ChevronRight, X
 } from 'lucide-react';
-import { toast } from 'sonner';
 import DocumentUpload from './DocumentUpload';
 import { Badge, Card } from './UI';
 import { useDocuments, useDeleteDocument } from '../hooks/useDocuments';
@@ -85,12 +84,18 @@ const DocumentsView = () => {
       </div>
 
       {isLoading ? (
-        <div className="h-64 flex flex-col items-center justify-center gap-4">
-          <Loader2 className="animate-spin text-amber-500" size={48} />
-          <p className="text-slate-400 font-bold animate-pulse uppercase tracking-widest text-xs">Accessing digital vault...</p>
+        <div className="space-y-4">
+           {Array(3).fill(0).map((_, i) => (
+             <div key={i} className="flex gap-4">
+                <Skeleton className="h-16 w-full" />
+             </div>
+           ))}
         </div>
       ) : (
         <div className="space-y-4">
+
+//...
+
           {CATEGORIES.map(cat => {
             const docs = groupedDocs[cat] || [];
             const isExpanded = expandedCategories.includes(cat);
