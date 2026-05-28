@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  Files, Search, Folder, FileText, Trash2, Loader2, Sparkles, Plus, ChevronDown, ChevronRight, X
+  Files, Search, Folder, FileText, Trash2, Loader2, Sparkles, Plus, ChevronDown, ChevronRight, X, Eye
 } from 'lucide-react';
 import DocumentUpload from './DocumentUpload';
-import { Badge, Card } from './ui';
+import { Badge, Card, Skeleton } from './ui';
 import { useDocuments, useDeleteDocument } from '../hooks/useDocuments';
+import { PdfPreviewModal } from './PdfPreviewModal';
 
 const CATEGORIES = ['Pièces', 'Correspondances', 'Actes', 'Client', 'Autre'];
 const CATEGORY_LABELS = {
@@ -22,6 +23,7 @@ const DocumentsView = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showUpload, setShowUpload] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState(CATEGORIES);
+  const [previewDoc, setPreviewDoc] = useState(null);
 
   const handleDelete = async (doc) => {
     if (!window.confirm('Are you sure you want to delete this document?')) return;
