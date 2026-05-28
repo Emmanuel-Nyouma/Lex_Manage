@@ -13,7 +13,13 @@ export class StatsController {
 
   @Get('dashboard')
   @ApiOperation({ summary: 'Get aggregated stats for the dashboard' })
-  getDashboardStats(@CurrentUser('tenantId') tenantId: string) {
-    return this.statsService.getDashboardStats(tenantId);
+  getDashboardStats(@CurrentUser('firmId') firmId: string) {
+    return this.statsService.getDashboardStats(firmId);
+  }
+
+  @Get('ai-dashboard')
+  @ApiOperation({ summary: 'Get aggregated AI stats for the dashboard' })
+  getAiDashboardData(@CurrentUser('firmId') firmId: string) {
+    return this.statsService.getAiDashboardData(firmId);
   }
 }

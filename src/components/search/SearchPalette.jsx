@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, FileText, Briefcase, Users, X, Loader2, Command, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { apiClient } from '../../store/useLexStore';
+import apiClient from '../../lib/api';
 
 export const SearchPalette = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('');

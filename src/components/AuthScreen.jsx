@@ -21,7 +21,7 @@ import {
   Key,
   Check
 } from 'lucide-react';
-import { apiClient } from '../store/useLexStore';
+import apiClient from '../lib/api';
 import useLexStore from '../store/useLexStore';
 import { Button, Input, Badge } from './UI';
 

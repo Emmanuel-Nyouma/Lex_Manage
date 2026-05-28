@@ -25,6 +25,8 @@ import { useNotifications } from './hooks/useNotifications';
 import { useSocket } from './hooks/useSocket';
 import { useQueryClient } from '@tanstack/react-query';
 
+import AiDashboardView from './components/AiDashboardView';
+
 // SECURITY FIX #4: Protected route wrapper
 const ProtectedRoute = ({ children, session }) => {
   if (!session) return <Navigate to="/login" replace />;
@@ -146,6 +148,11 @@ export default function LexManageApp() {
         } />
         
         <Route path="/dashboard" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><DashboardView /></MainLayout></ProtectedRoute>} />
+        <Route path="/ai-dashboard" element={
+          <ProtectedRoute session={session}>
+            <MainLayout {...layoutProps}><AiDashboardView /></MainLayout>
+          </ProtectedRoute>
+        } />
         <Route path="/clients" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><ClientsDirectoryView /></MainLayout></ProtectedRoute>} />
         <Route path="/cases" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><CaseManagementView /></MainLayout></ProtectedRoute>} />
         <Route path="/calendar" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><CalendarView /></MainLayout></ProtectedRoute>} />

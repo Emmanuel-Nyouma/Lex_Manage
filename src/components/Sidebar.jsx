@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, 
+  Brain,
   Briefcase, 
   Calendar, 
   Files, 
@@ -25,6 +26,7 @@ const Sidebar = ({ isMobileOpen, onCloseMobile }) => {
 
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/ai-dashboard', icon: Brain, label: 'AI Dashboard' },
     { to: '/clients', icon: Users, label: 'Clients' },
     { to: '/cases', icon: Briefcase, label: 'Cases' },
     { to: '/calendar', icon: Calendar, label: 'Calendar' },

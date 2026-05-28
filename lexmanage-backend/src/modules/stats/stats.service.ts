@@ -5,7 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class StatsService {
   constructor(private prisma: PrismaService) {}
 
-  async getDashboardStats(tenantId: string) {
+  async getDashboardStats(firmId: string) {
     const [
       activeCasesCount,
       pendingDeadlinesCount,
@@ -17,27 +17,27 @@ export class StatsService {
     ] = await Promise.all([
       // 1. Active Cases Count
       this.prisma.case.count({
-        where: { tenantId, status: { in: ['OPEN', 'IN_PROGRESS'] } },
+        where: { firmId, status: { in: ['OPEN', 'IN_PROGRESS'] } },
       }),
 
       // 2. Pending Deadlines Count
       this.prisma.deadline.count({
-        where: { tenantId, isDone: false, dueAt: { gte: new Date() } },
+        where: { firmId, isDone: false, dueAt: { gte: new Date() } },
       }),
 
       // 3. Total Documents
       this.prisma.document.count({
-        where: { tenantId },
+        where: { firmId },
       }),
 
       // 4. Total Clients
       this.prisma.client.count({
-        where: { tenantId },
+        where: { firmId },
       }),
 
       // 5. Recent Activity (Audit Logs)
       this.prisma.auditLog.findMany({
-        where: { tenantId },
+        where: { firmId },
         orderBy: { createdAt: 'desc' },
         take: 10,
         include: { user: { select: { firstName: true, lastName: true } } },
@@ -46,13 +46,13 @@ export class StatsService {
       // 6. Workload Data (Cases per status)
       this.prisma.case.groupBy({
         by: ['status'],
-        where: { tenantId },
+        where: { firmId },
         _count: { id: true },
       }),
 
       // 7. Top Lawyers (Most assigned cases)
       this.prisma.user.findMany({
-        where: { tenantId, role: 'LAWYER' },
+        where: { firmId, role: 'LAWYER' },
         select: {
           firstName: true,
           lastName: true,
@@ -74,5 +74,26 @@ export class StatsService {
       workload: workloadData,
       topLawyers,
     };
+  }
+
+  async getAiDashboardData(firmId: string) {
+    const [recentChats, commonLegalTopics, aiUsageVolume] = await Promise.all([
+      this.prisma.chatMessage.findMany({
+        where: { conversation: { firmId } },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        include: { conversation: true },
+      }),
+      this.prisma.document.groupBy({
+        by: ['category'],
+        where: { firmId },
+        _count: { id: true },
+      }),
+      this.prisma.chatMessage.count({
+        where: { conversation: { firmId } },
+      }),
+    ]);
+
+    return { recentChats, commonLegalTopics, aiUsageVolume };
   }
 }

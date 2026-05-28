@@ -13,7 +13,8 @@ import {
   ChevronDown,
   Users
 } from 'lucide-react';
-import useLexStore, { apiClient } from '../store/useLexStore';
+import useLexStore from '../store/useLexStore';
+import apiClient from '../lib/api';
 import { toast } from 'sonner';
 import { Card, Badge } from './UI';
 
