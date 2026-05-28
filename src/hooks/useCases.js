@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { QUERY_KEYS } from '../lib/queryKeys';
 import { toast } from 'sonner';
+import { Case, PaginatedResponse } from '../types';
 
 // Hook pour récupérer tous les dossiers actifs
 export const useCases = (page = 1, limit = 10) => {
@@ -9,7 +10,7 @@ export const useCases = (page = 1, limit = 10) => {
     queryKey: [...QUERY_KEYS.cases, page, limit],
     queryFn: async () => {
       const { data } = await apiClient.get(`/api/v1/cases?page=${page}&limit=${limit}`);
-      return data; // Now returns { data: [], meta: {...} }
+      return data;
     },
     keepPreviousData: true,
   });
