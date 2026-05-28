@@ -9,6 +9,7 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use((config) => {
   const token = sessionStorage.getItem('access_token');
+  console.log("Adding token to header:", token ? "Token present" : "No token found");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

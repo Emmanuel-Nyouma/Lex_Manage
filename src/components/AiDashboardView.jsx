@@ -71,11 +71,17 @@ const DashboardChat = ({ firmId }) => {
 };
 
 const AiDashboardView = () => {
-  const { data, isLoading } = useAiDashboard();
+  const { data, isLoading, error } = useAiDashboard();
 
   if (isLoading) return <div className="p-10 animate-pulse bg-slate-100 h-64 rounded-2xl" />;
+  if (error) return <div className="p-10 text-red-500">Error loading dashboard: {error.message}</div>;
+  if (!data) return <div className="p-10">No data available.</div>;
 
-  const totalCases = data.casesByStatus.reduce((acc, curr) => acc + curr._count, 0);
+  console.log("Dashboard Data:", data);
+
+  const totalCases = Array.isArray(data.casesByStatus) 
+    ? data.casesByStatus.reduce((acc, curr) => acc + (curr._count?.id || 0), 0)
+    : 0;
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">

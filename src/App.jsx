@@ -35,7 +35,7 @@ const ProtectedRoute = ({ children, session }) => {
 
 const AdminRoute = ({ children, session, currentUser }) => {
   if (!session) return <Navigate to="/login" replace />;
-  if (currentUser?.role !== 'admin') return <Navigate to="/dashboard" replace />;
+  if (currentUser?.role !== 'CABINET_ADMIN') return <Navigate to="/dashboard" replace />;
   return children;
 };
 

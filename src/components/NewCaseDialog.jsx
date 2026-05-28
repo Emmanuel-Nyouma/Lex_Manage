@@ -40,7 +40,17 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
   }, [isOpen, onClose]);
 
   const onSubmit = async (data) => {
-    createCase.mutate(data, {
+    // Structure data to match backend CreateCaseDto
+    const payload = {
+      title: data.title,
+      clientName: data.clientName,
+      description: data.description,
+      courtName: data.courtName,
+      caseNumber: data.caseNumber,
+      // Status is handled by backend default or update, so not in CreateCaseDto
+    };
+    
+    createCase.mutate(payload, {
       onSuccess: () => {
         reset();
         onClose();
