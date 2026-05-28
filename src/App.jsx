@@ -105,7 +105,7 @@ const MainLayout = ({ children, isAiOpen, setIsAiOpen, isMobileSidebarOpen, setI
 };
 
 export default function LexManageApp() {
-  const { session, initAuth, isLoading, logout } = useLexStore();
+  const { session, initAuth, isLoading, currentUser, logout } = useLexStore();
   const queryClient = useQueryClient();
   const socket = useSocket();
   const { isIdle } = useIdleTimeout(15 * 60 * 1000); // 15 minutes
