@@ -43,8 +43,9 @@ const Sidebar = ({ isMobileOpen, onCloseMobile }) => {
       {/* Mobile Overlay */}
       {isMobileOpen && (
         <div 
-          className="md:hidden fixed inset-0 bg-slate-900/80 z-40 backdrop-blur-sm transition-opacity" 
+          className="md:hidden fixed inset-0 bg-slate-900/50 z-40 backdrop-blur-sm transition-opacity" 
           onClick={onCloseMobile}
+          aria-hidden="true"
         />
       )}
 
@@ -58,11 +59,9 @@ const Sidebar = ({ isMobileOpen, onCloseMobile }) => {
             <Gavel className="text-amber-500 mr-2" size={24} aria-hidden="true" />
             <span className="text-white font-bold text-lg tracking-wide">LEX<span className="text-slate-400 font-light">MANAGE</span></span>
           </div>
-          {isMobileOpen && (
-            <button onClick={onCloseMobile} className="md:hidden text-slate-400 hover:text-white" aria-label="Close menu">
-              <span className="text-2xl">&times;</span>
-            </button>
-          )}
+          <button onClick={onCloseMobile} className="md:hidden p-2 text-slate-400 hover:text-white" aria-label="Close menu">
+             <X size={20} />
+          </button>
         </div>
 
         <nav className="flex-1 py-6 space-y-1 overflow-y-auto">
