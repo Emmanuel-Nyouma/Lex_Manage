@@ -35,7 +35,13 @@ const ProtectedRoute = ({ children, session }) => {
 
 const AdminRoute = ({ children, session, currentUser }) => {
   if (!session) return <Navigate to="/login" replace />;
-  if (currentUser?.role !== 'CABINET_ADMIN') return <Navigate to="/dashboard" replace />;
+  
+  // Wait if currentUser is not yet loaded but session exists
+  if (!currentUser) return null; 
+
+  const isAdmin = currentUser.role === 'CABINET_ADMIN' || currentUser.role === 'SUPER_ADMIN';
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+  
   return children;
 };
 

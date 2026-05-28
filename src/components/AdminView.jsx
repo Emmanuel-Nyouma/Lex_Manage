@@ -15,7 +15,7 @@ const AdminView = () => {
   const [isInviting, setIsInviting] = useState(false);
 
   // SECURITY FIX #5: Role-Based Access Control
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === 'CABINET_ADMIN' || currentUser?.role === 'SUPER_ADMIN';
   if (!isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-slate-500 animate-in fade-in duration-500">
