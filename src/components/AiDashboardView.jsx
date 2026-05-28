@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { Badge } from './UI';
-import { Briefcase, Clock, Calendar, AlertTriangle, FileText, Bot, Send, Brain } from 'lucide-react';
+import { Send } from 'lucide-react';
 
 const useAiDashboard = () => {
   return useQuery({
@@ -76,12 +76,6 @@ const AiDashboardView = () => {
   if (isLoading) return <div className="p-10 animate-pulse bg-slate-100 h-64 rounded-2xl" />;
   if (error) return <div className="p-10 text-red-500">Error loading dashboard: {error.message}</div>;
   if (!data) return <div className="p-10">No data available.</div>;
-
-  console.log("Dashboard Data:", data);
-
-  const totalCases = Array.isArray(data.casesByStatus) 
-    ? data.casesByStatus.reduce((acc, curr) => acc + (curr._count?.id || 0), 0)
-    : 0;
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">

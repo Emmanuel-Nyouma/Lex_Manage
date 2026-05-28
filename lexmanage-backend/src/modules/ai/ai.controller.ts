@@ -15,20 +15,20 @@ export class AiController {
   @ApiOperation({ summary: 'Chat with LexAssist AI' })
   async chat(
     @Body() dto: { message: string; conversationId?: string },
-    @CurrentUser('firmId') firmId: string,
+    @CurrentUser('tenantId') tenantId: string,
   ) {
     // For simplicity, we use a default conversation ID if none provided
     const conversationId = dto.conversationId || 'default-session';
-    return this.aiService.chat(dto.message, conversationId, firmId);
+    return this.aiService.chat(dto.message, conversationId, tenantId);
   }
 
   @Post('dashboard-chat')
   @ApiOperation({ summary: 'Chat with LexAssist AI from dashboard' })
   async dashboardChat(
     @Body() dto: { message: string; conversationId?: string },
-    @CurrentUser('firmId') firmId: string,
+    @CurrentUser('tenantId') tenantId: string,
   ) {
     const conversationId = dto.conversationId || 'dashboard-session';
-    return this.aiService.chat(dto.message, conversationId, firmId);
+    return this.aiService.chat(dto.message, conversationId, tenantId);
   }
 }

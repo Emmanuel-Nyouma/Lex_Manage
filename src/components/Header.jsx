@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Bell, Bot, FileText, Briefcase, Loader2, X as XIcon, Check, Clock, Menu, AlertCircle, User, Users } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Search, Bell, Bot, Check, Clock, Menu, AlertCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useNotifications } from '../hooks/useNotifications';
 import useLexStore from '../store/useLexStore';
 import { SearchPalette } from './search/SearchPalette';
 
 const Header = ({ onOpenAi, onToggleMobileSidebar }) => {
   const { currentUser } = useLexStore();
-  const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   

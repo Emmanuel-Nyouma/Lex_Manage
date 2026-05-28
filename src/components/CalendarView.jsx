@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -14,14 +14,12 @@ import {
   Edit2,
   AlertCircle
 } from 'lucide-react';
-import useLexStore from '../store/useLexStore';
 import { toast } from 'sonner';
 
 const CalendarView = () => {
-  const { currentUser } = useLexStore();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [events, setEvents] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [events] = useState([]);
+  const isLoading = false;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentEvent, setCurrentEvent] = useState({
@@ -39,44 +37,6 @@ const CalendarView = () => {
   ];
 
   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-  // Step 1: Fetch events from Supabase
-  useEffect(() => {
-    fetchEvents();
-  }, [currentDate]);
-
-  const fetchEvents = async () => {
-    setIsLoading(true);
-    /*
-    try {
-      const { data, error } = await supabase
-        .from('cases')
-        .select('*')
-        .is('deleted_at', null)
-        .not('next_hearing_date', 'is', null);
-
-      if (error) throw error;
-
-      const mappedEvents = data.map(c => ({
-        id: c.id,
-        title: c.title,
-        date: c.next_hearing_date.split('T')[0],
-        time: new Date(c.next_hearing_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        type: 'Court',
-        client: c.client_name || 'N/A',
-        location: c.jurisdiction || 'N/A'
-      }));
-
-      setEvents(mappedEvents);
-    } catch (err) {
-      console.error('Error fetching events:', err);
-      toast.error('Failed to load events');
-    } finally {
-      setIsLoading(false);
-    }
-    */
-    setIsLoading(false);
-  };
 
   // Step 2: Optimization - Group events by date (O(1) lookup)
   const eventsByDate = useMemo(() => {
@@ -157,6 +117,7 @@ const CalendarView = () => {
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this event?')) {
+      void id;
       toast.error("The Supabase backend is disabled.");
       /*
       try {

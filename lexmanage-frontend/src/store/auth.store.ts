@@ -37,24 +37,25 @@ export const useAuthStore = create<AuthState>()(
 
       login: async (email, password) => {
         const { data } = await api.post('/auth/login', { email, password });
-        localStorage.setItem('accessToken', data.accessToken);
-        localStorage.setItem('refreshToken', data.refreshToken);
+        sessionStorage.setItem('accessToken', data.accessToken);
+        sessionStorage.setItem('refreshToken', data.refreshToken);
         set({ user: data.user, accessToken: data.accessToken, isAuthenticated: true });
       },
 
       register: async (formData) => {
         const { data } = await api.post('/auth/register', formData);
-        localStorage.setItem('accessToken', data.accessToken);
-        localStorage.setItem('refreshToken', data.refreshToken);
+        sessionStorage.setItem('accessToken', data.accessToken);
+        sessionStorage.setItem('refreshToken', data.refreshToken);
         set({ user: data.user, accessToken: data.accessToken, isAuthenticated: true });
       },
 
       logout: async () => {
         try { await api.post('/auth/logout'); } catch {}
-        localStorage.clear();
+        sessionStorage.removeItem('accessToken');
+        sessionStorage.removeItem('refreshToken');
         set({ user: null, accessToken: null, isAuthenticated: false });
       },
     }),
-    { name: 'lexmanage-auth', partialize: (s) => ({ user: s.user, accessToken: s.accessToken, isAuthenticated: s.isAuthenticated }) }
+    { name: 'lexmanage-auth', partialize: (s) => ({ user: s.user, isAuthenticated: s.isAuthenticated }) }
   )
 );

@@ -44,7 +44,14 @@ export class UsersService {
 
   async update(id: string, dto: UpdateUserDto, tenantId: string) {
     await this.findOne(id, tenantId); // Ownership check
-    return this.prisma.user.update({ where: { id }, data: dto });
+    return this.prisma.user.update({
+      where: { id },
+      data: dto,
+      select: {
+        id: true, email: true, firstName: true, lastName: true,
+        role: true, isActive: true, createdAt: true, avatarUrl: true,
+      },
+    });
   }
 
   async deactivate(id: string, tenantId: string) {

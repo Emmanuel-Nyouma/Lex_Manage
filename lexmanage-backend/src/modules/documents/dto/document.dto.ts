@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsPositive, IsString, IsUUID } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum DocumentStatus {
@@ -14,7 +14,7 @@ export class CreateDocumentDto {
   @ApiProperty() @IsString() fileName: string;
   @ApiProperty() @IsString() fileUrl: string;
   @ApiProperty() @IsString() fileType: string;
-  @ApiProperty() @IsString() fileSize: number;
+  @ApiProperty() @IsInt() @IsPositive() fileSize: number;
   @ApiPropertyOptional() @IsOptional() @IsUUID() caseId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() category?: string;
 }

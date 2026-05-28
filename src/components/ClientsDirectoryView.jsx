@@ -16,7 +16,6 @@ import {
   User as UserIcon,
   Loader2
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { Card, Button, Input, Badge } from './UI';
 import { useClients, useCreateClient, useDeleteClient } from '../hooks/useClients';
 

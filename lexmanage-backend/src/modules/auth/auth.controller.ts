@@ -34,7 +34,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user profile' })
-  getMe(@CurrentUser('sub') userId: string) {
+  getMe(@CurrentUser('id') userId: string) {
     return this.authService.getMe(userId);
   }
 
@@ -42,7 +42,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update current user profile' })
-  updateProfile(@CurrentUser('sub') userId: string, @Body() dto: UpdateProfileDto) {
+  updateProfile(@CurrentUser('id') userId: string, @Body() dto: UpdateProfileDto) {
     return this.authService.updateProfile(userId, dto);
   }
 
@@ -50,7 +50,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout and invalidate refresh token' })
-  logout(@CurrentUser('sub') userId: string) {
+  logout(@CurrentUser('id') userId: string) {
     return this.authService.logout(userId);
   }
 }

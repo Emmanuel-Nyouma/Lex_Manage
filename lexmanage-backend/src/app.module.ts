@@ -18,7 +18,17 @@ import { StatsModule } from './modules/stats/stats.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validate(config) {
+        const required = ['DATABASE_URL', 'JWT_SECRET'];
+        const missing = required.filter((key) => !config[key]);
+        if (missing.length > 0) {
+          throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+        }
+        return config;
+      },
+    }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     PrismaModule,
     AuthModule,

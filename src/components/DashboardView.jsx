@@ -19,7 +19,7 @@ import {
   FileText,
   Bot
 } from 'lucide-react';
-import { Badge } from './UI';
+import { Badge, Skeleton } from './UI';
 import useLexStore from '../store/useLexStore';
 import { useCases } from '../hooks/useCases';
 import { useNotifications } from '../hooks/useNotifications';
@@ -116,9 +116,9 @@ const data = [
 const DashboardView = () => {
   const [isMounted, setIsMounted] = React.useState(false);
   const { currentUser } = useLexStore();
-  const { data: cases } = useCases();
-  const { notifications } = useNotifications();
-  const { data: aiData } = useAiDashboardData();
+  const { data: cases, isLoading: casesLoading } = useCases();
+  const { notifications, isLoading: notificationsLoading } = useNotifications();
+  const { data: aiData, isLoading: aiLoading } = useAiDashboardData();
   
   React.useEffect(() => { setIsMounted(true); }, []);
 
@@ -134,11 +134,17 @@ const DashboardView = () => {
 
       {/* KPI Section */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-        <StatCard icon={Briefcase} label="Active Cases" value={activeCasesCount} color="amber" />
-        <StatCard icon={Clock} label="Upcoming Deadlines" value={notifications.filter(n => n.type === 'DEADLINE').length} color="blue" />
-        <StatCard icon={Brain} label="AI Summaries" value={aiData?.metrics.summariesGenerated || 0} color="purple" subValue="Generated this week" />
-        <StatCard icon={AlertTriangle} label="At-risk Cases" value={aiData?.metrics.urgentCases || 0} color="red" subValue="Hearings < 7 days" />
-        <StatCard icon={FileText} label="Documents Analyzed" value={aiData?.metrics.docsAnalyzed || 0} color="amber" subValue="Processed today" />
+        {casesLoading || notificationsLoading || aiLoading ? (
+            Array(5).fill(0).map((_,i) => <Skeleton key={i} className="h-32" />)
+        ) : (
+          <>
+            <StatCard icon={Briefcase} label="Active Cases" value={activeCasesCount} color="amber" />
+            <StatCard icon={Clock} label="Upcoming Deadlines" value={notifications.filter(n => n.type === 'DEADLINE').length} color="blue" />
+            <StatCard icon={Brain} label="AI Summaries" value={aiData?.metrics.summariesGenerated || 0} color="purple" subValue="Generated this week" />
+            <StatCard icon={AlertTriangle} label="At-risk Cases" value={aiData?.metrics.urgentCases || 0} color="red" subValue="Hearings < 7 days" />
+            <StatCard icon={FileText} label="Documents Analyzed" value={aiData?.metrics.docsAnalyzed || 0} color="amber" subValue="Processed today" />
+          </>
+        )}
       </section>
 
       {/* Main Content */}
@@ -149,7 +155,7 @@ const DashboardView = () => {
             <TrendingUp size={20} className="text-blue-500" /> Weekly Workload
           </h3>
           <div className="h-[300px] w-full">
-            {isMounted && (
+            {isMounted && !casesLoading ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
@@ -166,7 +172,7 @@ const DashboardView = () => {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            )}
+            ) : <Skeleton className="h-full w-full" />}
           </div>
         </div>
 
@@ -177,7 +183,7 @@ const DashboardView = () => {
               <FileText size={20} className="text-purple-500" /> AI Summaries <Badge variant="neutral">AI</Badge>
             </h3>
             <div className="space-y-4">
-              {aiData?.casesWithSummary.map(c => (
+              {aiLoading ? Array(3).fill(0).map((_,i) => <Skeleton key={i} className="h-20" />) : aiData?.casesWithSummary.map(c => (
                 <div key={c.id} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
                   <p className="font-bold text-sm text-slate-900 dark:text-white">{c.title}</p>
                   <p className="text-xs text-slate-500 mt-1 line-clamp-2">{c.description}</p>

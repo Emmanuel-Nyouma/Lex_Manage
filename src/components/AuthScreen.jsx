@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -14,11 +13,9 @@ import {
   ArrowRight,
   User,
   Phone,
-  Calendar,
   Briefcase,
   ChevronLeft,
   UserPlus,
-  Key,
   Check
 } from 'lucide-react';
 import apiClient from '../lib/api';
@@ -57,12 +54,12 @@ const signupSchema = z.object({
 });
 
 const AuthScreen = () => {
-  const [view, setView] = useState('login'); // 'login', 'signup', 'forgot_password', 'mfa_challenge'
-  const [signupStep, setSignupStep] = useState(1);
   const [searchParams] = useSearchParams();
   const invitationToken = searchParams.get('invitation');
+  const [view, setView] = useState(invitationToken ? 'signup' : 'login'); // 'login', 'signup', 'forgot_password', 'mfa_challenge'
+  const [signupStep, setSignupStep] = useState(invitationToken ? 2 : 1);
 
-  const { register, handleSubmit, watch, trigger, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, trigger, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(
       view === 'login' ? loginSchema : 
       view === 'signup' ? signupSchema : 
@@ -72,15 +69,10 @@ const AuthScreen = () => {
     mode: "onChange"
   });
 
-  useEffect(() => { if (invitationToken) { setView('signup'); setSignupStep(2); } }, [invitationToken]);
-
   const nextStep = async () => {
-    // Manually trigger only step 1 fields
-    const isValidFirm = (watch('firmName') || '').length >= 2;
-    const isValidCountry = (watch('country') || '').length >= 2;
-    const isValidCity = (watch('city') || '').length >= 2;
-    
-    if (isValidFirm && isValidCountry && isValidCity) {
+    const isStepValid = await trigger(['firmName', 'country', 'city']);
+
+    if (isStepValid) {
       setSignupStep(2);
     } else {
       toast.error("Please fill in all firm details.");

@@ -3,6 +3,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { NotFoundException } from '@nestjs/common';
 
 @ApiTags('deadlines')
 @ApiBearerAuth()
@@ -18,6 +19,12 @@ export class DeadlinesController {
     @Param('caseId') caseId: string,
     @Body() dto: { title: string; dueAt: string; priority: string },
   ) {
+    const targetCase = await this.prisma.case.findFirst({
+      where: { id: caseId, tenantId },
+      select: { id: true },
+    });
+    if (!targetCase) throw new NotFoundException('Case not found');
+
     return this.prisma.deadline.create({
       data: {
         ...dto,
@@ -46,8 +53,14 @@ export class DeadlinesController {
     @CurrentUser('tenantId') tenantId: string,
     @Param('id') id: string,
   ) {
-    return this.prisma.deadline.update({
+    const deadline = await this.prisma.deadline.findFirst({
       where: { id, tenantId },
+      select: { id: true },
+    });
+    if (!deadline) throw new NotFoundException('Deadline not found');
+
+    return this.prisma.deadline.update({
+      where: { id },
       data: { isDone: true },
     });
   }
@@ -58,7 +71,13 @@ export class DeadlinesController {
     @CurrentUser('tenantId') tenantId: string,
     @Param('id') id: string,
   ) {
-    await this.prisma.deadline.delete({ where: { id, tenantId } });
+    const deadline = await this.prisma.deadline.findFirst({
+      where: { id, tenantId },
+      select: { id: true },
+    });
+    if (!deadline) throw new NotFoundException('Deadline not found');
+
+    await this.prisma.deadline.delete({ where: { id } });
     return { message: 'Deadline deleted' };
   }
 }

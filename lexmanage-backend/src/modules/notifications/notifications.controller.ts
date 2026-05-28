@@ -14,7 +14,7 @@ export class NotificationsController {
   @Get()
   @ApiOperation({ summary: 'Get current user notifications' })
   findAll(
-    @CurrentUser('sub') userId: string,
+    @CurrentUser('id') userId: string,
     @CurrentUser('tenantId') tenantId: string,
   ) {
     return this.notificationsService.findAll(userId, tenantId);
@@ -23,7 +23,7 @@ export class NotificationsController {
   @Get('unread-count')
   @ApiOperation({ summary: 'Get unread notifications count' })
   getUnreadCount(
-    @CurrentUser('sub') userId: string,
+    @CurrentUser('id') userId: string,
     @CurrentUser('tenantId') tenantId: string,
   ) {
     return this.notificationsService.getUnreadCount(userId, tenantId);
@@ -33,7 +33,7 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Mark a notification as read' })
   markAsRead(
     @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
+    @CurrentUser('id') userId: string,
     @CurrentUser('tenantId') tenantId: string,
   ) {
     return this.notificationsService.markAsRead(id, userId, tenantId);

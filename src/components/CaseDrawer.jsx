@@ -46,27 +46,6 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
     setIsNewAddingDeadline(false);
   };
 
-  const generateTimeline = async () => {
-    setIsAnalyzing(true);
-    setAiAnalysis(null);
-    setDraftEmail(null);
-    
-    const prompt = `Based on this case: ${activeCase.title} (Client: ${activeCase.client_name}), create a realistic, professional chronological timeline of 4 key events (past and future). 
-    Return ONLY a JSON array of objects with fields: date (YYYY-MM-DD), event (short title), description (one sentence), status (either 'completed' or 'upcoming').`;
-    
-    try {
-      const result = await onCallGemini(prompt, "You are a legal operations expert. Output ONLY valid JSON.");
-      const jsonStr = result.replace(/```json|```/g, '').trim();
-      const events = JSON.parse(jsonStr);
-      // We could ideally sync this to DB, but for now we just show it
-      // setTimelineEvents(events); 
-    } catch (e) {
-      console.error("Failed to parse timeline JSON", e);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
   const generateCaseStrategy = async () => {
     setIsAnalyzing(true);
     setDraftEmail(null); 

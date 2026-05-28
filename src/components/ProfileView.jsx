@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Mail, Phone, Shield, ShieldCheck, Lock, User, 
   ExternalLink, Check, AlertCircle, Loader2 
@@ -18,8 +18,7 @@ const ProfileView = () => {
     phone: ''
   });
 
-  // Sync form data when entering edit mode or when user data updates
-  useEffect(() => {
+  const startEditing = () => {
     if (currentUser) {
       setFormData({
         firstName: currentUser.firstName || '',
@@ -27,7 +26,8 @@ const ProfileView = () => {
         phone: currentUser.phone || ''
       });
     }
-  }, [currentUser, isEditing]);
+    setIsEditing(true);
+  };
 
   const handleSave = async () => {
     // Basic Validation
@@ -104,7 +104,7 @@ const ProfileView = () => {
             <p className="text-slate-500 dark:text-slate-400 font-medium">Manage your personal identity and security settings.</p>
           </div>
           <button 
-            onClick={() => setIsEditing(true)} 
+            onClick={startEditing} 
             className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 dark:bg-amber-600 text-white rounded-xl text-sm font-bold hover:bg-slate-800 dark:hover:bg-amber-700 transition-all shadow-lg active:scale-95"
           >
             Edit Profile

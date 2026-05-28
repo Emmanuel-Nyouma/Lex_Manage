@@ -5,7 +5,7 @@ import { SearchService } from '../search/search.service';
 interface EmbeddingChunk {
   text: string;
   documentId: string;
-  firmId: string;
+  tenantId: string;
 }
 
 @Injectable()
@@ -76,7 +76,7 @@ export class AiService implements OnModuleInit {
           payload: {
             text: chunk.text,
             documentId: chunk.documentId,
-            firmId: chunk.firmId,
+            tenantId: chunk.tenantId,
           },
         }],
       }),
@@ -84,7 +84,7 @@ export class AiService implements OnModuleInit {
   }
 
   // ── RAG Search: Find relevant chunks for a query (scoped to firm) ───────
-  async searchRelevantChunks(query: string, firmId: string, limit = 5): Promise<any[]> {
+  async searchRelevantChunks(query: string, tenantId: string, limit = 5): Promise<any[]> {
     const vector = await this.embed(query);
     const res = await fetch(`${this.qdrantUrl}/collections/${this.collection}/points/search`, {
       method: 'POST',
@@ -92,7 +92,7 @@ export class AiService implements OnModuleInit {
       body: JSON.stringify({
         vector,
         limit,
-        filter: { must: [{ key: 'firmId', match: { value: firmId } }] },
+        filter: { must: [{ key: 'tenantId', match: { value: tenantId } }] },
         with_payload: true,
       }),
     });
@@ -101,7 +101,7 @@ export class AiService implements OnModuleInit {
   }
 
   // ── Main Chat: RAG (Docs) + Global Intelligence (Cases/Members) + Gemini ──
-  async chat(message: string, conversationId: string, firmId: string): Promise<{ text: string; sources: any[] }> {
+  async chat(message: string, conversationId: string, tenantId: string): Promise<{ text: string; sources: any[] }> {
     // 1. Fetch previous messages for context
     const history = await this.prisma.chatMessage.findMany({
       where: { conversationId },
@@ -110,10 +110,10 @@ export class AiService implements OnModuleInit {
     });
 
     // 2. Perform Global Search to get structured context (Cases, Members)
-    const globalContext = await this.searchService.globalSearch(firmId, message);
+    const globalContext = await this.searchService.globalSearch(tenantId, message);
     
     // 3. Search relevant document chunks from Qdrant (unstructured context)
-    const chunks = await this.searchRelevantChunks(message, firmId);
+    const chunks = await this.searchRelevantChunks(message, tenantId);
     const ragContext = chunks.map(c => c.payload.text).join('\n---\n');
 
     // 4. Build Professional Context String

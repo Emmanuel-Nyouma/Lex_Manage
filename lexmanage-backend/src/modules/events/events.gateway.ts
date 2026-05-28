@@ -11,7 +11,8 @@ import { JwtService } from '@nestjs/jwt';
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: process.env.ALLOWED_ORIGINS?.split(',').map((origin) => origin.trim()) || ['http://localhost:3000'],
+    credentials: true,
   },
 })
 export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -31,7 +32,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       const payload = this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET || 'default_secret',
+        secret: process.env.JWT_SECRET,
       });
       
       const tenantId = payload.tenantId;
@@ -57,6 +58,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   emitToTenant(tenantId: string, event: string, data: any) {
     this.server.to(`tenant_${tenantId}`).emit(event, data);
+  }
+
+  sendToTenant(tenantId: string, event: string, data: any) {
+    this.emitToTenant(tenantId, event, data);
   }
 
   emitToUser(userId: string, event: string, data: any) {

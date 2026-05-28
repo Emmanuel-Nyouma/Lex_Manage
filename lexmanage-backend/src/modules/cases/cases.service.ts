@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCaseDto, UpdateCaseDto } from './dto/case.dto';
-import { EventsGateway } from '../../gateway/events.gateway';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class CasesService {
@@ -10,15 +10,32 @@ export class CasesService {
     private eventsGateway: EventsGateway,
   ) {}
 
-  async findAll(tenantId: string) {
-    return this.prisma.case.findMany({
-      where: { tenantId },
-      include: {
-        assignee: { select: { id: true, firstName: true, lastName: true } },
-        _count: { select: { documents: true } },
+  async findAll(tenantId: string, page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+    
+    const [data, total] = await Promise.all([
+      this.prisma.case.findMany({
+        where: { tenantId },
+        include: {
+          assignee: { select: { id: true, firstName: true, lastName: true } },
+          _count: { select: { documents: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.case.count({ where: { tenantId } }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
       },
-      orderBy: { createdAt: 'desc' },
-    });
+    };
   }
 
   async findOne(id: string, tenantId: string) {
@@ -35,7 +52,7 @@ export class CasesService {
 
   async create(dto: CreateCaseDto, tenantId: string, userId: string) {
     const newCase = await this.prisma.case.create({
-      data: { ...dto, tenantId },
+      data: { ...dto, tenantId, assigneeId: dto.assigneeId || userId },
     });
     
     // Broadcast real-time event

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Query } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { CasesService } from './cases.service';
 import { CreateCaseDto, UpdateCaseDto } from './dto/case.dto';
@@ -16,8 +16,12 @@ export class CasesController {
 
   @Get()
   @ApiOperation({ summary: 'Get all cases for the firm' })
-  findAll(@CurrentUser('tenantId') tenantId: string) {
-    return this.casesService.findAll(tenantId);
+  findAll(
+    @CurrentUser('tenantId') tenantId: string,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+  ) {
+    return this.casesService.findAll(tenantId, parseInt(page), parseInt(limit));
   }
 
   @Get(':id')
