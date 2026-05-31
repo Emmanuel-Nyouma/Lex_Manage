@@ -54,17 +54,36 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
-  // --- BROADCAST METHODS ---
+  // --- BROADCAST METHODS (Tenant Isolated) ---
+  // SECURITY NOTE: All broadcasts MUST specify a tenantId to ensure firm-level isolation.
+  // We use room-based isolation (tenant_${tenantId}) to prevent data leakage.
 
+  /**
+   * Broadcasts an event to all connected users within a specific firm.
+   */
   emitToTenant(tenantId: string, event: string, data: any) {
+    if (!tenantId) {
+      this.logger.error(`Attempted broadcast to event ${event} without tenantId!`);
+      return;
+    }
     this.server.to(`tenant_${tenantId}`).emit(event, data);
   }
 
+  /**
+   * Alias for emitToTenant to maintain compatibility.
+   */
   sendToTenant(tenantId: string, event: string, data: any) {
     this.emitToTenant(tenantId, event, data);
   }
 
+  /**
+   * Broadcasts a private event to a specific user across all their connected devices.
+   */
   emitToUser(userId: string, event: string, data: any) {
+    if (!userId) {
+      this.logger.error(`Attempted broadcast to event ${event} without userId!`);
+      return;
+    }
     this.server.to(`user_${userId}`).emit(event, data);
   }
 
