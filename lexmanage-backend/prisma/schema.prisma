@@ -120,6 +120,7 @@ model Document {
   caseId     String?        @map("case_id")
   uploaderId String         @map("uploader_id")
   title      String
+  category   String?
   fileName   String         @map("file_name")
   fileUrl    String         @map("file_url")
   fileType   String         @map("file_type")

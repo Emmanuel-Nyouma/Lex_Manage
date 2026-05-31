@@ -116,13 +116,16 @@ const data = [
 const DashboardView = () => {
   const [isMounted, setIsMounted] = React.useState(false);
   const { currentUser } = useLexStore();
-  const { data: cases, isLoading: casesLoading } = useCases();
+  const { data: casesData, isLoading: casesLoading } = useCases();
   const { notifications, isLoading: notificationsLoading } = useNotifications();
   const { data: aiData, isLoading: aiLoading } = useAiDashboardData();
   
   React.useEffect(() => { setIsMounted(true); }, []);
 
-  const activeCasesCount = cases?.filter(c => c.status === 'OPEN' || c.status === 'en cours')?.length || 0;
+  const cases = Array.isArray(casesData?.data) ? casesData.data : (Array.isArray(casesData) ? casesData : []);
+  const safeNotifications = Array.isArray(notifications) ? notifications : [];
+
+  const activeCasesCount = cases.filter(c => c.status === 'OPEN' || c.status === 'en cours' || c.status === 'IN_PROGRESS')?.length || 0;
   
   return (
     <div className="space-y-10 animate-in fade-in duration-500 pb-10">
@@ -139,7 +142,7 @@ const DashboardView = () => {
         ) : (
           <>
             <StatCard icon={Briefcase} label="Active Cases" value={activeCasesCount} color="amber" />
-            <StatCard icon={Clock} label="Upcoming Deadlines" value={notifications.filter(n => n.type === 'DEADLINE').length} color="blue" />
+            <StatCard icon={Clock} label="Upcoming Deadlines" value={safeNotifications.filter(n => n.type === 'DEADLINE').length} color="blue" />
             <StatCard icon={Brain} label="AI Summaries" value={aiData?.metrics.summariesGenerated || 0} color="purple" subValue="Generated this week" />
             <StatCard icon={AlertTriangle} label="At-risk Cases" value={aiData?.metrics.urgentCases || 0} color="red" subValue="Hearings < 7 days" />
             <StatCard icon={FileText} label="Documents Analyzed" value={aiData?.metrics.docsAnalyzed || 0} color="amber" subValue="Processed today" />

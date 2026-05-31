@@ -5,13 +5,14 @@ import useLexStore from '../store/useLexStore';
 export const useSocket = () => {
   const socketRef = useRef(null);
   const [socketInstance, setSocketInstance] = useState(null);
-  const { currentUser } = useLexStore();
+  const { currentUser, session } = useLexStore();
   const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3001';
 
   useEffect(() => {
-    if (!currentUser?.tenantId) return;
+    if (!currentUser?.tenantId || !session?.access_token) return;
 
     socketRef.current = io(WS_URL, {
+      auth: { token: session.access_token },
       query: { tenantId: currentUser.tenantId }
     });
 

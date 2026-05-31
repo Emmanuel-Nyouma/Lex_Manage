@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import apiClient from '../lib/api';
 import useLexStore from '../store/useLexStore';
+import { useSocket } from './useSocket';
 import { toast } from 'sonner';
 import { create } from 'zustand';
 
@@ -12,7 +13,7 @@ export const useNotificationStore = create((set) => ({
   
   setNotifications: (notifications) => set({ 
     notifications, 
-    unreadCount: notifications.filter(n => !n.isRead).length 
+    unreadCount: Array.isArray(notifications) ? notifications.filter(n => !n.isRead).length : 0 
   }),
   
   addNotification: (notification) => set((state) => {
@@ -44,6 +45,7 @@ export const useNotificationStore = create((set) => ({
 
 export const useNotifications = () => {
   const { currentUser, session } = useLexStore();
+  const socket = useSocket();
   const { 
     notifications, 
     unreadCount, 
@@ -66,29 +68,25 @@ export const useNotifications = () => {
 
   useEffect(() => {
     if (!currentUser || !session) return;
-
     fetchNotifications();
+  }, [currentUser, session, fetchNotifications]);
 
-    const token = session.access_token;
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-    const eventSource = new EventSource(`${apiBase}/api/v1/notifications/stream?token=${token}`);
+  useEffect(() => {
+    if (!socket) return;
 
-    eventSource.onmessage = (e) => {
-      const data = JSON.parse(e.data);
-      if (data.type === 'notification') {
-        addNotification(data);
-        if (data.priority !== 'HIGH') {
-          toast.info(data.title);
-        }
+    const handleNotification = (data) => {
+      addNotification(data);
+      if (data.priority !== 'HIGH') {
+        toast.info(data.title);
       }
     };
 
-    eventSource.onerror = () => {
-      console.warn('SSE connection lost, reconnecting...');
-    };
+    socket.on('notification', handleNotification);
 
-    return () => eventSource.close();
-  }, [currentUser, session, fetchNotifications, addNotification]);
+    return () => {
+      socket.off('notification', handleNotification);
+    };
+  }, [socket, addNotification]);
 
   return { notifications, unreadCount, urgentNotification, clearUrgent, markAsRead };
 };

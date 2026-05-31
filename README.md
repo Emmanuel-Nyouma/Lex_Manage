@@ -5,19 +5,19 @@
 ## 🚀 Key Production Features
 
 ### 1. 🏢 Multi-Tenant SaaS Engine
-- **Firm Isolation:** Strict data partitioning using PostgreSQL Row Level Security (RLS).
+- **Firm Isolation:** Strict data partitioning using Prisma Extensions and AsyncLocalStorage context.
 - **Organization Management:** Admins can invite collaborators via secure tokens.
 - **Role-Based Access (RBAC):** Distinct permissions for `admin`, `lawyer`, and `paralegal`.
 
 ### 2. 🔔 Real-Time Intelligence
-- **Live Notifications:** Powered by Supabase Realtime for instant updates on case changes.
+- **Live Notifications:** Powered by Socket.io for instant updates on case changes.
 - **Urgency System:** High-priority alerts trigger instant UI pop-ups for critical deadlines.
-- **Automated Reminders:** PostgreSQL functions (RPC) scan for upcoming hearings 3 days in advance.
+- **Automated Reminders:** NestJS Cron jobs scan for upcoming hearings 3 days in advance.
 
 ### 3. 🛡️ Security & Compliance
-- **MFA (2FA):** Support for TOTP (Google Authenticator) via Supabase MFA.
+- **JWT Auth:** Secure session management with Access/Refresh tokens.
 - **Audit Logs:** Full traceability of every `INSERT` and `UPDATE` on cases.
-- **Soft Delete:** Accidental deletions can be recovered via the `deleted_at` architecture.
+- **File Privacy:** MinIO-stored documents accessed via secure presigned URLs.
 
 ### 4. 🤖 AI-Powered RAG (Gemini 1.5 Pro)
 - **Massive Context Window:** Analyze entire case files in seconds.
@@ -26,7 +26,8 @@
 ## 🛠️ Tech Stack
 - **Frontend:** React 19 (Vite), Tailwind CSS, Lucide Icons.
 - **State:** Zustand (Global Store & Notifications).
-- **Backend:** Supabase (PostgreSQL, Auth, Realtime, Edge Functions).
+- **Backend:** NestJS, Prisma ORM, PostgreSQL.
+- **Realtime:** Socket.io.
 - **AI:** Google Gemini 1.5 Pro.
 
 ---

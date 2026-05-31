@@ -11,7 +11,8 @@ import {
   Gavel,
   LogOut,
   Building2,
-  Users
+  Users,
+  X
 } from 'lucide-react';
 import useLexStore from '../store/useLexStore';
 

@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { QUERY_KEYS } from '../lib/queryKeys';
 import { toast } from 'sonner';
-import { Case, PaginatedResponse } from '../types';
 
 // Hook pour récupérer tous les dossiers actifs
 export const useCases = (page = 1, limit = 10) => {

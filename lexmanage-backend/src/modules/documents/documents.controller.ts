@@ -38,6 +38,7 @@ export class DocumentsController {
   upload(
     @UploadedFile() file: Express.Multer.File,
     @Body('title') title: string | undefined,
+    @Body('category') category: string | undefined,
     @Body('caseId') bodyCaseId: string | undefined,
     @Query('caseId') queryCaseId: string | undefined,
     @CurrentUser('tenantId') tenantId: string,
@@ -45,6 +46,7 @@ export class DocumentsController {
   ) {
     return this.documentsService.upload(file, tenantId, userId, {
       title,
+      category,
       caseId: bodyCaseId || queryCaseId,
     });
   }

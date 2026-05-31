@@ -13,25 +13,26 @@
   - **Icons:** Lucide React
   - **Routing:** React Router DOM v7
   - **Notifications:** Sonner (Toast system)
-- **Backend (Supabase):**
-  - **Database:** PostgreSQL with Row Level Security (RLS)
-  - **Authentication:** Supabase Auth (OTP, MFA, Invitation Tokens)
-  - **Realtime:** Postgres Changes for instant notifications
-  - **Storage:** S3-compatible bucket for legal documents
-  - **Edge Functions:** Deno-based serverless functions for AI & secure tasks
+- **Backend (NestJS):**
+  - **Framework:** NestJS (Node.js)
+  - **Database:** PostgreSQL with Prisma ORM
+  - **Authentication:** JWT (Access & Refresh tokens)
+  - **Realtime:** Socket.io for instant notifications
+  - **Storage:** MinIO (S3-compatible) for legal documents
 - **Artificial Intelligence:**
   - **Engine:** Google Gemini 1.5 Pro
-  - **Architecture:** RAG (Retrieval-Augmented Generation) for document analysis
+  - **Architecture:** RAG (Retrieval-Augmented Generation) with Qdrant Vector DB
 
 ---
 
 ## 🏗️ Architecture & Security
-- **Multi-Tenant SaaS:** Strict data isolation between law firms (`firms` table) using PostgreSQL RLS policies.
+- **Multi-Tenant SaaS:** Strict data isolation between law firms (`tenants` table).
+- **Isolation Mechanism:** App-level isolation using **AsyncLocalStorage** and **Prisma Extensions** to automatically filter queries by `tenantId`.
 - **Security Hardening:**
-  - **MFA (2FA):** Mandatory for sensitive accounts using TOTP.
+  - **JWT Security:** Signed tokens with configurable expiry and refresh flow.
   - **Audit Trail:** Automatic logging of all case modifications.
-  - **Soft Delete:** Data protection via `deleted_at` pattern.
-  - **API Safety:** Gemini API keys are hidden behind server-side Edge Functions.
+  - **Storage Security:** Documents accessed via secure Presigned URLs.
+  - **API Safety:** Gemini API keys are secured server-side in the NestJS backend.
 
 ---
 

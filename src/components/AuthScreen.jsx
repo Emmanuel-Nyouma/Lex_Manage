@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import apiClient from '../lib/api';
 import useLexStore from '../store/useLexStore';
-import { Button, Input, Badge } from './ui';
+import { Button, Input, Badge } from './ui/index';
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email format"),

@@ -47,7 +47,7 @@ export class DocumentsService {
     file: Express.Multer.File | undefined,
     tenantId: string,
     uploaderId: string,
-    options: { title?: string; caseId?: string },
+    options: { title?: string; caseId?: string; category?: string },
   ) {
     if (!file) throw new BadRequestException('File is required');
 
@@ -66,6 +66,7 @@ export class DocumentsService {
         uploaderId,
         caseId: options.caseId,
         title: options.title || file.originalname,
+        category: options.category,
         fileName: file.originalname,
         fileUrl: objectName,
         fileType: file.mimetype,
