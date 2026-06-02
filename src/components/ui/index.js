@@ -5,6 +5,7 @@ export * from './Badge';
 export * from './Skeleton';
 export * from './Tooltip';
 export * from './Breadcrumb';
+export * from './Breadcrumbs';
 export * from './Textarea';
 export * from './Checkbox';
 
