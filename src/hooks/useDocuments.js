@@ -1,18 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import apiClient from '../lib/api';
 import { toast } from 'sonner';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
-
-const apiClient = axios.create({
-  baseURL: API_URL,
-});
-
-apiClient.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem('access_token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
 
 // Hook pour récupérer tous les documents
 export const useDocuments = (caseId = null) => {
@@ -37,6 +25,20 @@ export const useDeleteDocument = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
       toast.success("Document supprimé");
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || "Erreur de suppression");
+    }
+  });
+};
+
+// Hook pour récupérer les membres du cabinet (Administration)
+export const useFirmMembers = () => {
+  return useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/users');
+      return data;
     },
   });
 };

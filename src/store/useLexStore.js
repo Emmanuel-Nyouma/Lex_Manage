@@ -10,20 +10,65 @@ const useLexStore = create((set, get) => ({
   refreshPromise: null,
   error: null,
 
-  setAccessToken: (token) => set({ accessToken: token }),
+  // ✅ NEW: Persist token to localStorage
+  setAccessToken: (token) => {
+    set({ accessToken: token });
+    if (token) {
+      localStorage.setItem('accessToken', token);  // ✅ Persist
+    } else {
+      localStorage.removeItem('accessToken');      // ✅ Clean up
+    }
+  },
 
+  // ✅ UPDATED: Initialize from localStorage
   initAuth: async () => {
     if (get().isRefreshing) return;
     set({ isLoading: true });
     try {
+      // Try to restore from localStorage
+      const savedToken = localStorage.getItem('accessToken');
+      if (savedToken) {
+        set({ accessToken: savedToken });
+      }
+      
+      // Refresh to get fresh token + user data
       await get().refreshAccessToken();
     } catch (err) {
       console.log('No existing session found');
+      localStorage.removeItem('accessToken');  // ✅ Clear invalid token
     } finally {
       set({ isLoading: false });
     }
   },
 
+  // ✅ UPDATED: Use new setAccessToken
+  login: async (email, password) => {
+    set({ isLoading: true });
+    try {
+      const { data } = await apiClient.post('/auth/login', { email, password });
+      get().setAccessToken(data.accessToken);  // ✅ Persists + sets Zustand
+      set({ currentUser: data.user });
+    } catch (err) {
+      console.error('Login error:', err.response?.data || err.message);
+      throw err;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  // ✅ UPDATED: Clear both Zustand and localStorage
+  logout: async () => {
+    try {
+      await apiClient.post('/auth/logout');
+    } catch (err) {
+      console.error('Logout error', err);
+    } finally {
+      set({ currentUser: null, error: null });
+      get().setAccessToken(null);  // ✅ Clears localStorage
+    }
+  },
+
+  // ✅ UPDATED: Update token on refresh
   refreshAccessToken: async () => {
     if (get().isRefreshing) {
       return get().refreshPromise;
@@ -33,10 +78,12 @@ const useLexStore = create((set, get) => ({
       set({ isRefreshing: true });
       try {
         const { data } = await apiClient.post('/auth/refresh');
-        set({ accessToken: data.accessToken, currentUser: data.user });
+        get().setAccessToken(data.accessToken);  // ✅ Persists + sets
+        set({ currentUser: data.user });
         return data.accessToken;
       } catch (err) {
-        set({ currentUser: null, accessToken: null });
+        set({ currentUser: null });
+        get().setAccessToken(null);  // ✅ Clears on refresh failure
         throw err;
       } finally {
         set({ isRefreshing: false, refreshPromise: null });
@@ -46,51 +93,15 @@ const useLexStore = create((set, get) => ({
     set({ refreshPromise });
     return refreshPromise;
   },
-
-  login: async (email, password) => {
-    set({ isLoading: true });
+  
+  // Placeholder for AI chat
+  sendAiMessage: async (text) => {
     try {
-      const { data } = await apiClient.post('/auth/login', { email, password });
-      set({ accessToken: data.accessToken, currentUser: data.user });
-    } catch (err) {
-      console.error('Login error:', err.response?.data || err.message);
-      throw err;
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-
-  logout: async () => {
-    try {
-      await apiClient.post('/auth/logout');
-    } catch (err) {
-      console.error('Logout error', err);
-    } finally {
-      set({ currentUser: null, accessToken: null, error: null });
-    }
-  },
-
-  sendAiMessage: async (message) => {
-    try {
-      const { data } = await apiClient.post('/ai/chat', { message });
+      const { data } = await apiClient.post('/ai/chat', { message: text });
       return data;
     } catch (err) {
-      const msg = err.response?.data?.message || "AI Error";
-      toast.error(msg);
+      console.error('AI chat error', err);
       return null;
-    }
-  },
-
-  callGemini: async (prompt, systemInstruction) => {
-    try {
-      const { data } = await apiClient.post('/ai/chat', { 
-        message: prompt,
-        systemInstruction
-      });
-      return data.text;
-    } catch (err) {
-      console.error("Gemini call error", err);
-      return "An error occurred during the AI call.";
     }
   }
 }));
