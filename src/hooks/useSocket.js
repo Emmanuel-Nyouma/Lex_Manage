@@ -5,20 +5,40 @@ import useLexStore from '../store/useLexStore';
 export const useSocket = () => {
   const socketRef = useRef(null);
   const [socketInstance, setSocketInstance] = useState(null);
-  const { currentUser, session } = useLexStore();
-  const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3001';
+  
+  // ✅ FIXED: Use correct properties
+  const { currentUser, accessToken } = useLexStore();
+  const WS_URL = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
-    if (!currentUser?.tenantId || !session?.access_token) return;
+    // ✅ Check for correct properties
+    if (!currentUser?.tenantId || !accessToken) return;
 
     socketRef.current = io(WS_URL, {
-      auth: { token: session.access_token },
-      query: { tenantId: currentUser.tenantId }
+      auth: { 
+        token: accessToken  // ✅ Use accessToken from Zustand
+      },
+      query: { 
+        tenantId: currentUser.tenantId 
+      },
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5,
     });
 
     socketRef.current.on('connect', () => {
       console.log('Socket connected');
       setSocketInstance(socketRef.current);
+    });
+
+    socketRef.current.on('disconnect', () => {
+      console.log('Socket disconnected');
+      setSocketInstance(null);
+    });
+
+    socketRef.current.on('error', (error) => {
+      console.error('Socket error:', error);
     });
 
     return () => {
@@ -27,7 +47,7 @@ export const useSocket = () => {
       }
       setSocketInstance(null);
     };
-  }, [currentUser?.tenantId, WS_URL]);
+  }, [currentUser?.tenantId, accessToken, WS_URL]);
 
   return socketInstance;
 };
