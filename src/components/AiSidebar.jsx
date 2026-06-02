@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bot, X, FileText, Loader2, Send, Sparkles, MessageSquare, Shield, Info } from 'lucide-react';
+import { FocusTrap } from './ui';
 import useLexStore from '../store/useLexStore';
 
 const SUGGESTED_PROMPTS = [
@@ -57,32 +58,34 @@ const AiSidebar = ({
         text: response.text,
         isRich: response.text.length > 200 
       }]);
-    }
-  }, [chatInput, isChatLoading, sendAiMessage]);
+    return (
+      <>
+        {/* Overlay */}
+        {isOpen && (
+          <div 
+            className="fixed inset-0 bg-slate-900/50 z-40 backdrop-blur-sm transition-opacity" 
+            onClick={onClose}
+            aria-hidden="true"
+          />
+        )}
 
-  return (
-    <>
-      {/* Overlay */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-slate-900/50 z-40 backdrop-blur-sm transition-opacity" 
-          onClick={onClose}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* Drawer */}
-      <div 
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={dialogId}
-        className={`
-          fixed inset-y-0 right-0 w-full sm:w-[400px] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl 
-          transform transition-transform duration-300 ease-in-out z-50 flex flex-col 
-          ${isOpen ? 'translate-x-0' : 'translate-x-full'}
-        `}
-      >
-        {/* Header */}
+        {/* Drawer */}
+        <FocusTrap isActive={isOpen} onClose={onClose}>
+          <div 
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={dialogId}
+            className={`
+              fixed inset-y-0 right-0 w-full sm:w-[400px] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl 
+              transform transition-transform duration-300 ease-in-out z-50 flex flex-col 
+              ${isOpen ? 'translate-x-0' : 'translate-x-full'}
+            `}
+          >
+          {/* ... */}
+          </div>
+        </FocusTrap>
+      </>
+    );
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-between items-center shadow-sm">
           <div className="flex items-center gap-3">
             <div className="relative">
