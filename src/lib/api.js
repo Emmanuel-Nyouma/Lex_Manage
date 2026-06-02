@@ -1,13 +1,15 @@
 import axios from 'axios';
 import useLexStore from '../store/useLexStore';
+import { API_CONFIG } from '../config/api.config';
 
 const apiClient = axios.create({
-  baseURL: `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/v1`,
+  baseURL: API_CONFIG.API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Needed for cookie handling
 });
+// ...
 
 apiClient.interceptors.request.use((config) => {
   const token = useLexStore.getState().accessToken;

@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import useLexStore from '../store/useLexStore';
+import { API_CONFIG } from '../config/api.config';
 
 export const useSocket = () => {
   const socketRef = useRef(null);
   const [socketInstance, setSocketInstance] = useState(null);
-  
+
   // ✅ FIXED: Use correct properties
   const { currentUser, accessToken } = useLexStore();
-  const WS_URL = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const WS_URL = API_CONFIG.WS_URL;
 
   useEffect(() => {
-    // ✅ Check for correct properties
+    // ...
+
     if (!currentUser?.tenantId || !accessToken) return;
 
     socketRef.current = io(WS_URL, {
