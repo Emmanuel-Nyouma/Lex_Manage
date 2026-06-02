@@ -9,40 +9,78 @@ import {
   Gavel,
   Briefcase,
   Search,
-  X
+  X,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { Button, Badge, Input, Skeleton, Card } from './ui';
 import NewCaseDialog from './NewCaseDialog';
 import CaseDrawer from './CaseDrawer';
 import { useCases } from '../hooks/useCases';
 import useLexStore from '../store/useLexStore';
+
 const CaseManagementView = () => {
   const [isNewCaseOpen, setIsNewCaseOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [sortConfig, setSortConfig] = useState({ key: 'title', direction: 'asc' });
 
   const { data, isLoading, error, refetch } = useCases(page, 10);
   const cases = data?.data || [];
   const meta = data?.meta;
   const { callGemini } = useLexStore();
 
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const SortIcon = ({ column }) => {
+    if (sortConfig.key !== column) return null;
+    return sortConfig.direction === 'asc' ? <ArrowUp size={12} className="ml-1" /> : <ArrowDown size={12} className="ml-1" />;
+  };
+
   // ... (rest of the component)
 
-  // Optimized client-side filtering
+  // Optimized client-side filtering & sorting
   const filteredCases = useMemo(() => {
     if (!cases) return [];
-    if (!searchQuery.trim()) return cases;
     
-    const query = searchQuery.toLowerCase().trim();
-    return cases.filter(c => 
-      c.title?.toLowerCase().includes(query) ||
-      c.clientName?.toLowerCase().includes(query) ||
-      c.courtName?.toLowerCase().includes(query) ||
-      c.assignee?.firstName?.toLowerCase().includes(query) ||
-      c.assignee?.lastName?.toLowerCase().includes(query)
-    );
-  }, [cases, searchQuery]);
+    let result = cases;
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = cases.filter(c => 
+        c.title?.toLowerCase().includes(query) ||
+        c.clientName?.toLowerCase().includes(query) ||
+        c.courtName?.toLowerCase().includes(query) ||
+        c.assignee?.firstName?.toLowerCase().includes(query) ||
+        c.assignee?.lastName?.toLowerCase().includes(query)
+      );
+    }
+
+    // Client-side sorting
+    if (sortConfig.key) {
+      result = [...result].sort((a, b) => {
+        let aVal = a[sortConfig.key];
+        let bVal = b[sortConfig.key];
+
+        if (sortConfig.key === 'assignee') {
+          aVal = (a.assignee?.firstName || '') + (a.assignee?.lastName || '');
+          bVal = (b.assignee?.firstName || '') + (b.assignee?.lastName || '');
+        }
+
+        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [cases, searchQuery, sortConfig]);
 
   if (isLoading) {
     return (
@@ -140,14 +178,30 @@ const CaseManagementView = () => {
         </div>
 
         {/* VUE TABLEAU (Desktop >= md) */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto max-h-[600px] scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50 dark:bg-slate-800/30 text-slate-600 dark:text-slate-300 dark:text-slate-400 text-[10px] uppercase tracking-widest font-black">
-                <th className="px-6 py-4">Case File</th>
-                <th className="px-6 py-4">Client</th>
-                <th className="px-6 py-4">Responsible</th>
-                <th className="px-6 py-4">Status</th>
+            <thead className="sticky top-0 z-10 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm">
+              <tr className="text-slate-600 dark:text-slate-300 dark:text-slate-400 text-[10px] uppercase tracking-widest font-black border-b border-slate-200 dark:border-slate-800">
+                <th className="px-6 py-4">
+                  <button onClick={() => handleSort('title')} className="flex items-center hover:text-amber-500 transition-colors uppercase tracking-widest">
+                    Case File <SortIcon column="title" />
+                  </button>
+                </th>
+                <th className="px-6 py-4">
+                  <button onClick={() => handleSort('clientName')} className="flex items-center hover:text-amber-500 transition-colors uppercase tracking-widest">
+                    Client <SortIcon column="clientName" />
+                  </button>
+                </th>
+                <th className="px-6 py-4">
+                  <button onClick={() => handleSort('assignee')} className="flex items-center hover:text-amber-500 transition-colors uppercase tracking-widest">
+                    Responsible <SortIcon column="assignee" />
+                  </button>
+                </th>
+                <th className="px-6 py-4">
+                  <button onClick={() => handleSort('status')} className="flex items-center hover:text-amber-500 transition-colors uppercase tracking-widest">
+                    Status <SortIcon column="status" />
+                  </button>
+                </th>
                 <th className="px-6 py-4 text-right">Action</th>
               </tr>
             </thead>
@@ -158,14 +212,14 @@ const CaseManagementView = () => {
                   onClick={() => setSelectedCase(c)}
                   className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-all group cursor-pointer"
                 >
-                  <td className="px-6 py-5">
+                  <td className="px-6 py-4">
                     <div className="font-bold text-slate-900 dark:text-white group-hover:text-amber-600 transition-colors">{c.title}</div>
                     <div className="text-[10px] text-slate-600 dark:text-slate-300 flex items-center gap-1.5 font-bold uppercase tracking-tight mt-1">
                        <Gavel size={10} className="text-amber-600" /> {c.courtName || 'N/A'}
                     </div>
                   </td>
-                  <td className="px-6 py-5 text-sm font-bold text-slate-700 dark:text-slate-300">{c.clientName}</td>
-                  <td className="px-6 py-5">
+                  <td className="px-6 py-4 text-sm font-bold text-slate-700 dark:text-slate-300">{c.clientName}</td>
+                  <td className="px-6 py-4">
                     <div className="flex items-center gap-2.5">
                        <div className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black border border-slate-200 dark:border-slate-700">
                          {c.assignee?.firstName?.[0] || '?'}{c.assignee?.lastName?.[0] || ''}
@@ -173,10 +227,10 @@ const CaseManagementView = () => {
                        <span className="text-xs text-slate-600 dark:text-slate-400 font-bold">{c.assignee?.firstName || 'Unassigned'}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-5">
+                  <td className="px-6 py-4">
                     <Badge variant={c.status === 'OPEN' ? 'warning' : 'info'}>{c.status}</Badge>
                   </td>
-                  <td className="px-6 py-5 text-right">
+                  <td className="px-6 py-4 text-right">
                     <button className="p-2 text-slate-300 group-hover:text-amber-500 transition-all group-hover:translate-x-1">
                       <ChevronRight size={18} />
                     </button>
@@ -254,13 +308,13 @@ const CaseManagementView = () => {
             aria-live="polite"
             aria-label="Pagination"
           >
-            <div className="flex items-center gap-2 order-2 sm:order-1">
+            <div className="flex flex-wrap items-center justify-center gap-2 order-2 sm:order-1">
               <Button 
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
                 variant="secondary"
                 size="sm"
-                className="px-3 py-1 text-xs font-bold"
+                className="px-4 py-3 sm:py-1 text-xs font-bold min-w-[3rem]"
                 aria-label="Previous page"
               >
                 Prev
@@ -269,7 +323,6 @@ const CaseManagementView = () => {
               <div className="flex items-center gap-1">
                 {[...Array(meta.totalPages)].map((_, i) => {
                   const pageNum = i + 1;
-                  // Show current page, first, last, and pages around current
                   if (
                     pageNum === 1 || 
                     pageNum === meta.totalPages || 
@@ -279,7 +332,7 @@ const CaseManagementView = () => {
                       <button
                         key={pageNum}
                         onClick={() => setPage(pageNum)}
-                        className={`w-8 h-8 rounded-lg text-xs font-black transition-all ${
+                        className={`w-10 h-10 sm:w-8 sm:h-8 rounded-lg text-xs font-black transition-all ${
                           page === pageNum 
                             ? 'bg-slate-900 dark:bg-amber-600 text-white shadow-md' 
                             : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
@@ -292,7 +345,7 @@ const CaseManagementView = () => {
                     );
                   }
                   if (pageNum === page - 2 || pageNum === page + 2) {
-                    return <span key={pageNum} className="text-slate-400" aria-hidden="true">...</span>;
+                    return <span key={pageNum} className="text-slate-400 px-2" aria-hidden="true">...</span>;
                   }
                   return null;
                 })}
@@ -303,11 +356,29 @@ const CaseManagementView = () => {
                 disabled={page === meta.totalPages}
                 variant="secondary"
                 size="sm"
-                className="px-3 py-1 text-xs font-bold"
+                className="px-4 py-3 sm:py-1 text-xs font-bold min-w-[3rem]"
                 aria-label="Next page"
               >
                 Next
               </Button>
+
+              <div className="flex items-center gap-2 ml-2 border-l border-slate-200 dark:border-slate-700 pl-2">
+                <span className="text-[10px] text-slate-500 font-bold uppercase">Jump to:</span>
+                <input
+                  type="number"
+                  min="1"
+                  max={meta.totalPages}
+                  className="w-16 h-8 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-center text-xs font-bold"
+                  placeholder={page}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const val = parseInt(e.target.value);
+                      if (val >= 1 && val <= meta.totalPages) setPage(val);
+                    }
+                  }}
+                  aria-label="Jump to page number"
+                />
+              </div>
             </div>
             
             <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 order-1 sm:order-2">
