@@ -8,6 +8,7 @@ export * from './Breadcrumb';
 export * from './Breadcrumbs';
 export * from './Textarea';
 export * from './Checkbox';
+export * from './FocusTrap';
 
 export const spacingScale = {
   xs: 'p-2',      // 8px
