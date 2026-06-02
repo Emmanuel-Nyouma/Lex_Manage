@@ -101,17 +101,17 @@ const StatCard = ({ icon, label, value, trend, color, subValue }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm group hover:shadow-md transition-all">
-      <div className="flex justify-between items-start mb-4">
-        <div className={`p-3 rounded-xl ${colorMap[color] || colorMap.amber}`}>
-          <StatIcon size={24} />
+    <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm group hover:shadow-md transition-all h-full">
+      <div className="flex justify-between items-start mb-3 sm:mb-4">
+        <div className={`p-2 sm:p-3 rounded-xl ${colorMap[color] || colorMap.amber}`}>
+          <StatIcon size={20} className="sm:size-24" />
         </div>
-        {trend && <Badge variant="success" className="text-[10px]">{trend}</Badge>}
+        {trend && <Badge variant="success" className="text-[9px] sm:text-[10px]">{trend}</Badge>}
       </div>
       <div>
-        <p className="text-sm font-medium text-slate-600 dark:text-slate-300 dark:text-slate-400 mb-1">{label}</p>
-        <p className="text-2xl font-black text-slate-900 dark:text-white">{value}</p>
-        {subValue && <p className="text-xs text-slate-500 dark:text-slate-300 mt-1">{subValue}</p>}
+        <p className="text-[10px] sm:text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight mb-0.5 sm:mb-1">{label}</p>
+        <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-none">{value}</p>
+        {subValue && <p className="text-[9px] sm:text-xs text-slate-400 dark:text-slate-500 mt-1.5 font-medium line-clamp-1">{subValue}</p>}
       </div>
     </div>
   );
@@ -141,21 +141,21 @@ const DashboardView = () => {
   const isLoading = casesLoading || aiLoading;
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-500 pb-10">
+    <div className="space-y-6 sm:space-y-10 animate-in fade-in duration-500 pb-10">
       {/* Header */}
-      <div>
+      <div className="mb-6 sm:mb-10">
         <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Executive Dashboard</h1>
         <p className="text-slate-600 dark:text-slate-300 dark:text-slate-400 font-medium">Welcome back, {currentUser?.firstName}. Here's your firm's overview.</p>
       </div>
 
       {/* KPI Section */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+      <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6">
         {isLoading ? (
             Array(5).fill(0).map((_,i) => <Skeleton key={i} className="h-32" />)
         ) : (
           <>
             <StatCard icon={Briefcase} label="Active Cases" value={activeCasesCount} color="amber" />
-            <StatCard icon={Clock} label="Upcoming Deadlines" value={safeNotifications.filter(n => n.type === 'DEADLINE').length} color="blue" />
+            <StatCard icon={Clock} label="Upcoming Deadlines" value={safeNotifications.filter(n => n.motif === 'DEADLINE').length} color="blue" />
             <StatCard icon={Brain} label="AI Summaries" value={aiData?.metrics.summariesGenerated || 0} color="purple" subValue="Generated this week" />
             <StatCard icon={AlertTriangle} label="At-risk Cases" value={aiData?.metrics.urgentCases || 0} color="red" subValue="Hearings < 7 days" />
             <StatCard icon={FileText} label="Documents Analyzed" value={aiData?.metrics.docsAnalyzed || 0} color="amber" subValue="Processed today" />
