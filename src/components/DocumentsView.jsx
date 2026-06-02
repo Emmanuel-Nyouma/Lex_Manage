@@ -178,24 +178,24 @@ const DocumentsView = () => {
                           <button 
                             onClick={() => handleView(doc.id)}
                             aria-label="View document"
-                            className="p-2.5 text-slate-500 dark:text-slate-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl transition-all"
+                            className="p-3.5 text-slate-500 dark:text-slate-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl transition-all"
                           >
-                            <Eye size={18} />
+                            <Eye size={20} />
                           </button>
                           <button 
                             onClick={() => handleDownload(doc.id, doc.file_name)}
                             aria-label="Download document"
-                            className="p-2.5 text-slate-500 dark:text-slate-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all"
+                            className="p-3.5 text-slate-500 dark:text-slate-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all"
                           >
-                            <Download size={18} />
+                            <Download size={20} />
                           </button>
                           {isAdmin && (
                             <button 
                               onClick={() => handleDelete(doc)} 
                               aria-label="Delete document"
-                              className="p-2.5 text-slate-500 dark:text-slate-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all"
+                              className="p-3.5 text-slate-500 dark:text-slate-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all"
                             >
-                              <Trash2 size={18} />
+                              <Trash2 size={20} />
                             </button>
                           )}
                         </div>
