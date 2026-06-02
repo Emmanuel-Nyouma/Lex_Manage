@@ -121,7 +121,7 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
 
         {/* Form Body */}
         <form onSubmit={handleSubmit(onSubmit)} className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             
             {/* Title */}
             <div className="md:col-span-2">
@@ -132,6 +132,7 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                 helperText="A clear, concise name for tracking this legal matter."
                 icon={FileText}
                 error={errors.title?.message}
+                className="w-full"
               />
             </div>
 
@@ -144,6 +145,7 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                 helperText="Primary contact or entity involved."
                 icon={User}
                 error={errors.clientName?.message}
+                className="w-full"
               />
             </div>
 
@@ -155,6 +157,7 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                 placeholder="ex: LEX-2026-001"
                 icon={Hash}
                 error={errors.caseNumber?.message}
+                className="w-full"
               />
             </div>
 
@@ -166,6 +169,7 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                 placeholder="ex: Supreme Court of Justice"
                 icon={Gavel}
                 error={errors.courtName?.message}
+                className="w-full"
               />
             </div>
 
