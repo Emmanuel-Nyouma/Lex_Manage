@@ -54,7 +54,7 @@ const CompanySettingsView = () => {
 
   if (!isAdmin) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-slate-500 animate-in fade-in duration-500">
+      <div className="flex flex-col items-center justify-center h-full text-slate-600 dark:text-slate-300 animate-in fade-in duration-500">
         <AlertCircle size={48} className="mb-4 text-slate-300" />
         <h2 className="text-xl font-bold text-slate-900 dark:text-white">Restricted Access</h2>
         <p>Only firm administrators can access these settings.</p>
@@ -101,7 +101,7 @@ const CompanySettingsView = () => {
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       <div>
         <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Firm Settings</h1>
-        <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">Manage your professional team and secure access.</p>
+        <p className="text-slate-600 dark:text-slate-300 dark:text-slate-400 font-medium mt-1">Manage your professional team and secure access.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -114,9 +114,9 @@ const CompanySettingsView = () => {
             
             <form onSubmit={handleInvite} className="space-y-5">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Professional Email</label>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-widest mb-2">Professional Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-300" size={16} />
                   <input 
                     type="email" required
                     value={email}
@@ -128,9 +128,9 @@ const CompanySettingsView = () => {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Role in the firm</label>
+                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-widest mb-2">Role in the firm</label>
                 <div className="relative">
-                  <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-300" size={16} />
                   <select 
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
@@ -141,7 +141,7 @@ const CompanySettingsView = () => {
                     <option value="SECRETARY">Secretary</option>
                     <option value="CABINET_ADMIN">Administrator</option>
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-300 pointer-events-none" size={14} />
                 </div>
               </div>
 
@@ -182,19 +182,19 @@ const CompanySettingsView = () => {
           {/* Members list */}
           <Card className="p-6 border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden bg-white dark:bg-slate-900/50">
             <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-              <Users size={20} className="text-slate-400" /> Current Team ({members.length})
+              <Users size={20} className="text-slate-500 dark:text-slate-300" /> Current Team ({members.length})
             </h3>
 
             <div className="space-y-4">
               {members.map((member) => (
                 <div key={member.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-500">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300">
                       {member.firstName[0]}{member.lastName[0]}
                     </div>
                     <div>
                       <h4 className="font-bold text-slate-900 dark:text-white text-sm">{member.firstName} {member.lastName}</h4>
-                      <p className="text-xs text-slate-500">{member.email}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">{member.email}</p>
                     </div>
                   </div>
                   <Badge variant={member.role === 'CABINET_ADMIN' ? 'info' : 'secondary'}>
@@ -208,7 +208,7 @@ const CompanySettingsView = () => {
           {/* Pending invitations */}
           <Card className="p-6 border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/50">
             <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-              <Clock size={20} className="text-slate-400" /> Pending Invitations
+              <Clock size={20} className="text-slate-500 dark:text-slate-300" /> Pending Invitations
             </h3>
 
             {isLoading ? (
@@ -219,7 +219,7 @@ const CompanySettingsView = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
+                    <tr className="text-[10px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
                       <th className="pb-4 px-2">Associate</th>
                       <th className="pb-4 px-2">Role</th>
                       <th className="pb-4 px-2">Expires on</th>
@@ -231,7 +231,7 @@ const CompanySettingsView = () => {
                       <tr key={invite.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                         <td className="py-4 px-2">
                           <div className="text-sm font-semibold text-slate-900 dark:text-white">{invite.email}</div>
-                          <div className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5 uppercase tracking-tighter">
+                          <div className="text-[10px] text-slate-600 dark:text-slate-300 flex items-center gap-1 mt-0.5 uppercase tracking-tighter">
                             <ExternalLink size={10} /> TOKEN: {invite.token.slice(0, 8)}...
                           </div>
                         </td>
@@ -240,21 +240,21 @@ const CompanySettingsView = () => {
                             {invite.role.replace('_', ' ')}
                           </Badge>
                         </td>
-                        <td className="py-4 px-2 text-xs text-slate-500 font-medium">
+                        <td className="py-4 px-2 text-xs text-slate-600 dark:text-slate-300 font-medium">
                           {new Date(invite.expiresAt).toLocaleDateString()}
                         </td>
                         <td className="py-4 px-2 text-right">
                           <div className="flex justify-end gap-1">
                             <button 
                               onClick={() => copyToClipboard(`${window.location.origin}/login?invitation=${invite.token}`)}
-                              className="p-2 text-slate-400 hover:text-amber-600 transition-colors rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                              className="p-2 text-slate-500 dark:text-slate-300 hover:text-amber-600 transition-colors rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20"
                               title="Copy link"
                             >
                               <Copy size={18} />
                             </button>
                             <button 
                               onClick={() => revokeInvitation(invite.id)}
-                              className="p-2 text-slate-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                              className="p-2 text-slate-500 dark:text-slate-300 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                               title="Revoke"
                             >
                               <Trash2 size={18} />
@@ -269,7 +269,7 @@ const CompanySettingsView = () => {
             ) : (
               <div className="text-center py-10 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
                 <Mail className="text-slate-300 mx-auto mb-3" size={32} />
-                <p className="text-slate-400 italic text-sm">No active invitations.</p>
+                <p className="text-slate-500 dark:text-slate-300 italic text-sm">No active invitations.</p>
               </div>
             )}
           </Card>

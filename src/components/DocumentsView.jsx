@@ -5,7 +5,10 @@ import {
 import DocumentUpload from './DocumentUpload';
 import { Badge, Card, Skeleton } from './ui';
 import { useDocuments, useDeleteDocument } from '../hooks/useDocuments';
+import { getDocumentSignedUrl } from '../lib/documentService';
+import { toast } from 'sonner';
 import { PdfPreviewModal } from './PdfPreviewModal';
+import ConfirmDialog from './ConfirmDialog';
 
 const CATEGORIES = ['Pièces', 'Correspondances', 'Actes', 'Client', 'Autre'];
 const CATEGORY_LABELS = {
@@ -24,10 +27,26 @@ const DocumentsView = () => {
   const [showUpload, setShowUpload] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState(CATEGORIES);
   const [previewDoc, setPreviewDoc] = useState(null);
+  const [docToDelete, setDocToDelete] = useState(null);
+
+  const handleView = async (docId) => {
+    const url = await getDocumentSignedUrl(docId);
+    if (url) {
+      window.open(url, '_blank');
+    } else {
+      toast.error("Generating secure link failed");
+    }
+  };
 
   const handleDelete = async (doc) => {
-    if (!window.confirm('Are you sure you want to delete this document?')) return;
-    deleteDoc.mutate(doc.id);
+    setDocToDelete(doc);
+  };
+
+  const confirmDelete = () => {
+    if (docToDelete) {
+      deleteDoc.mutate(docToDelete.id);
+      setDocToDelete(null);
+    }
   };
 
   const groupedDocs = useMemo(() => {
@@ -54,7 +73,7 @@ const DocumentsView = () => {
           <h1 className="text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3 tracking-tight">
             <Files className="text-amber-500" /> Structured DMS
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium">Electronic management of firm documents and evidence.</p>
+          <p className="text-slate-600 dark:text-slate-300 dark:text-slate-400 font-medium">Electronic management of firm documents and evidence.</p>
         </div>
         <button 
           onClick={() => setShowUpload(!showUpload)}
@@ -75,7 +94,7 @@ const DocumentsView = () => {
 
       {/* Barre de Recherche */}
       <div className="relative group">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors" size={20} />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-300 group-focus-within:text-amber-500 transition-colors" size={20} />
         <input 
           type="text"
           placeholder="Search for a document by title or file name..."
@@ -112,9 +131,9 @@ const DocumentsView = () => {
                 >
                   <div className="flex items-center gap-3">
                     <div className="p-1.5 rounded-lg bg-white dark:bg-slate-800 shadow-sm">
-                       {isExpanded ? <ChevronDown size={16} className="text-slate-500" /> : <ChevronRight size={16} className="text-slate-500" />}
+                       {isExpanded ? <ChevronDown size={16} className="text-slate-600 dark:text-slate-300" /> : <ChevronRight size={16} className="text-slate-600 dark:text-slate-300" />}
                     </div>
-                    <Folder size={20} className={docs.length > 0 ? "text-amber-500 fill-amber-500/20" : "text-slate-400"} />
+                    <Folder size={20} className={docs.length > 0 ? "text-amber-500 fill-amber-500/20" : "text-slate-500 dark:text-slate-300"} />
                     <span className="font-black text-slate-800 dark:text-slate-200 text-sm tracking-tight">{CATEGORY_LABELS[cat].toUpperCase()}</span>
                     <Badge variant="neutral" className="ml-2 bg-white dark:bg-slate-800">{docs.length}</Badge>
                   </div>
@@ -125,14 +144,14 @@ const DocumentsView = () => {
                     {docs.length > 0 ? docs.map(doc => (
                       <div key={doc.id} className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex items-center justify-between hover:border-amber-400 dark:hover:border-amber-600 transition-all shadow-sm hover:shadow-xl">
                         <div className="flex items-center gap-4 min-w-0">
-                          <div className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-amber-50 dark:group-hover:bg-amber-900/20 group-hover:text-amber-600 transition-all shadow-inner">
+                          <div className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-300 group-hover:bg-amber-50 dark:group-hover:bg-amber-900/20 group-hover:text-amber-600 transition-all shadow-inner">
                             <FileText size={24} />
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-bold text-slate-900 dark:text-white truncate pr-4 group-hover:text-amber-600 transition-colors">{doc.title || doc.fileName}</p>
                             <div className="flex items-center gap-3 mt-1.5">
-                              <span className="text-[10px] text-slate-400 uppercase font-black tracking-tighter bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 rounded">{doc.fileType || 'DOC'}</span>
-                              <span className="text-[10px] text-slate-400 font-bold">{Math.round(doc.fileSize / 1024 / 1024 * 100) / 100} MB</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-300 uppercase font-black tracking-tighter bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 rounded">{doc.fileType || 'DOC'}</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-300 font-bold">{Math.round(doc.fileSize / 1024 / 1024 * 100) / 100} MB</span>
                               {doc.qdrantId && (
                                 <Badge variant="success" className="scale-75 origin-left shadow-sm">AI INDEXED</Badge>
                               )}
@@ -141,16 +160,23 @@ const DocumentsView = () => {
                         </div>
                         
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
-                          <button className="p-2.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl transition-all">
+                          <button 
+                            onClick={() => handleView(doc.id)}
+                            className="p-2.5 text-slate-500 dark:text-slate-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl transition-all"
+                            title="View Document"
+                          >
+                            <Eye size={18} />
+                          </button>
+                          <button className="p-2.5 text-slate-500 dark:text-slate-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl transition-all">
                             <Sparkles size={18} />
                           </button>
-                          <button onClick={() => handleDelete(doc)} className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all">
+                          <button onClick={() => handleDelete(doc)} className="p-2.5 text-slate-500 dark:text-slate-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all">
                             <Trash2 size={18} />
                           </button>
                         </div>
                       </div>
                     )) : (
-                      <div className="col-span-full py-12 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl text-slate-400 text-sm font-medium italic bg-slate-50/30 dark:bg-slate-950/20">
+                      <div className="col-span-full py-12 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl text-slate-500 dark:text-slate-300 text-sm font-medium italic bg-slate-50/30 dark:bg-slate-950/20">
                         No documents available in this category.
                       </div>
                     )}
@@ -161,6 +187,15 @@ const DocumentsView = () => {
           })}
         </div>
       )}
+
+      <ConfirmDialog 
+        isOpen={!!docToDelete}
+        title="Delete Document"
+        description={`Are you sure you want to permanently delete "${docToDelete?.title || docToDelete?.fileName}"? This action cannot be undone.`}
+        destructiveText="Delete Document"
+        onConfirm={confirmDelete}
+        onCancel={() => setDocToDelete(null)}
+      />
     </div>
   );
 };

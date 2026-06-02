@@ -7,6 +7,221 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ■■ Enums ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
+enum DocumentStatus {
+  UPLOADED
+  OCR_PENDING
+  OCR_DONE
+  INDEXED
+  ERROR
+}
+
+enum DocumentType {
+  SUMMONS
+  SUBPOENA
+  LEGAL_BRIEF
+  MEMORANDUM
+  MOTION
+  COURT_ORDER
+  JUDGMENT
+  HEARING_TRANSCRIPT
+  SERVICE_OF_PROCESS
+  APPEAL
+  INJUNCTION
+  ARBITRATION_AWARD
+  MANDATE_CONTRACT
+  COMMERCIAL_CONTRACT
+  TRANSFER_DEED
+  LEASE_AGREEMENT
+  NOTARIAL_ACT
+  NDA
+  SETTLEMENT_AGREEMENT
+  ARTICLES_OF_INCORPORATION
+  SHAREHOLDER_AGREEMENT
+  EMPLOYMENT_CONTRACT
+  IDENTITY_DOCUMENT
+  COMPANY_REGISTRATION
+  POWER_OF_ATTORNEY
+  PROOF_OF_ADDRESS
+  BANK_CERTIFICATE
+  INVOICE
+  ESCROW_STATEMENT
+  EXPENSE_REPORT
+  FINANCIAL_REPORT
+  TAX_DECLARATION
+  PAYMENT_RECEIPT
+  EXHIBIT
+  BAILIFF_REPORT
+  EXPERT_REPORT
+  WRITTEN_TESTIMONY
+  PHOTO_VIDEO_EVIDENCE
+  COMMUNICATION_RECORDS
+  MEDICAL_REPORT
+  POLICE_REPORT
+  FORMAL_NOTICE
+  CLIENT_LETTER
+  OPPOSING_PARTY_LETTER
+  COURT_CORRESPONDENCE
+  ARCHIVED_EMAIL
+  REGISTERED_LETTER
+  FEE_AGREEMENT
+  CLIENT_INTAKE_FORM
+  MISSION_AGREEMENT
+  INTERNAL_REPORT
+  MEETING_MINUTES
+  LEGAL_RESEARCH_NOTE
+  DOCUMENT_TEMPLATE
+  TRADEMARK_FILING
+  PATENT
+  LICENSE_AGREEMENT
+  REGULATORY_AUTHORIZATION
+  COMPLIANCE_CERTIFICATE
+  OTHER
+}
+
+enum Role {
+  SUPER_ADMIN
+  CABINET_ADMIN
+  LAWYER
+  ASSISTANT
+  SECRETARY
+}
+
+enum CaseStatus {
+  OPEN
+  IN_PROGRESS
+  PENDING
+  CLOSED
+  ARCHIVED
+}
+
+// ■■ Core Models ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
+model Tenant {
+  id            String             @id @default(uuid())
+  name          String
+  slug          String             @unique
+  plan          String             @default("FREE")
+  country       String?
+  city          String?
+  isActive      Boolean            @default(true) @map("is_active")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  users         User[]
+  cases         Case[]
+  documents     Document[]
+  notifications Notification[]
+  deadlines     Deadline[]
+  clients       Client[]
+  auditLogs     AuditLog[]
+  conversations ChatConversation[]
+  invitations   Invitation[]
+
+  @@map("tenants")
+}
+
+model User {
+  id                    String         @id @default(uuid())
+  tenantId              String         @map("tenant_id")
+  email                 String         @unique
+  passwordHash          String         @map("password_hash")
+  firstName             String         @map("first_name")
+  lastName              String         @map("last_name")
+  avatarUrl             String?        @map("avatar_url")
+  phone                 String?
+  role                  Role           @default(LAWYER)
+  isActive              Boolean        @default(true) @map("is_active")
+  refreshToken          String?        @map("refresh_token")
+  refreshTokenExpiresAt DateTime?      @map("refresh_token_expires_at")
+  createdAt             DateTime       @default(now()) @map("created_at")
+  updatedAt             DateTime       @updatedAt @map("updated_at")
+  tenant                Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  cases                 Case[]         @relation("CaseAssignee")
+  uploadedDocuments     Document[]     @relation("DocumentUploader")
+  notifications         Notification[]
+  auditLogs             AuditLog[]
+  conversations         ChatConversation[]
+
+  @@index([tenantId])
+  @@map("users")
+}
+
+model Case {
+  id          String         @id @default(uuid())
+  tenantId    String         @map("tenant_id")
+  title       String
+  description String?
+  clientName  String         @map("client_name")
+  caseNumber  String?        @map("case_number")
+  status      CaseStatus     @default(OPEN)
+  priority    String         @default("MEDIUM")
+  assigneeId  String?        @map("assignee_id")
+  closedAt    DateTime?      @map("closed_at")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignee    User?          @relation("CaseAssignee", fields: [assigneeId], references: [id])
+  deadlines   Deadline[]
+  documents   Document[]
+
+  @@index([tenantId])
+  @@map("cases")
+}
+
+// ■■ Document Repository ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
+model Document {
+  id            String         @id @default(cuid())
+  tenantId      String         @map("tenant_id")
+  title         String
+  file_name     String         @map("file_name")
+  file_url      String         @map("file_url")
+  file_type     String         @map("file_type")
+  file_size     Int            @map("file_size")
+  category      String?
+  type          DocumentType   @default(OTHER)
+  status        DocumentStatus @default(UPLOADED)
+  uploaderId    String         @map("uploader_id")
+  case_id       String?        @map("case_id")
+  isPending     Boolean        @default(false) @map("is_pending")
+  deletedAt     DateTime?      @map("deleted_at")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  uploadedBy    User           @relation("DocumentUploader", fields: [uploaderId], references: [id])
+  cases         Case?          @relation(fields: [case_id], references: [id])
+
+  @@unique([tenantId, file_url])
+  @@index([tenantId])
+  @@index([tenantId, type])
+  @@map("documents")
+}
+
+// ■■ Notifications ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
+model Notification {
+  id          String   @id @default(cuid())
+  tenantId    String   @map("tenant_id")
+  user_id     String   @map("user_id")
+  title       String
+  message     String
+  priority    String   @default("MEDIUM")
+  type        String?
+  is_read     Boolean  @default(false) @map("is_read")
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([user_id])
+  @@map("notifications")
+}
+
+// ■■ Other Models ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 model Client {
   id          String   @id @default(uuid())
   tenantId    String   @map("tenant_id")
@@ -23,55 +238,22 @@ model Client {
   @@map("clients")
 }
 
-model Tenant {
-  id            String             @id @default(uuid())
-  name          String
-  slug          String             @unique
-  plan          String             @default("FREE")
-  country       String?
-  city          String?
-  isActive      Boolean            @default(true)
-  createdAt     DateTime           @default(now()) @map("created_at")
-  updatedAt     DateTime           @updatedAt @map("updated_at")
-  auditLogs     AuditLog[]
-  cases         Case[]
-  conversations ChatConversation[]
-  clients       Client[]
-  deadlines     Deadline[]
-  documents     Document[]
-  invitations   Invitation[]
-  notifications Notification[]
-  users         User[]
-
-  @@map("tenants")
-}
-
-model User {
-  id                    String             @id @default(uuid())
-  tenantId              String             @map("tenant_id")
-  email                 String             @unique
-  passwordHash          String             @map("password_hash")
-  firstName             String             @map("first_name")
-  lastName              String             @map("last_name")
-  phone                 String?
-  role                  Role               @default(LAWYER)
-  barreau               String?            @map("barreau")
-  specialty             String?            @map("specialty")
-  isActive              Boolean            @default(true) @map("is_active")
-  avatarUrl             String?            @map("avatar_url")
-  refreshToken          String?            @map("refresh_token")
-  refreshTokenExpiresAt DateTime?          @map("refresh_token_expires_at")
-  createdAt             DateTime           @default(now()) @map("created_at")
-  updatedAt             DateTime           @updatedAt @map("updated_at")
-  auditLogs             AuditLog[]
-  cases                 Case[]             @relation("CaseAssignee")
-  conversations         ChatConversation[]
-  documents             Document[]         @relation("DocumentUploader")
-  notifications         Notification[]
-  tenant                Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+model Deadline {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  caseId    String   @map("case_id")
+  title     String
+  dueAt     DateTime @map("due_at")
+  priority  String   @default("MEDIUM")
+  isDone    Boolean  @default(false) @map("is_done")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
-  @@map("users")
+  @@index([caseId])
+  @@map("deadlines")
 }
 
 model Invitation {
@@ -90,51 +272,22 @@ model Invitation {
   @@map("invitations")
 }
 
-model Case {
-  id          String     @id @default(uuid())
-  tenantId    String     @map("tenant_id")
-  title       String
-  description String?
-  clientName  String     @map("client_name")
-  caseNumber  String?    @map("case_number")
-  courtName   String?    @map("court_name")
-  status      CaseStatus @default(OPEN)
-  priority    String     @default("MEDIUM")
-  assigneeId  String?    @map("assignee_id")
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
-  closedAt    DateTime?  @map("closed_at")
-  assignee    User?      @relation("CaseAssignee", fields: [assigneeId], references: [id])
-  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  deadlines   Deadline[]
-  documents   Document[]
+model AuditLog {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  userId    String   @map("user_id")
+  action    String
+  entity    String
+  entityId  String   @map("entity_id")
+  details   Json?
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
 
   @@index([tenantId])
-  @@index([status])
-  @@map("cases")
-}
-
-model Document {
-  id         String         @id @default(uuid())
-  tenantId   String         @map("tenant_id")
-  caseId     String?        @map("case_id")
-  uploaderId String         @map("uploader_id")
-  title      String
-  category   String?
-  fileName   String         @map("file_name")
-  fileUrl    String         @map("file_url")
-  fileType   String         @map("file_type")
-  fileSize   Int            @map("file_size")
-  status     DocumentStatus @default(UPLOADED)
-  qdrantId   String?        @map("qdrant_id")
-  createdAt  DateTime       @default(now()) @map("created_at")
-  case       Case?          @relation(fields: [caseId], references: [id])
-  tenant     Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  uploader   User           @relation("DocumentUploader", fields: [uploaderId], references: [id])
-
-  @@index([tenantId])
-  @@index([caseId])
-  @@map("documents")
+  @@index([userId])
+  @@map("audit_logs")
 }
 
 model ChatConversation {
@@ -164,82 +317,4 @@ model ChatMessage {
 
   @@index([conversationId])
   @@map("chat_messages")
-}
-
-model AuditLog {
-  id        String   @id @default(uuid())
-  tenantId  String   @map("tenant_id")
-  userId    String   @map("user_id")
-  action    String
-  entity    String
-  entityId  String   @map("entity_id")
-  details   Json?
-  ipAddress String?  @map("ip_address")
-  createdAt DateTime @default(now()) @map("created_at")
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id])
-
-  @@index([tenantId])
-  @@index([userId])
-  @@map("audit_logs")
-}
-
-model Deadline {
-  id        String   @id @default(uuid())
-  tenantId  String   @map("tenant_id")
-  caseId    String   @map("case_id")
-  title     String
-  dueAt     DateTime @map("due_at")
-  priority  String   @default("MEDIUM")
-  isDone    Boolean  @default(false) @map("is_done")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([caseId])
-  @@map("deadlines")
-}
-
-model Notification {
-  id        String   @id @default(uuid())
-  tenantId  String   @map("tenant_id")
-  userId    String   @map("user_id")
-  title     String
-  message   String
-  priority  String   @default("MEDIUM")
-  isRead    Boolean  @default(false) @map("is_read")
-  type      String?  @map("type")
-  createdAt DateTime @default(now()) @map("created_at")
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@index([userId])
-  @@map("notifications")
-}
-
-enum Role {
-  SUPER_ADMIN
-  CABINET_ADMIN
-  LAWYER
-  ASSISTANT
-  SECRETARY
-}
-
-enum CaseStatus {
-  OPEN
-  IN_PROGRESS
-  PENDING
-  CLOSED
-  ARCHIVED
-}
-
-enum DocumentStatus {
-  UPLOADED
-  OCR_PENDING
-  OCR_DONE
-  INDEXED
-  ERROR
 }

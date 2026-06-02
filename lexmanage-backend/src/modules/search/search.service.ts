@@ -27,7 +27,7 @@ export class SearchService {
           title: { contains: query, mode: 'insensitive' },
         },
         take: 5,
-        select: { id: true, title: true, fileName: true, fileType: true },
+        select: { id: true, title: true, file_name: true, file_type: true },
       }),
       this.prisma.user.findMany({
         where: {

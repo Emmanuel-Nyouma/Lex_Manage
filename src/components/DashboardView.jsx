@@ -6,9 +6,10 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer,
-  Cell
+  ResponsiveContainer, 
+  Cell 
 } from 'recharts';
+
 import { 
   Briefcase, 
   Clock, 
@@ -70,8 +71,21 @@ const DashboardChat = ({ firmId }) => {
         ))}
       </div>
       <div className="flex gap-2 mt-auto">
-        <input value={input} onChange={(e) => setInput(e.target.value)} className="flex-1 bg-slate-50 border rounded-lg px-3 py-2 text-sm" placeholder="Ask AI..." />
-        <button onClick={sendMessage} disabled={isLoading} className="bg-slate-900 text-white p-2 rounded-lg"><Send size={16} /></button>
+        <input 
+          value={input} 
+          onChange={(e) => setInput(e.target.value)} 
+          className="flex-1 bg-slate-50 border rounded-lg px-3 py-2 text-sm text-slate-900" 
+          placeholder="Ask AI..." 
+          aria-label="Ask AI assistant"
+        />
+        <button 
+          onClick={sendMessage} 
+          disabled={isLoading} 
+          className="bg-slate-900 text-white p-2 rounded-lg hover:bg-slate-800 transition-colors"
+          aria-label="Send message"
+        >
+          <Send size={16} aria-hidden="true" />
+        </button>
       </div>
     </div>
   );
@@ -95,9 +109,9 @@ const StatCard = ({ icon, label, value, trend, color, subValue }) => {
         {trend && <Badge variant="success" className="text-[10px]">{trend}</Badge>}
       </div>
       <div>
-        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{label}</p>
+        <p className="text-sm font-medium text-slate-600 dark:text-slate-300 dark:text-slate-400 mb-1">{label}</p>
         <p className="text-2xl font-black text-slate-900 dark:text-white">{value}</p>
-        {subValue && <p className="text-xs text-slate-400 mt-1">{subValue}</p>}
+        {subValue && <p className="text-xs text-slate-500 dark:text-slate-300 mt-1">{subValue}</p>}
       </div>
     </div>
   );
@@ -114,30 +128,29 @@ const data = [
 ];
 
 const DashboardView = () => {
-  const [isMounted, setIsMounted] = React.useState(false);
   const { currentUser } = useLexStore();
   const { data: casesData, isLoading: casesLoading } = useCases();
-  const { notifications, isLoading: notificationsLoading } = useNotifications();
+  const { notifications } = useNotifications();
   const { data: aiData, isLoading: aiLoading } = useAiDashboardData();
   
-  React.useEffect(() => { setIsMounted(true); }, []);
-
   const cases = Array.isArray(casesData?.data) ? casesData.data : (Array.isArray(casesData) ? casesData : []);
   const safeNotifications = Array.isArray(notifications) ? notifications : [];
 
   const activeCasesCount = cases.filter(c => c.status === 'OPEN' || c.status === 'en cours' || c.status === 'IN_PROGRESS')?.length || 0;
   
+  const isLoading = casesLoading || aiLoading;
+
   return (
     <div className="space-y-10 animate-in fade-in duration-500 pb-10">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Executive Dashboard</h1>
-        <p className="text-slate-500 dark:text-slate-400 font-medium">Welcome back, {currentUser?.firstName}. Here's your firm's overview.</p>
+        <p className="text-slate-600 dark:text-slate-300 dark:text-slate-400 font-medium">Welcome back, {currentUser?.firstName}. Here's your firm's overview.</p>
       </div>
 
       {/* KPI Section */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-        {casesLoading || notificationsLoading || aiLoading ? (
+        {isLoading ? (
             Array(5).fill(0).map((_,i) => <Skeleton key={i} className="h-32" />)
         ) : (
           <>
@@ -158,7 +171,7 @@ const DashboardView = () => {
             <TrendingUp size={20} className="text-blue-500" /> Weekly Workload
           </h3>
           <div className="h-[300px] w-full">
-            {isMounted && !casesLoading ? (
+            {!isLoading ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
@@ -189,7 +202,7 @@ const DashboardView = () => {
               {aiLoading ? Array(3).fill(0).map((_,i) => <Skeleton key={i} className="h-20" />) : aiData?.casesWithSummary.map(c => (
                 <div key={c.id} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
                   <p className="font-bold text-sm text-slate-900 dark:text-white">{c.title}</p>
-                  <p className="text-xs text-slate-500 mt-1 line-clamp-2">{c.description}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">{c.description}</p>
                 </div>
               ))}
             </div>

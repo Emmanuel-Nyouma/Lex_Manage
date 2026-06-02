@@ -24,9 +24,9 @@ const StatCard = ({ label, value, delta, color }) => {
   };
   return (
     <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="text-sm font-medium text-slate-600 dark:text-slate-300 dark:text-slate-400">{label}</p>
       <div className={`text-3xl font-black mt-2 ${colorMap[color]}`}>{value}</div>
-      <p className="text-xs text-slate-400 mt-1">{delta}</p>
+      <p className="text-xs text-slate-500 dark:text-slate-300 mt-1">{delta}</p>
     </div>
   );
 };
@@ -99,7 +99,7 @@ const AiDashboardView = () => {
           {data.casesWithSummary.map(c => (
             <div key={c.id} className="py-3 border-b last:border-0">
               <p className="font-semibold text-sm">{c.title}</p>
-              <p className="text-xs text-slate-500 truncate">{c.description}</p>
+              <p className="text-xs text-slate-600 dark:text-slate-300 truncate">{c.description}</p>
             </div>
           ))}
         </div>

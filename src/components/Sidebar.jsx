@@ -58,10 +58,10 @@ const Sidebar = ({ isMobileOpen, onCloseMobile }) => {
         <div className="h-16 flex items-center justify-between px-6 bg-slate-950">
           <div className="flex items-center">
             <Gavel className="text-amber-500 mr-2" size={24} aria-hidden="true" />
-            <span className="text-white font-bold text-lg tracking-wide">LEX<span className="text-slate-400 font-light">MANAGE</span></span>
+            <span className="text-white font-bold text-lg tracking-wide">LEX<span className="text-slate-500 dark:text-slate-300 font-light">MANAGE</span></span>
           </div>
-          <button onClick={onCloseMobile} className="md:hidden p-2 text-slate-400 hover:text-white" aria-label="Close menu">
-             <X size={20} />
+          <button onClick={onCloseMobile} className="md:hidden p-2 text-slate-500 dark:text-slate-300 hover:text-white" aria-label="Close menu">
+             <X size={20} aria-hidden="true" />
           </button>
         </div>
 
@@ -75,7 +75,7 @@ const Sidebar = ({ isMobileOpen, onCloseMobile }) => {
                 flex items-center px-6 py-3 text-sm font-medium transition-all border-l-4
                 ${isActive 
                   ? 'bg-slate-800 text-white border-amber-500' 
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-white border-transparent'
+                  : 'text-slate-500 dark:text-slate-300 hover:bg-slate-800 hover:text-white border-transparent'
                 }
               `}
             >
@@ -99,13 +99,13 @@ const Sidebar = ({ isMobileOpen, onCloseMobile }) => {
             </div>
             <div className="overflow-hidden">
               <p className="text-xs font-bold text-white truncate">{fullName}</p>
-              <p className="text-[10px] text-slate-400 truncate capitalize">{role}</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-300 truncate capitalize">{role}</p>
             </div>
           </NavLink>
 
           <button 
             onClick={logout}
-            className="p-2 text-slate-500 hover:text-red-400 hover:bg-slate-800 rounded-lg transition-colors shrink-0"
+            className="p-2 text-slate-600 dark:text-slate-300 hover:text-red-400 hover:bg-slate-800 rounded-lg transition-colors shrink-0"
             aria-label="Logout"
             title="Logout"
           >

@@ -3,51 +3,58 @@ import { toast } from 'sonner';
 import apiClient from '../lib/api';
 
 const useLexStore = create((set, get) => ({
-  cases: [],
-  clients: [],
   currentUser: null,
-  session: null,
+  accessToken: null, // Access token in-memory
   isLoading: false,
+  isRefreshing: false,
+  refreshPromise: null,
   error: null,
 
-  setLoading: (loading) => set({ isLoading: loading }),
-  
-  fetchMe: async () => {
-    try {
-      const { data: userData } = await apiClient.get('/api/v1/auth/me');
-      set({ currentUser: userData });
-    } catch (err) {
-      console.error('Fetch me error', err);
-    }
-  },
+  setAccessToken: (token) => set({ accessToken: token }),
 
   initAuth: async () => {
-    const token = sessionStorage.getItem('access_token');
-    if (!token) return;
-
+    if (get().isRefreshing) return;
     set({ isLoading: true });
     try {
-      set({ session: { access_token: token } });
-      await get().fetchMe(); 
+      await get().refreshAccessToken();
     } catch (err) {
-      console.error("Auth init failed", err);
-      sessionStorage.removeItem('access_token');
-      set({ session: null, currentUser: null });
+      console.log('No existing session found');
     } finally {
       set({ isLoading: false });
     }
   },
 
+  refreshAccessToken: async () => {
+    if (get().isRefreshing) {
+      return get().refreshPromise;
+    }
+
+    const refreshPromise = (async () => {
+      set({ isRefreshing: true });
+      try {
+        const { data } = await apiClient.post('/auth/refresh');
+        set({ accessToken: data.accessToken, currentUser: data.user });
+        return data.accessToken;
+      } catch (err) {
+        set({ currentUser: null, accessToken: null });
+        throw err;
+      } finally {
+        set({ isRefreshing: false, refreshPromise: null });
+      }
+    })();
+
+    set({ refreshPromise });
+    return refreshPromise;
+  },
+
   login: async (email, password) => {
     set({ isLoading: true });
     try {
-      const { data } = await apiClient.post('/api/v1/auth/login', { email, password });
-      sessionStorage.setItem('access_token', data.accessToken);
-      set({ session: { access_token: data.accessToken }, currentUser: data.user });
-      toast.success('Login successful');
+      const { data } = await apiClient.post('/auth/login', { email, password });
+      set({ accessToken: data.accessToken, currentUser: data.user });
     } catch (err) {
       console.error('Login error:', err.response?.data || err.message);
-      toast.error(err.response?.data?.message || 'Login error');
+      throw err;
     } finally {
       set({ isLoading: false });
     }
@@ -55,18 +62,17 @@ const useLexStore = create((set, get) => ({
 
   logout: async () => {
     try {
-      await apiClient.post('/api/v1/auth/logout');
+      await apiClient.post('/auth/logout');
     } catch (err) {
       console.error('Logout error', err);
     } finally {
-      sessionStorage.removeItem('access_token');
-      set({ currentUser: null, session: null, cases: [], clients: [], error: null });
+      set({ currentUser: null, accessToken: null, error: null });
     }
   },
 
   sendAiMessage: async (message) => {
     try {
-      const { data } = await apiClient.post('/api/v1/ai/chat', { message });
+      const { data } = await apiClient.post('/ai/chat', { message });
       return data;
     } catch (err) {
       const msg = err.response?.data?.message || "AI Error";
@@ -77,7 +83,7 @@ const useLexStore = create((set, get) => ({
 
   callGemini: async (prompt, systemInstruction) => {
     try {
-      const { data } = await apiClient.post('/api/v1/ai/chat', { 
+      const { data } = await apiClient.post('/ai/chat', { 
         message: prompt,
         systemInstruction
       });

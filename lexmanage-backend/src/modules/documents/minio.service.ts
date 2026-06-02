@@ -5,7 +5,6 @@ import { v4 as uuidv4 } from 'uuid';
 @Injectable()
 export class MinioService {
   private readonly client: Minio.Client;
-  private readonly bucket: string;
 
   constructor() {
     this.client = new Minio.Client({
@@ -15,43 +14,55 @@ export class MinioService {
       accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
       secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
     });
-    this.bucket = process.env.MINIO_BUCKET || 'lexmanage-documents';
-    this.ensureBucket();
   }
 
-  private async ensureBucket() {
-    const exists = await this.client.bucketExists(this.bucket);
+  private getTenantBucket(tenantId: string): string {
+    return `lex-${tenantId.toLowerCase()}`;
+  }
+
+  private async ensureTenantBucket(tenantId: string) {
+    const bucket = this.getTenantBucket(tenantId);
+    const exists = await this.client.bucketExists(bucket);
     if (!exists) {
-      await this.client.makeBucket(this.bucket, 'us-east-1');
+      await this.client.makeBucket(bucket, 'us-east-1');
+      // Enable versioning for document audit trail
+      await this.client.setBucketVersioning(bucket, { Status: 'Enabled' });
     }
   }
 
   async uploadFile(
     file: Express.Multer.File,
     tenantId: string,
+    pathPrefix = '',
   ): Promise<{ fileUrl: string; objectName: string }> {
+    await this.ensureTenantBucket(tenantId);
+    const bucket = this.getTenantBucket(tenantId);
     const ext = file.originalname.split('.').pop();
-    const objectName = `${tenantId}/${uuidv4()}.${ext}`;
+    const objectName = `${pathPrefix}${uuidv4()}.${ext}`;
+    
     try {
       await this.client.putObject(
-        this.bucket,
+        bucket,
         objectName,
         file.buffer,
         file.size,
         { 'Content-Type': file.mimetype },
       );
-      const fileUrl = `${process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http'}://${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}/${this.bucket}/${objectName}`;
+      const fileUrl = `${process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http'}://${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}/${bucket}/${objectName}`;
       return { fileUrl, objectName };
     } catch (e) {
       throw new InternalServerErrorException('File upload to storage failed');
     }
   }
 
-  async deleteFile(objectName: string) {
-    await this.client.removeObject(this.bucket, objectName);
+  async deleteFile(tenantId: string, objectName: string) {
+    const bucket = this.getTenantBucket(tenantId);
+    await this.client.removeObject(bucket, objectName);
   }
 
-  async getPresignedUrl(objectName: string, expiry = 3600): Promise<string> {
-    return this.client.presignedGetObject(this.bucket, objectName, expiry);
+  async getPresignedUrl(tenantId: string, objectName: string, expiry = 900): Promise<string> {
+    const bucket = this.getTenantBucket(tenantId);
+    // 15 minutes maximum — never more for legal documents
+    return this.client.presignedGetObject(bucket, objectName, Math.min(expiry, 900));
   }
 }

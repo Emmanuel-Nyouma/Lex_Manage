@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, UsePipes } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
-import { CreateUserDto, UpdateUserDto } from './dto/user.dto';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import { CreateUserSchema, UpdateUserSchema } from '../../common/schemas/user.schema';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -27,19 +28,34 @@ export class UsersController {
 
   @Post()
   @Roles('CABINET_ADMIN', 'SUPER_ADMIN')
-  create(@Body() dto: CreateUserDto, @CurrentUser('tenantId') tenantId: string) {
-    return this.usersService.create(dto, tenantId);
+  @UsePipes(new ZodValidationPipe(CreateUserSchema))
+  create(
+    @Body() dto: any,
+    @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.usersService.create(dto, tenantId, userId);
   }
 
   @Patch(':id')
   @Roles('CABINET_ADMIN', 'SUPER_ADMIN')
-  update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser('tenantId') tenantId: string) {
-    return this.usersService.update(id, dto, tenantId);
+  @UsePipes(new ZodValidationPipe(UpdateUserSchema))
+  update(
+    @Param('id') id: string,
+    @Body() dto: any,
+    @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.usersService.update(id, dto, tenantId, userId);
   }
 
   @Delete(':id')
   @Roles('CABINET_ADMIN', 'SUPER_ADMIN')
-  deactivate(@Param('id') id: string, @CurrentUser('tenantId') tenantId: string) {
-    return this.usersService.deactivate(id, tenantId);
+  deactivate(
+    @Param('id') id: string,
+    @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.usersService.deactivate(id, tenantId, userId);
   }
 }

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { 
-  Users, UserPlus, Shield, Mail, Trash2, Loader2, CheckCircle2, Power 
+  Users, UserPlus, Shield, Mail, Trash2, Loader2, CheckCircle2, Power, Bell
 } from 'lucide-react';
 import { Card, Button, Input, Badge } from './ui';
 import { toast } from 'sonner';
+import SendNotificationDialog from './SendNotificationDialog';
 
 // SECURITY FIX #5: Import store for role-based access control
 import useLexStore from '../store/useLexStore';
@@ -13,6 +14,7 @@ const AdminView = () => {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("LAWYER");
   const [isInviting, setIsInviting] = useState(false);
+  const [isNotifyOpen, setIsNotifyOpen] = useState(false);
 
   // Debug check
   console.log("AdminView rendering, user:", currentUser);
@@ -29,7 +31,7 @@ const AdminView = () => {
 
   if (!isAdmin) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-slate-500 animate-in fade-in duration-500 py-20">
+      <div className="flex flex-col items-center justify-center h-full text-slate-600 dark:text-slate-300 animate-in fade-in duration-500 py-20">
         <Shield size={48} className="mb-4 text-slate-300" />
         <h2 className="text-xl font-bold text-slate-900 dark:text-white">Restricted Access</h2>
         <p>Only administrators can access this section. Your current role is: {currentUser?.role}</p>
@@ -60,12 +62,20 @@ const AdminView = () => {
 
   return (
     <div className="p-8 space-y-8">
-      <div className="bg-amber-100 p-2 text-[10px] text-amber-800 rounded">
-        Debug: AdminView Loaded - Role: {currentUser?.role}
-      </div>
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Firm Administration</h1>
-        <p className="text-slate-500 dark:text-slate-400">Manage your team and your structure's access.</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Firm Administration</h1>
+          <p className="text-slate-600 dark:text-slate-300 dark:text-slate-400 font-medium">Manage your team and your structure's access.</p>
+        </div>
+        
+        <Button 
+          variant="secondary"
+          onClick={() => setIsNotifyOpen(true)}
+          className="bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/20 dark:border-amber-900/30 dark:text-amber-400 font-bold shadow-sm"
+          icon={Bell}
+        >
+          Send New Notification
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -116,7 +126,7 @@ const AdminView = () => {
           <Card className="overflow-hidden">
             <div className="p-6 border-b dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/50">
               <div className="flex items-center gap-2">
-                <Users size={20} className="text-slate-400" />
+                <Users size={20} className="text-slate-500 dark:text-slate-300" />
                 <h3 className="font-bold text-slate-900 dark:text-white">Active Members</h3>
               </div>
               <Badge variant="info">3 Members</Badge>
@@ -124,7 +134,7 @@ const AdminView = () => {
 
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-slate-50 dark:bg-slate-800/50 text-[10px] uppercase font-bold text-slate-500">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 text-[10px] uppercase font-bold text-slate-600 dark:text-slate-300">
                   <tr>
                     <th className="px-6 py-4">Name / Email</th>
                     <th className="px-6 py-4">Role</th>
@@ -136,7 +146,7 @@ const AdminView = () => {
                   <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                     <td className="px-6 py-4">
                       <div className="font-medium">Maitre Emmanuel</div>
-                      <div className="text-xs text-slate-400 font-mono">admin@lexmanage.com</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-300 font-mono">admin@lexmanage.com</div>
                     </td>
                     <td className="px-6 py-4">
                       <Badge 
@@ -150,7 +160,7 @@ const AdminView = () => {
                     <td className="px-6 py-4 text-emerald-500"><CheckCircle2 size={16} /></td>
                     <td className="px-6 py-4 text-right">
                       <button 
-                        className="p-2 text-slate-400 hover:text-amber-600 transition-colors"
+                        className="p-2 text-slate-500 dark:text-slate-300 hover:text-amber-600 transition-colors"
                         title="Deactivate user access"
                       >
                         <Power size={16} />
@@ -164,6 +174,11 @@ const AdminView = () => {
           </Card>
         </div>
       </div>
+
+      <SendNotificationDialog 
+        isOpen={isNotifyOpen}
+        onClose={() => setIsNotifyOpen(false)}
+      />
     </div>
   );
 };

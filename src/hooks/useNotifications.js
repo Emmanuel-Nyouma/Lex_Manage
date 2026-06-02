@@ -29,7 +29,7 @@ export const useNotificationStore = create((set) => ({
   
   markAsRead: async (id) => {
     try {
-      await apiClient.patch(`/api/v1/notifications/${id}/read`);
+      await apiClient.patch(`/notifications/${id}/read`);
       set((state) => {
         const updated = state.notifications.map(n => n.id === id ? { ...n, isRead: true } : n);
         return {
@@ -59,7 +59,7 @@ export const useNotifications = () => {
   const fetchNotifications = useCallback(async () => {
     if (!currentUser || !session) return;
     try {
-      const { data } = await apiClient.get('/api/v1/notifications');
+      const { data } = await apiClient.get('/notifications');
       setNotifications(data);
     } catch (err) {
       console.error("Error fetching notifications:", err);

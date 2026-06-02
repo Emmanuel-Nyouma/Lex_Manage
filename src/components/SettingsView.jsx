@@ -18,7 +18,7 @@ const SettingsView = ({ language, setLanguage, theme, setTheme }) => {
     <div className="space-y-6 animate-in fade-in duration-500 max-w-4xl">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t.settings}</h1>
-        <p className="text-slate-500 dark:text-slate-400 text-sm">{t.settings_desc}</p>
+        <p className="text-slate-600 dark:text-slate-300 dark:text-slate-400 text-sm">{t.settings_desc}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -30,7 +30,7 @@ const SettingsView = ({ language, setLanguage, theme, setTheme }) => {
             </div>
             <div>
               <h3 className="font-bold text-slate-900 dark:text-white">{t.language}</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{t.language_desc}</p>
+              <p className="text-xs text-slate-600 dark:text-slate-300 dark:text-slate-400">{t.language_desc}</p>
             </div>
           </div>
 
@@ -66,7 +66,7 @@ const SettingsView = ({ language, setLanguage, theme, setTheme }) => {
             </div>
             <div>
               <h3 className="font-bold text-slate-900 dark:text-white">{t.theme}</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{t.appearance_desc}</p>
+              <p className="text-xs text-slate-600 dark:text-slate-300 dark:text-slate-400">{t.appearance_desc}</p>
             </div>
           </div>
 

@@ -33,6 +33,9 @@
   - **Audit Trail:** Automatic logging of all case modifications.
   - **Storage Security:** Documents accessed via secure Presigned URLs.
   - **API Safety:** Gemini API keys are secured server-side in the NestJS backend.
+- **SQL Injection Protection:**
+  - **Prisma ORM:** The project relies on Prisma for all database interactions. Prisma automatically parameterizes all queries, making standard operations (`findMany`, `create`, etc.) safe by default.
+  - **Raw Queries:** If raw queries are ever needed, always use Prisma's template literal tags (`$queryRaw` or `$executeRaw`). Never use string interpolation with `$queryRawUnsafe`.
 
 ---
 
@@ -65,6 +68,7 @@
 ---
 
 ## 📂 Components Directory
+*See [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) for component specifications and accessibility standards.*
 
 | Component | Role |
 |-----------|------|

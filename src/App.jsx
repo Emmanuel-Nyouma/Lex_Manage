@@ -55,12 +55,17 @@ const MainLayout = ({ children, isAiOpen, setIsAiOpen, isMobileSidebarOpen, setI
     <div className="relative flex h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-hidden">
       {/* Pop-up Urgent (Étape 2/3) */}
       {urgentNotification && (
-        <div className="fixed inset-0 z-[110] bg-red-950/20 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
+        <div 
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="urgent-title"
+          className="fixed inset-0 z-[110] bg-red-950/20 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300"
+        >
           <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border-2 border-red-500 overflow-hidden animate-in zoom-in-95 duration-300">
             <div className="bg-red-500 p-4 flex items-center justify-between text-white">
               <div className="flex items-center gap-2">
                 <ShieldCheck size={24} />
-                <h2 className="font-bold text-lg">ALERTE URGENTE</h2>
+                <h2 id="urgent-title" className="font-bold text-lg">ALERTE URGENTE</h2>
               </div>
               <button onClick={clearUrgent} className="hover:rotate-90 transition-transform">
                 <CloseIcon size={20} />
@@ -107,11 +112,11 @@ const MainLayout = ({ children, isAiOpen, setIsAiOpen, isMobileSidebarOpen, setI
 };
 
 export default function LexManageApp() {
-  const { session, initAuth, isLoading, currentUser, logout } = useLexStore();
+  const { accessToken, initAuth, isLoading, currentUser, logout } = useLexStore();
   const queryClient = useQueryClient();
   const socket = useSocket();
   const { isIdle } = useIdleTimeout(15 * 60 * 1000); // 15 minutes
-  const isAuthenticated = !!session;
+  const isAuthenticated = !!accessToken;
 
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -150,7 +155,7 @@ export default function LexManageApp() {
       <div className="h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-slate-500 font-medium animate-pulse">Chargement de LexManage...</p>
+          <p className="text-slate-600 dark:text-slate-300 font-medium animate-pulse">Chargement de LexManage...</p>
         </div>
       </div>
     );
@@ -160,25 +165,25 @@ export default function LexManageApp() {
 
   return (
     <>
-      <Toaster position="top-right" richColors closeButton />
+      <Toaster position="bottom-right" richColors closeButton />
       <Routes>
         <Route path="/login" element={
           isAuthenticated ? <Navigate to="/dashboard" replace /> : <AuthScreen />
         } />
         
-        <Route path="/dashboard" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><DashboardView /></MainLayout></ProtectedRoute>} />
-        <Route path="/cases" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><CaseManagementView /></MainLayout></ProtectedRoute>} />
-        <Route path="/calendar" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><CalendarView /></MainLayout></ProtectedRoute>} />
-        <Route path="/documents" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><DocumentsView /></MainLayout></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><DashboardView /></MainLayout></ProtectedRoute>} />
+        <Route path="/cases" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><CaseManagementView /></MainLayout></ProtectedRoute>} />
+        <Route path="/calendar" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><CalendarView /></MainLayout></ProtectedRoute>} />
+        <Route path="/documents" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><DocumentsView /></MainLayout></ProtectedRoute>} />
         <Route path="/admin" element={
-          <AdminRoute session={session} currentUser={currentUser}>
+          <AdminRoute session={accessToken} currentUser={currentUser}>
             <MainLayout {...layoutProps}><AdminView /></MainLayout>
           </AdminRoute>
         } />
 
-        <Route path="/company-settings" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><CompanySettingsView /></MainLayout></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><ProfileView /></MainLayout></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute session={session}><MainLayout {...layoutProps}><SettingsView /></MainLayout></ProtectedRoute>} />
+        <Route path="/company-settings" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><CompanySettingsView /></MainLayout></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><ProfileView /></MainLayout></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><SettingsView /></MainLayout></ProtectedRoute>} />
         
         <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
         <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />

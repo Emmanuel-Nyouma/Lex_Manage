@@ -6,4 +6,5 @@ export const QUERY_KEYS = {
   events: ['events'],
   stats: ['stats'],
   profile: ['profile'],
+  calendar: ['calendar'],
 };

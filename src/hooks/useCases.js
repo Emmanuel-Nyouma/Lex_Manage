@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { QUERY_KEYS } from '../lib/queryKeys';
 import { toast } from 'sonner';
@@ -8,10 +8,10 @@ export const useCases = (page = 1, limit = 10) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.cases, page, limit],
     queryFn: async () => {
-      const { data } = await apiClient.get(`/api/v1/cases?page=${page}&limit=${limit}`);
+      const { data } = await apiClient.get(`/cases?page=${page}&limit=${limit}`);
       return data;
     },
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 };
 
@@ -21,7 +21,7 @@ export const useCreateCase = () => {
 
   return useMutation({
     mutationFn: async (newCase) => {
-      const { data } = await apiClient.post('/api/v1/cases', newCase);
+      const { data } = await apiClient.post('/cases', newCase);
       return data;
     },
     onSuccess: () => {
@@ -40,7 +40,7 @@ export const useDeleteCase = () => {
 
   return useMutation({
     mutationFn: async (id) => {
-      await apiClient.delete(`/api/v1/cases/${id}`);
+      await apiClient.delete(`/cases/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.cases });
@@ -58,7 +58,7 @@ export const useDeadlines = (caseId) => {
     queryKey: [...QUERY_KEYS.cases, caseId, 'deadlines'],
     queryFn: async () => {
       if (!caseId) return [];
-      const { data } = await apiClient.get(`/api/v1/cases/${caseId}/deadlines`);
+      const { data } = await apiClient.get(`/cases/${caseId}/deadlines`);
       return data;
     },
     enabled: !!caseId,
@@ -71,7 +71,7 @@ export const useCreateDeadline = (caseId) => {
 
   return useMutation({
     mutationFn: async (newDeadline) => {
-      const { data } = await apiClient.post(`/api/v1/cases/${caseId}/deadlines`, newDeadline);
+      const { data } = await apiClient.post(`/cases/${caseId}/deadlines`, newDeadline);
       return data;
     },
     onSuccess: () => {
@@ -87,7 +87,7 @@ export const useMarkDeadlineDone = (caseId) => {
 
   return useMutation({
     mutationFn: async (id) => {
-      await apiClient.patch(`/api/v1/cases/${caseId}/deadlines/${id}/done`);
+      await apiClient.patch(`/cases/${caseId}/deadlines/${id}/done`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.cases, caseId, 'deadlines'] });

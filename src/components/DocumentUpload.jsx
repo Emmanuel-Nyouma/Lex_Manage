@@ -68,7 +68,7 @@ const DocumentUpload = ({ onUploadSuccess }) => {
     <div className="space-y-4">
       {/* Sélecteur de catégorie */}
       <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
-        <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">Target Category:</div>
+        <div className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest">Target Category:</div>
         <div className="flex flex-wrap gap-2">
           {CATEGORIES.map(cat => (
             <button

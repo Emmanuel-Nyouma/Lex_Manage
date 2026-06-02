@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { 
   Mail, Phone, Shield, ShieldCheck, Lock, User, 
   ExternalLink, Check, AlertCircle, Loader2 
@@ -7,35 +10,43 @@ import { Card, Badge, Button, Input } from './ui';
 import useLexStore from '../store/useLexStore';
 import { useUpdateProfile } from '../hooks/useProfile';
 
+const profileSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  phone: z.string().optional().or(z.literal(''))
+});
+
 const ProfileView = () => {
   const { currentUser, fetchMe } = useLexStore();
   const updateProfile = useUpdateProfile();
   
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    phone: ''
+
+  const { 
+    register, 
+    handleSubmit, 
+    formState: { errors },
+    reset 
+  } = useForm({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      firstName: currentUser?.firstName || '',
+      lastName: currentUser?.lastName || '',
+      phone: currentUser?.phone || ''
+    }
   });
 
   const startEditing = () => {
-    if (currentUser) {
-      setFormData({
-        firstName: currentUser.firstName || '',
-        lastName: currentUser.lastName || '',
-        phone: currentUser.phone || ''
-      });
-    }
+    reset({
+      firstName: currentUser?.firstName || '',
+      lastName: currentUser?.lastName || '',
+      phone: currentUser?.phone || ''
+    });
     setIsEditing(true);
   };
 
-  const handleSave = async () => {
-    // Basic Validation
-    if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      return;
-    }
-
-    updateProfile.mutate(formData, {
+  const onSubmit = async (data) => {
+    updateProfile.mutate(data, {
       onSuccess: () => {
         setIsEditing(false);
         fetchMe();
@@ -55,43 +66,42 @@ const ProfileView = () => {
            <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>Cancel</Button>
         </div>
         
-        <Card className="p-8 space-y-6 border-slate-200 dark:border-slate-800 shadow-xl">
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <Card className="p-8 space-y-6 border-slate-200 dark:border-slate-800 shadow-xl">
+            <div className="grid grid-cols-2 gap-4">
+              <Input 
+                {...register("firstName")}
+                label="First Name" 
+                placeholder="First Name"
+                error={errors.firstName?.message}
+              />
+              <Input 
+                {...register("lastName")}
+                label="Last Name" 
+                placeholder="Last Name"
+                error={errors.lastName?.message}
+              />
+            </div>
+            
             <Input 
-              label="First Name" 
-              value={formData.firstName} 
-              onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-              placeholder="First Name"
-              error={!formData.firstName.trim() ? "Required" : ""}
+              {...register("phone")}
+              label="Phone Number" 
+              placeholder="+1 (555) 000-0000"
+              icon={Phone}
+              error={errors.phone?.message}
             />
-            <Input 
-              label="Last Name" 
-              value={formData.lastName} 
-              onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-              placeholder="Last Name"
-              error={!formData.lastName.trim() ? "Required" : ""}
-            />
-          </div>
-          
-          <Input 
-            label="Phone Number" 
-            value={formData.phone} 
-            onChange={(e) => setFormData({...formData, phone: e.target.value})}
-            placeholder="+1 (555) 000-0000"
-            icon={Phone}
-          />
 
-          <div className="flex gap-3 pt-4">
-            <Button 
-              className="flex-1"
-              onClick={handleSave} 
-              isLoading={updateProfile.isPending}
-              disabled={!formData.firstName.trim() || !formData.lastName.trim()}
-            >
-              Save Changes
-            </Button>
-          </div>
-        </Card>
+            <div className="flex gap-3 pt-4">
+              <Button 
+                type="submit"
+                className="flex-1"
+                isLoading={updateProfile.isPending}
+              >
+                Save Changes
+              </Button>
+            </div>
+          </Card>
+        </form>
       </div>
     );
   }
@@ -101,7 +111,7 @@ const ProfileView = () => {
        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">My Profile</h1>
-            <p className="text-slate-500 dark:text-slate-400 font-medium">Manage your personal identity and security settings.</p>
+            <p className="text-slate-600 dark:text-slate-300 dark:text-slate-400 font-medium">Manage your personal identity and security settings.</p>
           </div>
           <button 
             onClick={startEditing} 
@@ -164,14 +174,14 @@ const ProfileView = () => {
 
                 <button className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl transition-colors group">
                   <div className="flex items-center gap-2">
-                    <AlertCircle size={14} className="text-slate-400" />
+                    <AlertCircle size={14} className="text-slate-500 dark:text-slate-300" />
                     <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Change Password</span>
                   </div>
-                  <ExternalLink size={12} className="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ExternalLink size={12} className="text-slate-500 dark:text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
               </div>
               
-              <p className="text-[10px] text-slate-400 mt-4 leading-relaxed">
+              <p className="text-[10px] text-slate-500 dark:text-slate-300 mt-4 leading-relaxed">
                 Last password change: <span className="font-bold">Mar 12, 2026</span>. We recommend updating your credentials every 90 days.
               </p>
             </Card>

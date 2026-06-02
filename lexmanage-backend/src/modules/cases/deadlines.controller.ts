@@ -1,5 +1,7 @@
 import { Controller, Get, Post, Delete, Body, Param, UseGuards, Patch } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -10,7 +12,10 @@ import { NotFoundException } from '@nestjs/common';
 @UseGuards(JwtAuthGuard)
 @Controller('cases/:caseId/deadlines')
 export class DeadlinesController {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @InjectQueue('reminders') private reminderQueue: Queue,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new deadline for a case' })
@@ -25,7 +30,7 @@ export class DeadlinesController {
     });
     if (!targetCase) throw new NotFoundException('Case not found');
 
-    return this.prisma.deadline.create({
+    const deadline = await this.prisma.deadline.create({
       data: {
         ...dto,
         dueAt: new Date(dto.dueAt),
@@ -33,6 +38,21 @@ export class DeadlinesController {
         tenantId,
       },
     });
+
+    // Schedule reminder job (3 days before dueAt)
+    const dueAt = new Date(dto.dueAt);
+    const reminderDate = new Date(dueAt);
+    reminderDate.setDate(reminderDate.getDate() - 3);
+    const delay = Math.max(0, reminderDate.getTime() - Date.now());
+
+    await this.reminderQueue.add('send-reminder', {
+      deadlineId: deadline.id,
+      tenantId,
+    }, {
+      delay,
+    });
+
+    return deadline;
   }
 
   @Get()

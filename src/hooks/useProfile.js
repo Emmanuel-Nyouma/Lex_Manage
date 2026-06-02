@@ -7,7 +7,7 @@ export const useUpdateProfile = () => {
 
   return useMutation({
     mutationFn: async (updatedData) => {
-      const { data } = await apiClient.patch('/api/v1/auth/profile', updatedData);
+      const { data } = await apiClient.patch('/auth/profile', updatedData);
       return data;
     },
     onSuccess: () => {

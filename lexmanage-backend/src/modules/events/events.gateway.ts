@@ -8,6 +8,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger, UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @WebSocketGateway({
   cors: {
@@ -21,7 +22,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private logger: Logger = new Logger('EventsGateway');
 
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    private jwtService: JwtService,
+    private prisma: PrismaService,
+  ) {}
 
   async handleConnection(client: Socket) {
     try {
@@ -37,6 +41,18 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       
       const tenantId = payload.tenantId;
       const userId = payload.sub;
+
+      // Verify user exists and is active
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { isActive: true, tenantId: true },
+      });
+
+      if (!user || !user.isActive || user.tenantId !== tenantId) {
+        this.logger.warn(`Unauthorized WebSocket connection attempt: User ${userId}`);
+        client.disconnect();
+        return;
+      }
 
       // Join room based on tenant for isolation
       client.join(`tenant_${tenantId}`);

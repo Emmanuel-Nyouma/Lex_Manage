@@ -2,7 +2,7 @@ import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Query, Up
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { DocumentsService } from './documents.service';
-import { CreateDocumentDto, UpdateDocumentDto } from './dto/document.dto';
+import { CreateDocumentDto, UpdateDocumentDto, DocumentType } from './dto/document.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
@@ -28,26 +28,32 @@ export class DocumentsController {
     return this.documentsService.findOne(id, tenantId);
   }
 
-  @Get(':id/url')
-  getSignedUrl(@Param('id') id: string, @CurrentUser('tenantId') tenantId: string) {
+  @Get(':id/download-url')
+  @ApiOperation({ summary: 'Generate a presigned URL for downloading a document' })
+  getDownloadUrl(@Param('id') id: string, @CurrentUser('tenantId') tenantId: string) {
     return this.documentsService.getSignedUrl(id, tenantId);
   }
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Upload a new document' })
   upload(
     @UploadedFile() file: Express.Multer.File,
-    @Body('title') title: string | undefined,
-    @Body('category') category: string | undefined,
+    @Body('name') name: string | undefined,
+    @Body('documentType') documentType: DocumentType | undefined,
     @Body('caseId') bodyCaseId: string | undefined,
+    @Body('courtCaseRef') courtCaseRef: string | undefined,
     @Query('caseId') queryCaseId: string | undefined,
+    @Query('pending') pending: string | undefined,
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
   ) {
     return this.documentsService.upload(file, tenantId, userId, {
-      title,
-      category,
+      name,
+      documentType,
+      courtCaseRef,
       caseId: bodyCaseId || queryCaseId,
+      pending: pending === 'true',
     });
   }
 
@@ -65,12 +71,28 @@ export class DocumentsController {
     @Param('id') id: string,
     @Body() dto: UpdateDocumentDto,
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
   ) {
-    return this.documentsService.update(id, dto, tenantId);
+    return this.documentsService.update(id, dto, tenantId, userId);
+  }
+
+  @Patch(':id/link-to-case')
+  @ApiOperation({ summary: 'Link an existing document to a case' })
+  linkToCase(
+    @Param('id') id: string,
+    @Body('caseId') caseId: string,
+    @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.documentsService.linkDocumentToCase(id, caseId, tenantId, userId);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string, @CurrentUser('tenantId') tenantId: string) {
-    return this.documentsService.remove(id, tenantId);
+  remove(
+    @Param('id') id: string,
+    @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.documentsService.remove(id, tenantId, userId);
   }
 }

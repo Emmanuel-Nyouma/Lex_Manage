@@ -35,7 +35,7 @@ const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen
       {/* Mobile Hamburger Menu */}
       <button 
         onClick={onToggleMobileSidebar}
-        className="md:hidden p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+        className="md:hidden p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
         aria-label="Open navigation menu"
       >
         <Menu size={20} aria-hidden="true" />
@@ -45,11 +45,12 @@ const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen
       <div className="flex items-center flex-1 max-w-xl">
         <button 
           onClick={() => setIsSearchOpen(true)}
-          className="w-full flex items-center gap-3 bg-slate-100 dark:bg-slate-800 rounded-xl px-4 py-2 text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+          className="w-full flex items-center gap-3 bg-slate-100 dark:bg-slate-800 rounded-xl px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-200 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+          aria-label="Search cases and documents"
         >
-          <Search size={18} />
+          <Search size={18} aria-hidden="true" />
           <span className="text-sm">Search...</span>
-          <span className="ml-auto text-[10px] bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-500 font-mono">⌘K</span>
+          <span className="ml-auto text-[10px] bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 font-mono">⌘K</span>
         </button>
       </div>
 
@@ -61,7 +62,7 @@ const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen
         <div className="relative" ref={notificationRef}>
           <button 
             onClick={() => setShowNotifications(!showNotifications)} 
-            className={`relative p-2 rounded-lg transition-colors ${showNotifications ? 'bg-slate-100 dark:bg-slate-800 text-amber-500' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+            className={`relative p-2 rounded-lg transition-colors ${showNotifications ? 'bg-slate-100 dark:bg-slate-800 text-amber-500' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
             aria-label="Open notifications"
           >
             <Bell size={20} aria-hidden="true" />
@@ -95,7 +96,7 @@ const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen
                             {!notif.isRead && (
                               <button 
                                 onClick={(e) => handleNotificationRead(e, notif.id)}
-                                className="p-1 text-slate-400 hover:text-emerald-500 transition-colors opacity-0 group-hover:opacity-100"
+                                className="p-1 text-slate-500 dark:text-slate-300 hover:text-emerald-500 transition-colors opacity-0 group-hover:opacity-100"
                                 aria-label="Mark notification as read"
                                 title="Mark as read"
                               >
@@ -103,8 +104,8 @@ const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen
                               </button>
                             )}
                           </div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{notif.message}</p>
-                          <span className="text-[10px] text-slate-400 mt-2 block italic">
+                          <p className="text-xs text-slate-600 dark:text-slate-300 dark:text-slate-400 leading-relaxed">{notif.message}</p>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-300 mt-2 block italic">
                             {new Date(notif.createdAt).toLocaleString()}
                           </span>
                         </div>
@@ -116,7 +117,7 @@ const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen
                     <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
                       <Bell size={20} className="text-slate-300" />
                     </div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 italic">No notifications.</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-300 dark:text-slate-400 italic">No notifications.</p>
                   </div>
                 )}
               </div>
@@ -143,7 +144,7 @@ const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen
              {currentUser?.firstName?.charAt(0) || currentUser?.lastName?.charAt(0) || '?'}
           </div>
           <div className="hidden md:block text-left">
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none mb-1">Counsel</div>
+            <div className="text-[10px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-wider leading-none mb-1">Counsel</div>
             <div className="text-sm font-bold text-slate-900 dark:text-white leading-none">
               {currentUser?.firstName} {currentUser?.lastName}
             </div>

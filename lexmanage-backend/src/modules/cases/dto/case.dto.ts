@@ -24,6 +24,7 @@ export class CreateCaseDto {
   @ApiPropertyOptional() @IsOptional() @IsString() caseNumber?: string;
   @ApiPropertyOptional({ enum: CasePriority }) @IsOptional() @IsEnum(CasePriority) priority?: CasePriority;
   @ApiPropertyOptional() @IsOptional() @IsString() assigneeId?: string;
+  @ApiPropertyOptional({ type: [String] }) @IsOptional() @IsString({ each: true }) documentIds?: string[];
 }
 
 export class UpdateCaseDto {
@@ -34,4 +35,5 @@ export class UpdateCaseDto {
   @ApiPropertyOptional({ enum: CaseStatus }) @IsOptional() @IsEnum(CaseStatus) status?: CaseStatus;
   @ApiPropertyOptional({ enum: CasePriority }) @IsOptional() @IsEnum(CasePriority) priority?: CasePriority;
   @ApiPropertyOptional() @IsOptional() @IsString() assigneeId?: string;
+  @ApiPropertyOptional({ type: [String] }) @IsOptional() @IsString({ each: true }) documentIds?: string[];
 }

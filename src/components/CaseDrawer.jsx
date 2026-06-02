@@ -1,12 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  X, Sparkles, Loader2, Lightbulb, Mail, Plus, FileText, Clock 
+  X, Sparkles, Loader2, Lightbulb, Mail, Plus, FileText, Clock, Upload, Paperclip 
 } from 'lucide-react';
 import { Badge } from './ui';
+import { useDropzone } from 'react-dropzone';
+import { uploadLegalDocument } from '../lib/documentService';
+import useLexStore from '../store/useLexStore';
+import { toast } from 'sonner';
+import { sanitize } from '../lib/sanitizer';
 
-import { useDeadlines, useCreateDeadline, useMarkDeadlineDone } from '../hooks/useCases';
+import { useDeadlines, useCreateDeadline, useMarkDeadlineDone, useCases } from '../hooks/useCases';
 
 const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
+  const { currentUser } = useLexStore();
+  const { refetch: refetchCases } = useCases();
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [draftEmail, setDraftEmail] = useState(null);
@@ -19,6 +26,34 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
   const [newDeadlineTitle, setNewDeadlineTitle] = useState('');
   const [newDeadlineDate, setNewDeadlineDate] = useState('');
   const [isAddingDeadline, setIsNewAddingDeadline] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const onDrop = useCallback(async (acceptedFiles) => {
+    if (!activeCase?.id || acceptedFiles.length === 0) return;
+    
+    setIsUploading(true);
+    try {
+      for (const file of acceptedFiles) {
+        await uploadLegalDocument(file, currentUser, 'Pièces', activeCase.id);
+      }
+      toast.success(`${acceptedFiles.length} document(s) importés`);
+      refetchCases(); // Refresh to show new documents
+    } catch (error) {
+      console.error(error);
+      toast.error("Échec de l'upload");
+    } finally {
+      setIsUploading(false);
+    }
+  }, [activeCase?.id, currentUser, refetchCases]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
+    },
+    disabled: isUploading
+  });
 
   // Task 2: Global Navigation & Close Triggers
   useEffect(() => {
@@ -81,9 +116,9 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
            <div>
               <Badge variant={activeCase.status === 'Active' || activeCase.status === 'en cours' ? 'success' : 'default'}>{activeCase.status}</Badge>
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mt-2 leading-tight">{activeCase.title}</h2>
-              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium">{activeCase.client_name} • {activeCase.courtName || 'Jurisdiction not defined'}</p>
+              <p className="text-slate-600 dark:text-slate-300 dark:text-slate-400 text-sm mt-1 font-medium">{activeCase.client_name} • {activeCase.courtName || 'Jurisdiction not defined'}</p>
            </div>
-           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
+           <button onClick={onClose} className="text-slate-500 dark:text-slate-300 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
              <X size={20} />
            </button>
         </div>
@@ -114,13 +149,13 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
 
              {aiAnalysis && (
                <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-amber-100 dark:border-amber-900/30 text-sm text-slate-800 dark:text-slate-200 animate-in fade-in slide-in-from-top-2 shadow-inner">
-                 <div className="whitespace-pre-line leading-relaxed font-serif text-[13px]">{aiAnalysis}</div>
+                 <div className="whitespace-pre-line leading-relaxed font-serif text-[13px]" dangerouslySetInnerHTML={{ __html: sanitize(aiAnalysis) }}></div>
                </div>
              )}
              {draftEmail && (
                <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-amber-100 dark:border-amber-900/30 text-sm text-slate-800 dark:text-slate-200 animate-in fade-in slide-in-from-top-2 shadow-inner">
                  <div className="text-[10px] text-amber-600 dark:text-amber-500 mb-2 uppercase tracking-widest font-bold">Email Draft Preview</div>
-                 <div className="whitespace-pre-line leading-relaxed font-mono text-xs bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border dark:border-slate-800">{draftEmail}</div>
+                 <div className="whitespace-pre-line leading-relaxed font-mono text-xs bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border dark:border-slate-800" dangerouslySetInnerHTML={{ __html: sanitize(draftEmail) }}></div>
                  <button className="mt-3 w-full py-2 bg-slate-900 dark:bg-amber-600 text-white text-xs font-bold rounded-lg hover:bg-slate-800 dark:hover:bg-amber-700 transition-colors">Copy to Clipboard</button>
                </div>
              )}
@@ -156,7 +191,7 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
                       onChange={(e) => setNewDeadlineDate(e.target.value)}
                     />
                     <button type="submit" className="bg-amber-600 text-white px-4 rounded-lg font-bold text-xs">OK</button>
-                    <button type="button" onClick={() => setIsNewAddingDeadline(false)} className="text-slate-400 px-2">Cancel</button>
+                    <button type="button" onClick={() => setIsNewAddingDeadline(false)} className="text-slate-500 dark:text-slate-300 px-2">Cancel</button>
                   </div>
                 </form>
               )}
@@ -171,36 +206,55 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
                           onClick={() => !deadline.isDone && markDone.mutate(deadline.id)}
                           className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border-4 border-white dark:border-slate-900 shadow-sm transition-all ${deadline.isDone ? 'bg-emerald-500' : 'bg-amber-500 ring-4 ring-amber-500/20 hover:scale-125'}`}
                         ></button>
-                        <p className={`text-sm font-bold leading-tight ${deadline.isDone ? 'line-through text-slate-500' : 'text-slate-900 dark:text-white'}`}>{deadline.title}</p>
-                        <p className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">{new Date(deadline.dueAt).toLocaleDateString()}</p>
+                        <p className={`text-sm font-bold leading-tight ${deadline.isDone ? 'line-through text-slate-600 dark:text-slate-300' : 'text-slate-900 dark:text-white'}`}>{deadline.title}</p>
+                        <p className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-300 dark:text-slate-600 uppercase tracking-widest mt-0.5">{new Date(deadline.dueAt).toLocaleDateString()}</p>
                      </div>
                    ))
                  ) : (
-                   <div className="ml-6 text-xs text-slate-400 italic">No deadlines scheduled.</div>
+                   <div className="ml-6 text-xs text-slate-500 dark:text-slate-300 italic">No deadlines scheduled.</div>
                  )}
               </div>
            </div>
 
            <div>
-              <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-4 tracking-tight flex items-center gap-2">
-                <FileText size={18} className="text-blue-500" /> Related Documents
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-slate-800 dark:text-slate-200 tracking-tight flex items-center gap-2">
+                  <FileText size={18} className="text-blue-500" /> Related Documents
+                </h3>
+                <div {...getRootProps()}>
+                  <input {...getInputProps()} />
+                  <button 
+                    className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-all shadow-sm"
+                    title="Upload document"
+                    disabled={isUploading}
+                  >
+                    {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {isDragActive && (
+                <div className="mb-3 p-4 border-2 border-dashed border-blue-400 bg-blue-50/50 dark:bg-blue-900/20 rounded-xl text-center animate-pulse">
+                  <p className="text-xs font-bold text-blue-600">Déposer pour uploader</p>
+                </div>
+              )}
+
               <div className="space-y-3">
                 {activeCase.documents?.map((doc) => (
-                  <div key={doc.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                  <div key={doc.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg">
                         <FileText size={14} />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{doc.title}</p>
-                        <p className="text-[10px] text-slate-500 uppercase">{doc.fileType}</p>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-blue-600 transition-colors">{doc.title}</p>
+                        <p className="text-[10px] text-slate-600 dark:text-slate-300 uppercase">{doc.fileType}</p>
                       </div>
                     </div>
                   </div>
                 ))}
-                {(!activeCase.documents || activeCase.documents.length === 0) && (
-                  <p className="text-xs text-slate-400 italic">No documents.</p>
+                {(!activeCase.documents || activeCase.documents.length === 0) && !isUploading && (
+                  <p className="text-xs text-slate-500 dark:text-slate-300 italic px-2">No documents yet.</p>
                 )}
               </div>
            </div>
@@ -216,5 +270,3 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
 }
 
 export default CaseDrawer;
-
-

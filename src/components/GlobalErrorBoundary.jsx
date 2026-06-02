@@ -34,7 +34,7 @@ class GlobalErrorBoundary extends React.Component {
             Oups ! Un petit grain de sable...
           </h1>
           
-          <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-md">
+          <p className="text-slate-600 dark:text-slate-300 dark:text-slate-400 mb-8 max-w-md">
             Un problème est survenu dans l'interface. Pas de panique, vos dossiers juridiques sont en sécurité sur nos serveurs.
           </p>
 

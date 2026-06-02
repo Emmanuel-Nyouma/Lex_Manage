@@ -11,7 +11,7 @@ import {
   Search,
   X
 } from 'lucide-react';
-import { Button, Badge, Input, Skeleton } from './ui';
+import { Button, Badge, Input, Skeleton, Card } from './ui';
 import NewCaseDialog from './NewCaseDialog';
 import CaseDrawer from './CaseDrawer';
 import { useCases } from '../hooks/useCases';
@@ -22,7 +22,7 @@ const CaseManagementView = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
 
-  const { data, isLoading, error } = useCases(page, 10);
+  const { data, isLoading, error, refetch } = useCases(page, 10);
   const cases = data?.data || [];
   const meta = data?.meta;
   const { callGemini } = useLexStore();
@@ -64,9 +64,25 @@ const CaseManagementView = () => {
   }
 
   if (error) {
+    let errorMessage = "Something went wrong. Please try again.";
+    if (error.response?.status === 401) {
+      errorMessage = "Your session has expired. Please log in again.";
+    } else if (error.response?.status === 403) {
+      errorMessage = "You don't have permission to access this resource.";
+    } else if (error.message === 'Network Error') {
+      errorMessage = "Network issue. Check your connection.";
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
     return (
-      <div className="p-4 bg-red-50 text-red-600 rounded-lg">
-        Error loading cases: {error.message}
+      <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex justify-between items-center animate-in fade-in">
+        <span className="text-red-700 font-medium">Error loading cases: {errorMessage}</span>
+        {refetch && (
+          <button onClick={() => refetch()} className="text-red-600 hover:text-red-800 underline font-semibold transition-colors">
+            Retry
+          </button>
+        )}
       </div>
     );
   }
@@ -76,7 +92,7 @@ const CaseManagementView = () => {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Case Management</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium">Manage all your ongoing legal proceedings.</p>
+          <p className="text-slate-600 dark:text-slate-300 dark:text-slate-400 font-medium">Manage all your ongoing legal proceedings.</p>
         </div>
         
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
@@ -89,12 +105,19 @@ const CaseManagementView = () => {
               className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm pr-10"
             />
             {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-              >
-                <X size={14} />
-              </button>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                {isLoading ? (
+                    <Loader2 size={14} className="animate-spin text-amber-500" />
+                ) : (
+                    <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
+                )}
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="p-1 text-slate-500 dark:text-slate-300 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
             )}
           </div>
           <Button onClick={() => setIsNewCaseOpen(true)} icon={Plus} className="w-full sm:w-auto shadow-lg shadow-amber-500/20 bg-slate-900 dark:bg-amber-600">
@@ -120,7 +143,7 @@ const CaseManagementView = () => {
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/50 dark:bg-slate-800/30 text-slate-500 dark:text-slate-400 text-[10px] uppercase tracking-widest font-black">
+              <tr className="bg-slate-50/50 dark:bg-slate-800/30 text-slate-600 dark:text-slate-300 dark:text-slate-400 text-[10px] uppercase tracking-widest font-black">
                 <th className="px-6 py-4">Case File</th>
                 <th className="px-6 py-4">Client</th>
                 <th className="px-6 py-4">Responsible</th>
@@ -137,7 +160,7 @@ const CaseManagementView = () => {
                 >
                   <td className="px-6 py-5">
                     <div className="font-bold text-slate-900 dark:text-white group-hover:text-amber-600 transition-colors">{c.title}</div>
-                    <div className="text-[10px] text-slate-500 flex items-center gap-1.5 font-bold uppercase tracking-tight mt-1">
+                    <div className="text-[10px] text-slate-600 dark:text-slate-300 flex items-center gap-1.5 font-bold uppercase tracking-tight mt-1">
                        <Gavel size={10} className="text-amber-600" /> {c.courtName || 'N/A'}
                     </div>
                   </td>
@@ -176,7 +199,7 @@ const CaseManagementView = () => {
               <div className="flex justify-between items-start">
                 <div className="space-y-1.5">
                   <h3 className="font-bold text-slate-900 dark:text-white leading-tight">{c.title}</h3>
-                  <div className="flex items-center gap-2 text-[10px] text-slate-500 font-black uppercase tracking-widest">
+                  <div className="flex items-center gap-2 text-[10px] text-slate-600 dark:text-slate-300 font-black uppercase tracking-widest">
                     <Gavel size={12} className="text-amber-600" aria-hidden="true" /> {c.courtName || 'N/A'}
                   </div>
                 </div>
@@ -185,12 +208,12 @@ const CaseManagementView = () => {
               
               <div className="flex items-center justify-between text-xs pt-2">
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-bold">
-                  <User size={14} className="text-slate-400" aria-hidden="true" /> {c.clientName}
+                  <User size={14} className="text-slate-500 dark:text-slate-300" aria-hidden="true" /> {c.clientName}
                 </div>
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={(e) => { e.stopPropagation(); setSelectedCase(c); }}
-                    className="p-2 text-slate-500 hover:text-amber-600 transition-colors"
+                    className="p-2 text-slate-600 dark:text-slate-300 hover:text-amber-600 transition-colors"
                     aria-label={`View details for ${c.title}`}
                   >
                     <ChevronRight size={20} />
@@ -208,7 +231,7 @@ const CaseManagementView = () => {
             </div>
             <div className="max-w-xs mx-auto">
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">No cases found</h3>
-              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+              <p className="text-slate-600 dark:text-slate-300 dark:text-slate-400 text-sm mt-1">
                 {searchQuery 
                   ? `We couldn't find any matches for "${searchQuery}". Try a different term.`
                   : "You haven't added any cases yet. Get started by creating your first one."}
@@ -222,6 +245,66 @@ const CaseManagementView = () => {
             >
               {searchQuery ? "Clear Search" : "Create first case"}
             </Button>
+          </div>
+        )}
+
+        {meta && meta.totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between p-4 gap-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-2 order-2 sm:order-1">
+              <Button 
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                variant="secondary"
+                size="sm"
+                className="px-3 py-1 text-xs font-bold"
+              >
+                Prev
+              </Button>
+              
+              <div className="flex items-center gap-1">
+                {[...Array(meta.totalPages)].map((_, i) => {
+                  const pageNum = i + 1;
+                  // Show current page, first, last, and pages around current
+                  if (
+                    pageNum === 1 || 
+                    pageNum === meta.totalPages || 
+                    (pageNum >= page - 1 && pageNum <= page + 1)
+                  ) {
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setPage(pageNum)}
+                        className={`w-8 h-8 rounded-lg text-xs font-black transition-all ${
+                          page === pageNum 
+                            ? 'bg-slate-900 dark:bg-amber-600 text-white shadow-md' 
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  }
+                  if (pageNum === page - 2 || pageNum === page + 2) {
+                    return <span key={pageNum} className="text-slate-400">...</span>;
+                  }
+                  return null;
+                })}
+              </div>
+
+              <Button 
+                onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
+                disabled={page === meta.totalPages}
+                variant="secondary"
+                size="sm"
+                className="px-3 py-1 text-xs font-bold"
+              >
+                Next
+              </Button>
+            </div>
+            
+            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 order-1 sm:order-2">
+              Showing <span className="text-slate-900 dark:text-white">{Math.min(meta.total, (page - 1) * 10 + 1)}-{Math.min(meta.total, page * 10)}</span> of <span className="text-slate-900 dark:text-white">{meta.total}</span> cases
+            </div>
           </div>
         )}
       </div>

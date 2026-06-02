@@ -1,460 +1,229 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { 
   ChevronLeft, 
   ChevronRight, 
-  Plus, 
+  Calendar as CalendarIcon, 
   Clock, 
-  MapPin, 
-  User,
-  Calendar as CalendarIcon,
-  X,
-  Check,
-  ChevronDown,
-  Trash2,
-  Edit2,
-  AlertCircle
+  AlertCircle,
+  FileText,
+  CheckCircle2
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { Card, Badge, Button } from './ui';
+import { useGlobalDeadlines } from '../hooks/useCalendar';
+
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
 
 const CalendarView = () => {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [events] = useState([]);
-  const isLoading = false;
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [currentEvent, setCurrentEvent] = useState({
-    title: '',
-    date: '',
-    time: '',
-    type: 'Meeting',
-    client: '',
-    location: ''
-  });
+  const [viewDate, setViewDate] = useState(new Date());
+  const { data: deadlines, isLoading } = useGlobalDeadlines();
 
-  const months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ];
+  const currentYear = viewDate.getFullYear();
+  const currentMonth = viewDate.getMonth();
 
-  const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-  // Step 2: Optimization - Group events by date (O(1) lookup)
-  const eventsByDate = useMemo(() => {
-    return events.reduce((acc, event) => {
-      if (!acc[event.date]) acc[event.date] = [];
-      acc[event.date].push(event);
-      return acc;
-    }, {});
-  }, [events]);
-
-  const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
-  const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
-
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+  
   const prevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    setViewDate(new Date(currentYear, currentMonth - 1, 1));
   };
 
   const nextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    setViewDate(new Date(currentYear, currentMonth + 1, 1));
   };
 
-  const openNewEventModal = (date = '') => {
-    setIsEditing(false);
-    setCurrentEvent({
-      title: '',
-      date: date || '',
-      time: '10:00',
-      type: 'Meeting',
-      client: '',
-      location: ''
+  const today = new Date();
+  const isToday = (day) => {
+    return day === today.getDate() && 
+           currentMonth === today.getMonth() && 
+           currentYear === today.getFullYear();
+  };
+
+  // Map deadlines to days
+  const getDeadlinesForDay = (day) => {
+    if (!deadlines) return [];
+    return deadlines.filter(d => {
+      const date = new Date(d.dueAt);
+      return date.getDate() === day && 
+             date.getMonth() === currentMonth && 
+             date.getFullYear() === currentYear;
     });
-    setIsModalOpen(true);
   };
 
-  const openEditEventModal = (event) => {
-    setIsEditing(true);
-    setCurrentEvent(event);
-    setIsModalOpen(true);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    toast.error("The Supabase backend is disabled.");
-    /*
-    try {
-      const dateTime = `${currentEvent.date}T${currentEvent.time}:00`;
-      const payload = {
-        title: currentEvent.title,
-        next_hearing_date: dateTime,
-        client_name: currentEvent.client,
-        jurisdiction: currentEvent.location,
-        firm_id: currentUser?.firm_id,
-        created_by: currentUser?.id
-      };
-
-      if (isEditing) {
-        const { error } = await supabase
-          .from('cases')
-          .update(payload)
-          .eq('id', currentEvent.id);
-        if (error) throw error;
-        toast.success('Event updated');
-      } else {
-        const { error } = await supabase
-          .from('cases')
-          .insert(payload);
-        if (error) throw error;
-        toast.success('Event created');
-      }
-      
-      fetchEvents();
-      setIsModalOpen(false);
-    } catch (err) {
-      toast.error(err.message);
+  const renderDays = () => {
+    const cells = [];
+    
+    // Empty cells for previous month
+    for (let i = 0; i < firstDayOfMonth; i++) {
+      cells.push(<div key={`empty-${i}`} className="h-32 bg-slate-50/50 dark:bg-slate-900/20 border border-slate-100 dark:border-slate-800/50" />);
     }
-    */
-  };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this event?')) {
-      void id;
-      toast.error("The Supabase backend is disabled.");
-      /*
-      try {
-        const { error } = await supabase
-          .from('cases')
-          .update({ deleted_at: new Date().toISOString() })
-          .eq('id', id);
-        
-        if (error) throw error;
-        toast.success('Event deleted');
-        fetchEvents();
-        setIsModalOpen(false);
-      } catch (err) {
-        toast.error(err.message);
-      }
-      */
-    }
-  };
+    // Actual days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayDeadlines = getDeadlinesForDay(day);
+      const isTodayCell = isToday(day);
 
-  const renderMonthHeader = () => (
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{months[currentDate.getMonth()]} {currentDate.getFullYear()}</h1>
-        <p className="text-slate-500 dark:text-slate-400 text-sm">Schedule for the month of {months[currentDate.getMonth()]}.</p>
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="flex bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden shadow-sm">
-          <button 
-            type="button"
-            onClick={prevMonth} 
-            className="p-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-500"
-            aria-label="Previous month"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <button 
-            type="button"
-            onClick={() => setCurrentDate(new Date())} 
-            className="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-500"
-          >
-            Today
-          </button>
-          <button 
-            type="button"
-            onClick={nextMonth} 
-            className="p-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-400 border-l border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-500"
-            aria-label="Next month"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
-        <button 
-          type="button"
-          onClick={() => openNewEventModal()}
-          className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+      cells.push(
+        <div 
+          key={day} 
+          className={`h-32 border border-slate-100 dark:border-slate-800 p-2 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 flex flex-col gap-1 overflow-hidden ${isTodayCell ? 'bg-amber-50/30 dark:bg-amber-900/10 ring-1 ring-inset ring-amber-500/20' : 'bg-white dark:bg-slate-900'}`}
         >
-          <Plus size={16} /> New Event
-        </button>
-      </div>
-    </div>
-  );
-
-  const renderCalendar = () => {
-    const daysInMonth = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
-    const firstDay = getFirstDayOfMonth(currentDate.getFullYear(), currentDate.getMonth());
-    const days = [];
-    const today = new Date();
-
-    for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="min-h-[120px] bg-slate-50/50 dark:bg-slate-900/20 border-b border-r border-slate-200 dark:border-slate-800"></div>);
-    }
-
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const dayEvents = eventsByDate[dateStr] || [];
-      const isToday = d === today.getDate() && currentDate.getMonth() === today.getMonth() && currentDate.getFullYear() === today.getFullYear();
-
-      days.push(
-        <div key={d} className={`min-h-[120px] p-2 bg-white dark:bg-slate-900/50 border-b border-r border-slate-200 dark:border-slate-800 transition-colors group`}>
           <div className="flex justify-between items-center mb-1">
-            <span className={`text-sm font-semibold w-7 h-7 flex items-center justify-center rounded-full ${isToday ? 'bg-amber-600 text-white' : 'text-slate-700 dark:text-slate-300'}`}>
-              {d}
+            <span className={`text-sm font-bold ${isTodayCell ? 'text-amber-600 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'}`}>
+              {day}
             </span>
-            <button 
-              type="button"
-              onClick={() => openNewEventModal(dateStr)}
-              className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-opacity focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
-              aria-label={`Add event for ${d} ${months[currentDate.getMonth()]}`}
-            >
-              <Plus size={12} className="text-slate-500" />
-            </button>
+            {dayDeadlines.length > 0 && (
+              <span className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-300">
+                {dayDeadlines.length}
+              </span>
+            )}
           </div>
-          <div className="space-y-1">
-            {dayEvents.map(event => (
-              <button 
-                type="button"
-                key={event.id} 
-                onClick={() => openEditEventModal(event)}
-                className={`w-full text-left block px-2 py-1 rounded text-[10px] font-medium truncate border-l-2 shadow-sm hover:scale-105 transition-transform focus:outline-none focus:ring-2 focus:ring-amber-500 ${
-                  event.type === 'Court' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-500' :
-                  'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-400'
+          
+          <div className="flex flex-col gap-1 overflow-y-auto custom-scrollbar flex-1">
+            {dayDeadlines.map((d) => (
+              <div 
+                key={d.id}
+                className={`text-[10px] px-2 py-1 rounded border shadow-sm flex flex-col gap-0.5 ${
+                  d.isDone 
+                    ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800/30 text-emerald-700 dark:text-emerald-400' 
+                    : d.priority === 'URGENT'
+                      ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-800/30 text-rose-700 dark:text-rose-400'
+                      : 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800/30 text-amber-700 dark:text-amber-400'
                 }`}
-                title={event.title}
               >
-                {event.time} {event.title}
-              </button>
+                <div className="font-bold truncate flex items-center gap-1">
+                  {d.isDone ? <CheckCircle2 size={10} /> : <Clock size={10} />}
+                  {d.title}
+                </div>
+                <div className="opacity-70 truncate italic flex items-center gap-1">
+                  <FileText size={8} />
+                  {d.case?.title || 'No Case'}
+                </div>
+              </div>
             ))}
           </div>
         </div>
       );
     }
 
-    return (
-      <div className="bg-white dark:bg-slate-900 border-l border-t border-slate-200 dark:border-slate-800 rounded-lg shadow-sm overflow-hidden grid grid-cols-7">
-        {daysOfWeek.map(day => (
-          <div key={day} className="py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50 dark:bg-slate-800/50 border-b border-r border-slate-200 dark:border-slate-800">
-            {day}
-          </div>
-        ))}
-        {days}
-      </div>
-    );
-  };
-
-  const renderAgenda = () => {
-    const daysInMonth = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
-    const agendaItems = [];
-
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const dayEvents = eventsByDate[dateStr] || [];
-
-      if (dayEvents.length > 0) {
-        agendaItems.push(
-          <div key={d} className="mb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm font-bold text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
-                {d} {months[currentDate.getMonth()]}
-              </span>
-              <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1"></div>
-            </div>
-            <div className="space-y-2">
-              {dayEvents.map(event => (
-                <button 
-                  type="button"
-                  key={event.id}
-                  onClick={() => openEditEventModal(event)}
-                  className="w-full text-left p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 hover:border-amber-200 transition-colors"
-                >
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="text-xs font-bold text-amber-600">{event.time}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-100 dark:border-blue-800">{event.type}</span>
-                  </div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">{event.title}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
-                    <MapPin size={10} /> {event.location}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      }
-    }
-
-    return agendaItems.length > 0 ? (
-      <div className="px-1">{agendaItems}</div>
-    ) : (
-      <div className="text-center py-10 text-slate-500 italic text-sm">No events for this month</div>
-    );
+    return cells;
   };
 
   return (
-    <div className="h-full flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {renderMonthHeader()}
+    <div className="h-full flex flex-col p-6 animate-in fade-in duration-500 bg-slate-50/50 dark:bg-slate-900/50">
       
-      <div className="flex gap-6 flex-1 overflow-hidden">
-        <div className="flex-1 overflow-y-auto pr-2">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64 text-slate-500">Loading...</div>
-          ) : (
-            <>
-              {/* Desktop Grid */}
-              <div className="hidden md:block">
-                {renderCalendar()}
-              </div>
-              {/* Mobile Agenda */}
-              <div className="block md:hidden">
-                {renderAgenda()}
-              </div>
-            </>
-          )}
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center text-amber-500">
+            <CalendarIcon size={24} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Calendar</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Manage and track all legal deadlines across cases.</p>
+          </div>
         </div>
 
-        <div className="w-80 hidden lg:flex flex-col gap-6">
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-              <AlertCircle size={18} className="text-amber-600" /> Upcoming Hearing Dates
-            </h3>
-            <div className="space-y-4">
-              {events
-                .filter(e => new Date(e.date) >= new Date().setHours(0,0,0,0))
-                .sort((a,b) => new Date(a.date) - new Date(b.date))
-                .slice(0, 3)
-                .map(e => (
-                <button 
-                  type="button"
-                  key={e.id} 
-                  onClick={() => openEditEventModal(e)}
-                  className="w-full text-left p-3 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-lg cursor-pointer hover:bg-blue-100/50 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500"
-                >
-                  <div className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase mb-1">Date: {e.date}</div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">{e.title}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                    <User size={10} /> {e.client}
-                  </div>
-                </button>
-              ))}
-            </div>
+        <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            onClick={prevMonth}
+            className="h-9 w-9 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+          >
+            <ChevronLeft size={18} />
+          </Button>
+          
+          <div className="px-4 min-w-[160px] text-center">
+            <span className="text-sm font-bold text-slate-900 dark:text-white">
+              {MONTHS[currentMonth]} {currentYear}
+            </span>
           </div>
+
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            onClick={nextMonth}
+            className="h-9 w-9 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+          >
+            <ChevronRight size={18} />
+          </Button>
+          
+          <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1" />
+          
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            onClick={() => setViewDate(new Date())}
+            className="px-3 py-0 h-9 text-xs font-bold uppercase tracking-wider hover:bg-slate-100 dark:hover:bg-slate-700"
+          >
+            Today
+          </Button>
         </div>
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" role="dialog" aria-modal="true">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
-                  {isEditing ? <Edit2 size={18} /> : <CalendarIcon size={18} />}
-                </div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                  {isEditing ? 'Edit Event' : 'New Event'}
-                </h2>
-              </div>
-              <button 
-                type="button"
-                onClick={() => setIsModalOpen(false)} 
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500"
-                aria-label="Close modal"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5" htmlFor="event-title">Event Title</label>
-                <input 
-                  id="event-title"
-                  type="text" required
-                  value={currentEvent.title}
-                  onChange={(e) => setCurrentEvent({...currentEvent, title: e.target.value})}
-                  placeholder="e.g. Case Hearing: Smith"
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg outline-none transition-all dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5" htmlFor="event-date">Date</label>
-                  <input 
-                    id="event-date"
-                    type="date" required
-                    value={currentEvent.date}
-                    onChange={(e) => setCurrentEvent({...currentEvent, date: e.target.value})}
-                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5" htmlFor="event-time">Time</label>
-                  <input 
-                    id="event-time"
-                    type="time" required
-                    value={currentEvent.time}
-                    onChange={(e) => setCurrentEvent({...currentEvent, time: e.target.value})}
-                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5" htmlFor="event-client">Client</label>
-                <input 
-                  id="event-client"
-                  type="text"
-                  value={currentEvent.client}
-                  onChange={(e) => setCurrentEvent({...currentEvent, client: e.target.value})}
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5" htmlFor="event-location">Jurisdiction / Location</label>
-                <input 
-                  id="event-location"
-                  type="text"
-                  value={currentEvent.location}
-                  onChange={(e) => setCurrentEvent({...currentEvent, location: e.target.value})}
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-
-              <div className="mt-6 flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
-                {isEditing ? (
-                  <button 
-                    type="button" 
-                    onClick={() => handleDelete(currentEvent.id)}
-                    className="flex items-center gap-2 px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
-                  >
-                    <Trash2 size={16} /> Delete
-                  </button>
-                ) : <div />}
-                
-                <div className="flex gap-3">
-                  <button 
-                    type="button" onClick={() => setIsModalOpen(false)}
-                    className="px-6 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit"
-                    className="px-6 py-2 bg-amber-600 text-white rounded-lg text-sm font-bold hover:bg-amber-700 shadow-lg transition-all flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
-                  >
-                    <Check size={18} /> {isEditing ? 'Update' : 'Save'}
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
+      {/* Legend */}
+      <div className="flex flex-wrap gap-4 mb-6">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-rose-500" />
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Urgent</span>
         </div>
-      )}
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-amber-500" />
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Planned</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-emerald-500" />
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Completed</span>
+        </div>
+      </div>
+
+      {/* Calendar Grid */}
+      <Card className="flex-1 overflow-hidden border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 rounded-2xl flex flex-col">
+        {/* Days Header */}
+        <div className="grid grid-cols-7 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+          {DAYS.map(day => (
+            <div key={day} className="py-3 text-center text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">
+              {day}
+            </div>
+          ))}
+        </div>
+
+        {/* Days Grid */}
+        <div className="flex-1 grid grid-cols-7 overflow-y-auto custom-scrollbar">
+          {isLoading ? (
+            Array.from({ length: 35 }).map((_, i) => (
+              <div key={i} className="h-32 border border-slate-50 dark:border-slate-800/50 p-4 animate-pulse">
+                <div className="w-6 h-4 bg-slate-100 dark:bg-slate-800 rounded mb-4" />
+                <div className="w-full h-8 bg-slate-50 dark:bg-slate-800/50 rounded" />
+              </div>
+            ))
+          ) : (
+            renderDays()
+          )}
+        </div>
+      </Card>
+
+      <style jsx="true">{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #e2e8f0;
+          border-radius: 10px;
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #1e293b;
+        }
+      `}</style>
     </div>
   );
 };
 
 export default CalendarView;
-
-
