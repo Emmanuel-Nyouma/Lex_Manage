@@ -5,6 +5,8 @@ export * from './Badge';
 export * from './Skeleton';
 export * from './Tooltip';
 export * from './Breadcrumb';
+export * from './Textarea';
+export * from './Checkbox';
 
 export const spacingScale = {
   xs: 'p-2',      // 8px

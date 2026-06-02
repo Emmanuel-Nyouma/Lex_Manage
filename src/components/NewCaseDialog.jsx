@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { X, Check, FileText, User, Calendar as CalendarIcon, Gavel, Hash, Upload, Loader2, Paperclip } from 'lucide-react';
-import { Button, Input } from './ui';
+import { Button, Input, Textarea } from './ui';
 import { useKeyboardNavigation } from '../hooks/useKeyboardNavigation';
 import { useCreateCase } from '../hooks/useCases';
 import { useDropzone } from 'react-dropzone';
@@ -199,19 +199,13 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
 
             {/* Description */}
             <div className="md:col-span-2">
-              <label 
-                htmlFor={`${dialogId}-description`}
-                className="block text-xs font-bold text-slate-500 dark:text-slate-300 uppercase tracking-widest mb-1.5"
-              >
-                Description / Strategic Notes
-              </label>
-              <textarea 
+              <Textarea 
                 {...register("description")}
-                id={`${dialogId}-description`}
+                label="Description / Strategic Notes"
                 placeholder="Confidential details about the dispute..."
                 rows={3}
-                className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:text-white resize-none"
-              ></textarea>
+                error={errors.description?.message}
+              />
             </div>
 
             {/* Document Upload Section */}
@@ -279,5 +273,3 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
 };
 
 export default NewCaseDialog;
-
-
