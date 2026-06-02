@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  Files, Search, Folder, FileText, Trash2, Loader2, Sparkles, Plus, ChevronDown, ChevronRight, X, Eye
+  Files, Search, Folder, FileText, Trash2, Download, Plus, ChevronDown, ChevronRight, X, Eye
 } from 'lucide-react';
 import DocumentUpload from './DocumentUpload';
 import { Badge, Card, Skeleton } from './ui';
 import { useDocuments, useDeleteDocument } from '../hooks/useDocuments';
 import { getDocumentSignedUrl } from '../lib/documentService';
 import { toast } from 'sonner';
-import { PdfPreviewModal } from './PdfPreviewModal';
+import useLexStore from '../store/useLexStore';
 import ConfirmDialog from './ConfirmDialog';
 
 const CATEGORIES = ['Pièces', 'Correspondances', 'Actes', 'Client', 'Autre'];
@@ -20,14 +20,16 @@ const CATEGORY_LABELS = {
 };
 
 const DocumentsView = () => {
+  const { currentUser } = useLexStore();
   const { data: documents, isLoading, refetch } = useDocuments();
   const deleteDoc = useDeleteDocument();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [showUpload, setShowUpload] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState(CATEGORIES);
-  const [previewDoc, setPreviewDoc] = useState(null);
   const [docToDelete, setDocToDelete] = useState(null);
+
+  const isAdmin = currentUser?.role === 'CABINET_ADMIN' || currentUser?.role === 'SUPER_ADMIN';
 
   const handleView = async (docId) => {
     const url = await getDocumentSignedUrl(docId);
@@ -38,7 +40,25 @@ const DocumentsView = () => {
     }
   };
 
+  const handleDownload = async (docId, fileName) => {
+    const url = await getDocumentSignedUrl(docId);
+    if (url) {
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      toast.error("Download link failed");
+    }
+  };
+
   const handleDelete = async (doc) => {
+    if (!isAdmin) {
+      toast.error("Only administrators can delete documents");
+      return;
+    }
     setDocToDelete(doc);
   };
 
@@ -51,7 +71,7 @@ const DocumentsView = () => {
 
   const groupedDocs = useMemo(() => {
     const filtered = (documents || []).filter(doc => 
-      (doc.title || doc.fileName).toLowerCase().includes(searchQuery.toLowerCase())
+      (doc.title || doc.file_name).toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return CATEGORIES.reduce((acc, cat) => {
@@ -75,16 +95,18 @@ const DocumentsView = () => {
           </h1>
           <p className="text-slate-600 dark:text-slate-300 dark:text-slate-400 font-medium">Electronic management of firm documents and evidence.</p>
         </div>
-        <button 
-          onClick={() => setShowUpload(!showUpload)}
-          className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white dark:bg-amber-600 dark:text-white rounded-xl font-bold text-sm shadow-lg hover:scale-105 transition-all active:scale-95"
-        >
-          {showUpload ? <X size={18} /> : <Plus size={18} />}
-          {showUpload ? 'Close' : 'Import documents'}
-        </button>
+        {isAdmin && (
+          <button 
+            onClick={() => setShowUpload(!showUpload)}
+            className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white dark:bg-amber-600 dark:text-white rounded-xl font-bold text-sm shadow-lg hover:scale-105 transition-all active:scale-95"
+          >
+            {showUpload ? <X size={18} /> : <Plus size={18} />}
+            {showUpload ? 'Close' : 'Import documents'}
+          </button>
+        )}
       </div>
 
-      {showUpload && (
+      {showUpload && isAdmin && (
         <div className="animate-in slide-in-from-top-4 duration-300">
           <Card className="p-6 border-amber-200 dark:border-amber-900/30 bg-amber-50/10">
             <DocumentUpload onUploadSuccess={() => { setShowUpload(false); refetch(); }} />
@@ -107,16 +129,11 @@ const DocumentsView = () => {
       {isLoading ? (
         <div className="space-y-4">
            {Array(3).fill(0).map((_, i) => (
-             <div key={i} className="flex gap-4">
-                <Skeleton className="h-16 w-full" />
-             </div>
+             <Skeleton key={i} className="h-16 w-full rounded-2xl" />
            ))}
         </div>
       ) : (
         <div className="space-y-4">
-
-//...
-
           {CATEGORIES.map(cat => {
             const docs = groupedDocs[cat] || [];
             const isExpanded = expandedCategories.includes(cat);
@@ -127,6 +144,7 @@ const DocumentsView = () => {
               <div key={cat} className="space-y-2">
                 <button 
                   onClick={() => toggleCategory(cat)}
+                  aria-expanded={isExpanded}
                   className="w-full flex items-center justify-between p-4 bg-slate-100/50 dark:bg-slate-800/30 rounded-2xl hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all group"
                 >
                   <div className="flex items-center gap-3">
@@ -148,13 +166,10 @@ const DocumentsView = () => {
                             <FileText size={24} />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-bold text-slate-900 dark:text-white truncate pr-4 group-hover:text-amber-600 transition-colors">{doc.title || doc.fileName}</p>
+                            <p className="text-sm font-bold text-slate-900 dark:text-white truncate pr-4 group-hover:text-amber-600 transition-colors">{doc.title || doc.file_name}</p>
                             <div className="flex items-center gap-3 mt-1.5">
-                              <span className="text-[10px] text-slate-500 dark:text-slate-300 uppercase font-black tracking-tighter bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 rounded">{doc.fileType || 'DOC'}</span>
-                              <span className="text-[10px] text-slate-500 dark:text-slate-300 font-bold">{Math.round(doc.fileSize / 1024 / 1024 * 100) / 100} MB</span>
-                              {doc.qdrantId && (
-                                <Badge variant="success" className="scale-75 origin-left shadow-sm">AI INDEXED</Badge>
-                              )}
+                              <span className="text-[10px] text-slate-500 dark:text-slate-300 uppercase font-black tracking-tighter bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 rounded">{doc.file_type || 'DOC'}</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-300 font-bold">{Math.round(doc.file_size / 1024 / 1024 * 100) / 100} MB</span>
                             </div>
                           </div>
                         </div>
@@ -162,17 +177,27 @@ const DocumentsView = () => {
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
                           <button 
                             onClick={() => handleView(doc.id)}
+                            aria-label="View document"
                             className="p-2.5 text-slate-500 dark:text-slate-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl transition-all"
-                            title="View Document"
                           >
                             <Eye size={18} />
                           </button>
-                          <button className="p-2.5 text-slate-500 dark:text-slate-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl transition-all">
-                            <Sparkles size={18} />
+                          <button 
+                            onClick={() => handleDownload(doc.id, doc.file_name)}
+                            aria-label="Download document"
+                            className="p-2.5 text-slate-500 dark:text-slate-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all"
+                          >
+                            <Download size={18} />
                           </button>
-                          <button onClick={() => handleDelete(doc)} className="p-2.5 text-slate-500 dark:text-slate-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all">
-                            <Trash2 size={18} />
-                          </button>
+                          {isAdmin && (
+                            <button 
+                              onClick={() => handleDelete(doc)} 
+                              aria-label="Delete document"
+                              className="p-2.5 text-slate-500 dark:text-slate-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
                         </div>
                       </div>
                     )) : (
@@ -191,7 +216,7 @@ const DocumentsView = () => {
       <ConfirmDialog 
         isOpen={!!docToDelete}
         title="Delete Document"
-        description={`Are you sure you want to permanently delete "${docToDelete?.title || docToDelete?.fileName}"? This action cannot be undone.`}
+        description={`Are you sure you want to permanently delete "${docToDelete?.title || docToDelete?.file_name}"? This action cannot be undone.`}
         destructiveText="Delete Document"
         onConfirm={confirmDelete}
         onCancel={() => setDocToDelete(null)}
@@ -201,5 +226,3 @@ const DocumentsView = () => {
 };
 
 export default DocumentsView;
-
-

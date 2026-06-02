@@ -114,29 +114,38 @@ const CaseManagementView = () => {
     }
 
     return (
-      <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex justify-between items-center animate-in fade-in">
-        <span className="text-red-700 font-medium">Error loading cases: {errorMessage}</span>
-        {refetch && (
-          <button onClick={() => refetch()} className="text-red-600 hover:text-red-800 underline font-semibold transition-colors">
-            Retry
-          </button>
-        )}
+      <div className="p-5 bg-white dark:bg-slate-900 border-l-4 border-red-500 rounded-2xl shadow-sm flex items-start gap-4 animate-in fade-in duration-300">
+        <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-xl text-red-500">
+          <AlertCircle size={24} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-bold text-slate-900 dark:text-white">Error Loading Data</h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">{errorMessage}</p>
+          {refetch && (
+            <button 
+              onClick={() => refetch()} 
+              className="mt-3 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-red-500 hover:text-red-600 transition-colors"
+            >
+              <RefreshCcw size={12} /> Retry Connection
+            </button>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Case Management</h1>
           <p className="text-slate-600 dark:text-slate-300 dark:text-slate-400 font-medium">Manage all your ongoing legal proceedings.</p>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-          <div className="relative w-full sm:w-80 group">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <div className="relative w-full sm:w-64 lg:w-80 group">
             <Input 
-              placeholder="Search cases, clients, courts..." 
+              placeholder="Search cases, clients..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               icon={Search}
@@ -151,6 +160,7 @@ const CaseManagementView = () => {
                 )}
                 <button 
                   onClick={() => setSearchQuery('')}
+                  aria-label="Clear search"
                   className="p-1 text-slate-500 dark:text-slate-300 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                 >
                   <X size={14} />

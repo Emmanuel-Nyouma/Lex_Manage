@@ -118,7 +118,7 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mt-2 leading-tight">{activeCase.title}</h2>
               <p className="text-slate-600 dark:text-slate-300 dark:text-slate-400 text-sm mt-1 font-medium">{activeCase.client_name} • {activeCase.courtName || 'Jurisdiction not defined'}</p>
            </div>
-           <button onClick={onClose} className="text-slate-500 dark:text-slate-300 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
+           <button onClick={onClose} aria-label="Close drawer" className="text-slate-500 dark:text-slate-300 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
              <X size={20} />
            </button>
         </div>
@@ -156,7 +156,7 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
                <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-amber-100 dark:border-amber-900/30 text-sm text-slate-800 dark:text-slate-200 animate-in fade-in slide-in-from-top-2 shadow-inner">
                  <div className="text-[10px] text-amber-600 dark:text-amber-500 mb-2 uppercase tracking-widest font-bold">Email Draft Preview</div>
                  <div className="whitespace-pre-line leading-relaxed font-mono text-xs bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border dark:border-slate-800" dangerouslySetInnerHTML={{ __html: sanitize(draftEmail) }}></div>
-                 <button className="mt-3 w-full py-2 bg-slate-900 dark:bg-amber-600 text-white text-xs font-bold rounded-lg hover:bg-slate-800 dark:hover:bg-amber-700 transition-colors">Copy to Clipboard</button>
+                 <button aria-label="Copy to clipboard" className="mt-3 w-full py-2 bg-slate-900 dark:bg-amber-600 text-white text-xs font-bold rounded-lg hover:bg-slate-800 dark:hover:bg-amber-700 transition-colors">Copy to Clipboard</button>
                </div>
              )}
            </div>
@@ -168,6 +168,7 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
                 </h3>
                 <button 
                   onClick={() => setIsNewAddingDeadline(true)}
+                  aria-label="Add new deadline"
                   className="text-[10px] flex items-center gap-1.5 bg-slate-900 dark:bg-slate-800 text-white px-2.5 py-1.5 rounded-lg transition-all font-bold uppercase tracking-wider"
                 >
                   <Plus size={12} /> Add
@@ -204,6 +205,7 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
                      <div key={deadline.id} className={`ml-6 relative ${deadline.isDone ? 'opacity-50' : ''}`}>
                         <button 
                           onClick={() => !deadline.isDone && markDone.mutate(deadline.id)}
+                          aria-label={deadline.isDone ? "Deadline completed" : "Mark deadline as done"}
                           className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border-4 border-white dark:border-slate-900 shadow-sm transition-all ${deadline.isDone ? 'bg-emerald-500' : 'bg-amber-500 ring-4 ring-amber-500/20 hover:scale-125'}`}
                         ></button>
                         <p className={`text-sm font-bold leading-tight ${deadline.isDone ? 'line-through text-slate-600 dark:text-slate-300' : 'text-slate-900 dark:text-white'}`}>{deadline.title}</p>
@@ -225,7 +227,7 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
                   <input {...getInputProps()} />
                   <button 
                     className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-all shadow-sm"
-                    title="Upload document"
+                    aria-label="Upload document"
                     disabled={isUploading}
                   >
                     {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
