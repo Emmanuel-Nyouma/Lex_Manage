@@ -106,6 +106,7 @@ const AuthScreen = () => {
   const [view, setView] = useState(invitationToken ? 'signup' : 'login'); // 'login', 'signup', 'forgot_password', 'mfa_challenge'
   const [signupStep, setSignupStep] = useState(invitationToken ? 2 : 1);
   const [shouldShake, setShouldShake] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   const { register, handleSubmit, trigger, watch, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(
@@ -133,7 +134,8 @@ const AuthScreen = () => {
     try {
       if (view === 'login') {
         await useLexStore.getState().login(values.email, values.password);
-        toast.success("Welcome back!");
+        setShowWelcome(true);
+        // Toast is handled in store, but we add the animation overlay
       } else if (view === 'signup') {
         const registerData = {
           email: values.email,
@@ -164,7 +166,22 @@ const AuthScreen = () => {
   };
 
   return (
-    <div className="flex h-screen w-full bg-slate-50 dark:bg-slate-950 overflow-hidden">
+    <div className="flex h-screen w-full bg-slate-50 dark:bg-slate-950 overflow-hidden relative">
+      {/* Welcome Animation Overlay */}
+      {showWelcome && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-500">
+           <div className="text-center animate-in zoom-in-95 duration-700">
+              <h1 className="text-6xl font-black text-white tracking-tight mb-4">
+                 Welcome <span className="text-amber-500">Back</span>
+              </h1>
+              <p className="text-slate-400 font-medium text-lg">LexManage is loading your firm data...</p>
+              <div className="mt-8 flex justify-center">
+                 <div className="w-16 h-1 border-4 border-slate-700 border-t-amber-500 rounded-full animate-spin"></div>
+              </div>
+           </div>
+        </div>
+      )}
+
       <div className="hidden lg:flex w-1/2 bg-slate-900 relative flex-col justify-between p-12 text-white border-r border-slate-800">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(245,158,11,0.1),transparent)] pointer-events-none"></div>
         <div>
