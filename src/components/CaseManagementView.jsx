@@ -249,7 +249,11 @@ const CaseManagementView = () => {
         )}
 
         {meta && meta.totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between p-4 gap-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-800">
+          <div 
+            className="flex flex-col sm:flex-row items-center justify-between p-4 gap-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-800"
+            aria-live="polite"
+            aria-label="Pagination"
+          >
             <div className="flex items-center gap-2 order-2 sm:order-1">
               <Button 
                 onClick={() => setPage(p => Math.max(1, p - 1))}
@@ -257,6 +261,7 @@ const CaseManagementView = () => {
                 variant="secondary"
                 size="sm"
                 className="px-3 py-1 text-xs font-bold"
+                aria-label="Previous page"
               >
                 Prev
               </Button>
@@ -279,13 +284,15 @@ const CaseManagementView = () => {
                             ? 'bg-slate-900 dark:bg-amber-600 text-white shadow-md' 
                             : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
                         }`}
+                        aria-current={page === pageNum ? 'page' : undefined}
+                        aria-label={`Go to page ${pageNum}`}
                       >
                         {pageNum}
                       </button>
                     );
                   }
                   if (pageNum === page - 2 || pageNum === page + 2) {
-                    return <span key={pageNum} className="text-slate-400">...</span>;
+                    return <span key={pageNum} className="text-slate-400" aria-hidden="true">...</span>;
                   }
                   return null;
                 })}
@@ -297,6 +304,7 @@ const CaseManagementView = () => {
                 variant="secondary"
                 size="sm"
                 className="px-3 py-1 text-xs font-bold"
+                aria-label="Next page"
               >
                 Next
               </Button>
