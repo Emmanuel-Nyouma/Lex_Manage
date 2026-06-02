@@ -105,13 +105,14 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
     
     const result = await onCallGemini(prompt, "You are an expert legal secretary.");
     setDraftEmail(result);
-    setIsAnalyzing(false);
-  }
-
-  return (
-    <>
-      <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-[1px] z-40" onClick={onClose} />
-      <div className={`fixed inset-y-0 right-0 w-full sm:w-[500px] bg-white dark:bg-slate-900 shadow-2xl z-50 animate-in slide-in-from-right duration-300 flex flex-col border-l border-slate-200 dark:border-slate-800 transition-all ${activeCase ? 'translate-x-0' : 'translate-x-full'}`}>
+    import { Badge, FocusTrap } from './ui';
+    // ...
+      return (
+        <>
+          <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-[1px] z-40" onClick={onClose} />
+          <FocusTrap isActive={!!activeCase} onClose={onClose}>
+            <div className={`fixed inset-y-0 right-0 w-full sm:w-[500px] bg-white dark:bg-slate-900 shadow-2xl z-50 animate-in slide-in-from-right duration-300 flex flex-col border-l border-slate-200 dark:border-slate-800 transition-all ${activeCase ? 'translate-x-0' : 'translate-x-full'}`}>
+              {/* ... */}
         <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-white dark:bg-slate-900 sticky top-0 z-10">
            <div>
               <Badge variant={activeCase.status === 'Active' || activeCase.status === 'en cours' ? 'success' : 'default'}>{activeCase.status}</Badge>
