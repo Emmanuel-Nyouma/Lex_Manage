@@ -1,5 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCaseDto, UpdateCaseDto } from './dto/case.dto';
@@ -13,9 +15,14 @@ export class CasesService {
     private eventsGateway: EventsGateway,
     private auditService: AuditService,
     @InjectQueue('reminders') private reminderQueue: Queue,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async findAll(tenantId: string, page: number = 1, limit: number = 10) {
+    const cacheKey = `cases:${tenantId}:${page}:${limit}`;
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) return cached;
+
     const skip = (page - 1) * limit;
     
     const [data, total] = await Promise.all([
@@ -32,7 +39,7 @@ export class CasesService {
       this.prisma.case.count({ where: { tenantId } }),
     ]);
 
-    return {
+    const result = {
       data,
       meta: {
         total,
@@ -41,9 +48,16 @@ export class CasesService {
         totalPages: Math.ceil(total / limit),
       },
     };
+
+    await this.cacheManager.set(cacheKey, result, 30000); // 30 seconds cache for lists
+    return result;
   }
 
   async findOne(id: string, tenantId: string) {
+    const cacheKey = `case:${id}`;
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) return cached;
+
     const c = await this.prisma.case.findFirst({
       where: { id, tenantId },
       include: {
@@ -56,7 +70,17 @@ export class CasesService {
       },
     });
     if (!c) throw new NotFoundException('Case not found');
+
+    await this.cacheManager.set(cacheKey, c, 60000); // 1 minute cache
     return c;
+  }
+
+  private async invalidateTenantCases(tenantId: string) {
+    // In a production app with Redis, we'd use a pattern search.
+    // For now, we clear the first few pages or rely on TTL.
+    // To be safer, we can just let TTL handle it if it's short,
+    // or manually clear known keys.
+    await this.cacheManager.del(`cases:${tenantId}:1:10`);
   }
 
   async create(dto: CreateCaseDto, tenantId: string, userId: string) {
@@ -73,6 +97,8 @@ export class CasesService {
           data: { case_id: newCase.id, isPending: false },
         });
       }
+
+      await this.invalidateTenantCases(tenantId);
 
       await this.auditService.log({
         tenantId,
@@ -107,6 +133,9 @@ export class CasesService {
         });
       }
 
+      await this.cacheManager.del(`case:${id}`);
+      await this.invalidateTenantCases(tenantId);
+
       await this.auditService.log({
         tenantId,
         userId,
@@ -123,6 +152,9 @@ export class CasesService {
   async remove(id: string, tenantId: string, userId: string) {
     const originalCase = await this.findOne(id, tenantId);
     await this.prisma.case.delete({ where: { id } });
+
+    await this.cacheManager.del(`case:${id}`);
+    await this.invalidateTenantCases(tenantId);
 
     await this.auditService.log({
       tenantId,

@@ -15,7 +15,32 @@ export const AuditLogsTable = ({ logs = [] }) => {
         </button>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Mobile: log cards (< md) */}
+      <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+        {logs.length > 0 ? logs.map((log) => (
+          <div key={log.id} className="p-4">
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <span className="text-sm font-bold text-slate-900 dark:text-white truncate">{log.user.name}</span>
+              <Badge variant={log.actionType === 'DELETE' ? 'error' : 'neutral'} className="shrink-0">
+                {log.action}
+              </Badge>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              {log.targetType} <span className="font-mono text-slate-500 dark:text-slate-300">#{log.targetId.slice(0, 8)}</span>
+            </p>
+            <p className="text-[10px] text-slate-400 font-mono mt-1">
+              {new Date(log.createdAt).toLocaleString()}
+            </p>
+          </div>
+        )) : (
+          <div className="px-6 py-8 text-center text-slate-500 dark:text-slate-300 text-sm italic">
+            No activity logs found.
+          </div>
+        )}
+      </div>
+
+      {/* Desktop / tablet: table (≥ md) */}
+      <div className="overflow-x-auto hidden md:block">
         <table className="w-full text-left">
           <thead className="bg-slate-50 dark:bg-slate-800/50 text-[10px] uppercase font-bold text-slate-600 dark:text-slate-300">
             <tr>

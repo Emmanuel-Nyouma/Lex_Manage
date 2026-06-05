@@ -37,6 +37,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       const payload = this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET,
+        algorithms: ['HS256'],
       });
       
       const tenantId = payload.tenantId;

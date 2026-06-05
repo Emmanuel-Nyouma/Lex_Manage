@@ -1,5 +1,7 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Inject } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserDto, UpdateUserDto } from './dto/user.dto';
 import { AuditService } from '../audit/audit.service';
@@ -9,19 +11,31 @@ export class UsersService {
   constructor(
     private prisma: PrismaService,
     private auditService: AuditService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async findAll(tenantId: string) {
-    return this.prisma.user.findMany({
+    const cacheKey = `users:${tenantId}`;
+    const cached = await this.cacheManager.get<any[]>(cacheKey);
+    if (cached) return cached;
+
+    const users = await this.prisma.user.findMany({
       where: { tenantId },
       select: {
         id: true, email: true, firstName: true, lastName: true,
         role: true, isActive: true, createdAt: true, avatarUrl: true,
       },
     });
+
+    await this.cacheManager.set(cacheKey, users, 60000); // 1 minute cache
+    return users;
   }
 
   async findOne(id: string, tenantId: string) {
+    const cacheKey = `user:${id}`;
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) return cached;
+
     const user = await this.prisma.user.findFirst({
       where: { id, tenantId },
       select: {
@@ -30,6 +44,8 @@ export class UsersService {
       },
     });
     if (!user) throw new NotFoundException('User not found');
+
+    await this.cacheManager.set(cacheKey, user, 300000); // 5 minutes cache
     return user;
   }
 
@@ -44,6 +60,8 @@ export class UsersService {
         id: true, email: true, firstName: true, lastName: true, role: true, createdAt: true,
       },
     });
+
+    await this.cacheManager.del(`users:${tenantId}`);
 
     await this.auditService.log({
       tenantId,
@@ -68,6 +86,9 @@ export class UsersService {
       },
     });
 
+    await this.cacheManager.del(`user:${id}`);
+    await this.cacheManager.del(`users:${tenantId}`);
+
     await this.auditService.log({
       tenantId,
       userId,
@@ -83,6 +104,9 @@ export class UsersService {
   async deactivate(id: string, tenantId: string, userId: string) {
     await this.findOne(id, tenantId);
     await this.prisma.user.update({ where: { id }, data: { isActive: false } });
+
+    await this.cacheManager.del(`user:${id}`);
+    await this.cacheManager.del(`users:${tenantId}`);
 
     await this.auditService.log({
       tenantId,

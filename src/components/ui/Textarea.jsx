@@ -6,6 +6,7 @@ export const Textarea = forwardRef(({ label, error, className = '', ...props }, 
       {label && (
         <label className="block text-xs font-bold text-slate-500 dark:text-slate-300 uppercase tracking-widest mb-1.5">
           {label}
+          {props.required && <span className="text-red-500 ml-1" aria-hidden="true">*</span>}
         </label>
       )}
       <textarea

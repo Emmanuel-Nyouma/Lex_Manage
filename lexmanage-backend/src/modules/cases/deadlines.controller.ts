@@ -24,17 +24,26 @@ export class DeadlinesController {
     @Param('caseId') caseId: string,
     @Body() dto: { title: string; dueAt: string; priority: string },
   ) {
-    const targetCase = await this.prisma.case.findFirst({
-      where: { id: caseId, tenantId },
-      select: { id: true },
-    });
-    if (!targetCase) throw new NotFoundException('Case not found');
+    let finalCaseId = caseId;
+    
+    // Support "none" or null caseId for global events
+    if (caseId === 'none' || caseId === 'null' || !caseId) {
+      finalCaseId = null;
+    }
+
+    if (finalCaseId) {
+      const targetCase = await this.prisma.case.findFirst({
+        where: { id: finalCaseId, tenantId },
+        select: { id: true },
+      });
+      if (!targetCase) throw new NotFoundException('Case not found');
+    }
 
     const deadline = await this.prisma.deadline.create({
       data: {
         ...dto,
         dueAt: new Date(dto.dueAt),
-        caseId,
+        caseId: finalCaseId,
         tenantId,
       },
     });

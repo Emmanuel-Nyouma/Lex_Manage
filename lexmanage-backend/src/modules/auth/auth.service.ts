@@ -21,67 +21,78 @@ export class AuthService {
 
   // ── REGISTER (Creates a new Tenant + Admin user OR Joins via Invitation) ─
   async register(dto: RegisterDto) {
-    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (existing) throw new ConflictException('Email already registered');
+    console.log('Registering new user:', dto.email);
+    try {
+      const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+      if (existing) throw new ConflictException('Email already registered');
 
-    let tenantId: string;
-    let role: any = 'CABINET_ADMIN';
+      let tenantId: string;
+      let role: any = 'CABINET_ADMIN';
 
-    if (dto.invitationToken) {
-      const invitation = await this.prisma.invitation.findUnique({
-        where: { token: dto.invitationToken },
-      });
+      if (dto.invitationToken) {
+        console.log('Joining via invitation token');
+        const invitation = await this.prisma.invitation.findUnique({
+          where: { token: dto.invitationToken },
+        });
 
-      if (!invitation || invitation.used || invitation.expiresAt < new Date()) {
-        throw new UnauthorizedException('Invalid or expired invitation token');
+        if (!invitation || invitation.used || invitation.expiresAt < new Date()) {
+          throw new UnauthorizedException('Invalid or expired invitation token');
+        }
+
+        tenantId = invitation.tenantId;
+        role = invitation.role;
+
+        // Mark invitation as used
+        await this.prisma.invitation.update({
+          where: { id: invitation.id },
+          data: { used: true },
+        });
+      } else {
+        if (!dto.tenantName) throw new ConflictException('Tenant name is required for new cabinets');
+        
+        const slug = dto.tenantName.toLowerCase().replace(/\s+/g, '-') + '-' + uuidv4().slice(0, 6);
+        console.log('Creating new tenant with slug:', slug);
+
+        const tenant = await this.prisma.tenant.create({
+          data: { 
+            name: dto.tenantName, 
+            slug,
+            country: dto.country,
+            city: dto.city
+          },
+        });
+        tenantId = tenant.id;
       }
 
-      tenantId = invitation.tenantId;
-      role = invitation.role;
+      console.log('Hashing password...');
+      const passwordHash = await bcrypt.hash(dto.password, 12);
 
-      // Mark invitation as used
-      await this.prisma.invitation.update({
-        where: { id: invitation.id },
-        data: { used: true },
-      });
-    } else {
-      if (!dto.tenantName) throw new ConflictException('Tenant name is required for new cabinets');
-      
-      const slug = dto.tenantName.toLowerCase().replace(/\s+/g, '-') + '-' + uuidv4().slice(0, 6);
-
-      const tenant = await this.prisma.tenant.create({
-        data: { 
-          name: dto.tenantName, 
-          slug,
-          country: dto.country,
-          city: dto.city
+      console.log('Creating user record for tenant:', tenantId);
+      const user = await this.prisma.user.create({
+        data: {
+          tenantId,
+          email: dto.email,
+          passwordHash,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          phone: dto.phone,
+          role: role,
         },
       });
-      tenantId = tenant.id;
+
+      console.log('Generating tokens...');
+      const tokens = await this.generateTokens(user.id, user.email, user.role, user.tenantId);
+      await this.storeRefreshToken(user.id, tokens.refreshToken);
+
+      return {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        user: this.sanitizeUser(user),
+      };
+    } catch (error) {
+      console.error('Registration Error Details:', error);
+      throw error;
     }
-
-    const passwordHash = await bcrypt.hash(dto.password, 12);
-
-    const user = await this.prisma.user.create({
-      data: {
-        tenantId,
-        email: dto.email,
-        passwordHash,
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        phone: dto.phone,
-        role: role,
-      },
-    });
-
-    const tokens = await this.generateTokens(user.id, user.email, user.role, user.tenantId);
-    await this.storeRefreshToken(user.id, tokens.refreshToken);
-
-    return {
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      user: this.sanitizeUser(user),
-    };
   }
 
   async getMe(userId: string) {
@@ -131,6 +142,9 @@ export class AuthService {
     if (user.refreshTokenExpiresAt && user.refreshTokenExpiresAt < new Date()) {
       throw new UnauthorizedException('Refresh token expired');
     }
+    // Block deactivated accounts — even if they hold a valid token
+    if (!user.isActive) throw new UnauthorizedException('Account has been deactivated');
+
     const tokens = await this.generateTokens(user.id, user.email, user.role, user.tenantId);
     await this.storeRefreshToken(user.id, tokens.refreshToken);
     return tokens;

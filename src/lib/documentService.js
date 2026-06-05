@@ -20,10 +20,20 @@ export const softDeleteDocument = async (docId) => {
   }
 };
 
-export const uploadLegalDocument = async (file, user, category = 'Autre', caseId = null) => {
+export const uploadLegalDocument = async (file, user, metadata = 'Autre', caseId = null) => {
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('category', category);
+  
+  if (typeof metadata === 'string') {
+    formData.append('category', metadata);
+  } else {
+    if (metadata.category) formData.append('category', metadata.category);
+    if (metadata.subCategory) formData.append('subCategory', metadata.subCategory);
+    if (metadata.allowedRoles) {
+      formData.append('allowedRoles', JSON.stringify(metadata.allowedRoles));
+    }
+  }
+  
   if (caseId) formData.append('caseId', caseId);
   
   const { data } = await apiClient.post('/documents/upload', formData, {

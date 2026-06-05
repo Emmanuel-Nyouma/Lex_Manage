@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Users, 
   UserPlus, 
@@ -34,7 +34,7 @@ const ClientsDirectoryView = () => {
     type_client: 'physique'
   });
 
-  const handleCreateClient = async (e) => {
+  const handleCreateClient = useCallback(async (e) => {
     e.preventDefault();
     createClient.mutate(newClient, {
       onSuccess: () => {
@@ -42,7 +42,7 @@ const ClientsDirectoryView = () => {
         setNewClient({ name: '', email: '', phone: '', address: '', type_client: 'physique' });
       }
     });
-  };
+  }, [createClient, newClient]);
 
   const handleDeleteClient = async (id) => {
     if (window.confirm("Are you sure you want to delete this client?")) {
@@ -61,7 +61,7 @@ const ClientsDirectoryView = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isModalOpen, newClient]);
+  }, [isModalOpen, newClient, handleCreateClient]);
 
   const filteredClients = (clients || []).filter(client => 
     client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -81,27 +81,36 @@ const ClientsDirectoryView = () => {
     }
 
     return (
-      <div className="p-8 bg-red-50 border border-red-200 rounded-2xl flex justify-between items-center animate-in fade-in">
-        <span className="text-red-700 font-bold">Error loading directory: {errorMessage}</span>
-        {refetch && (
-          <button onClick={() => refetch()} className="text-red-600 hover:text-red-800 underline font-semibold transition-colors">
-            Retry
-          </button>
-        )}
+      <div className="p-6 bg-white dark:bg-slate-900 border-l-4 border-red-500 rounded-2xl shadow-sm flex items-start gap-4 animate-in fade-in duration-300">
+        <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-xl text-red-500">
+          <AlertCircle size={24} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-bold text-slate-900 dark:text-white">Directory Sync Error</h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">{errorMessage}</p>
+          {refetch && (
+            <button 
+              onClick={() => refetch()} 
+              className="mt-3 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-red-500 hover:text-red-600 transition-colors"
+            >
+              <RefreshCcw size={12} /> Retry Connection
+            </button>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
             <Users className="text-amber-500" /> Clients Directory
           </h1>
           <p className="text-slate-600 dark:text-slate-300 dark:text-slate-400 font-medium">Manage your firm's contact database.</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} icon={UserPlus} className="shadow-lg shadow-amber-500/20">
+        <Button onClick={() => setIsModalOpen(true)} icon={UserPlus} className="w-full md:w-auto shadow-lg shadow-amber-500/20">
           New Client
         </Button>
       </div>
@@ -114,7 +123,7 @@ const ClientsDirectoryView = () => {
             placeholder="Search for a client by name or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all font-medium"
+            className="w-full sm:max-w-md pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all font-medium"
           />
         </div>
 
@@ -124,7 +133,55 @@ const ClientsDirectoryView = () => {
             <p className="text-slate-500 dark:text-slate-300 font-bold animate-pulse">Accessing directory...</p>
           </div>
         ) : filteredClients.length > 0 ? (
-          <div className="overflow-x-auto">
+          <>
+          {/* Mobile: client cards (< md) */}
+          <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            {filteredClients.map((client) => (
+              <div key={client.id} className="py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0 ${client.type_client === 'morale' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}`}>
+                      {client.type_client === 'morale' ? <Building2 size={20} /> : <UserIcon size={20} />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{client.name}</p>
+                      <Badge variant={client.type_client === 'morale' ? 'info' : 'secondary'} className="mt-1 text-[9px]">
+                        {client.type_client === 'morale' ? 'Company' : 'Individual'}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <button className="p-2.5 text-slate-500 dark:text-slate-300 hover:text-blue-600 transition-colors rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20" aria-label="Edit client">
+                      <Edit2 size={16} />
+                    </button>
+                    <button onClick={() => handleDeleteClient(client.id)} className="p-2.5 text-slate-500 dark:text-slate-300 hover:text-red-600 transition-colors rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20" aria-label="Delete client">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-3 pl-[52px] space-y-1.5">
+                  {client.email && (
+                    <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 font-medium truncate">
+                      <Mail size={13} className="text-slate-500 dark:text-slate-300 shrink-0" /> <span className="truncate">{client.email}</span>
+                    </div>
+                  )}
+                  {client.phone && (
+                    <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 font-medium">
+                      <Phone size={13} className="text-slate-500 dark:text-slate-300 shrink-0" /> {client.phone}
+                    </div>
+                  )}
+                  {client.address && (
+                    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      <MapPin size={13} className="text-slate-500 dark:text-slate-300 shrink-0" /> <span className="truncate">{client.address}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop / tablet: table (≥ md) */}
+          <div className="overflow-x-auto hidden md:block">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="text-[10px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
@@ -188,6 +245,7 @@ const ClientsDirectoryView = () => {
               </tbody>
             </table>
           </div>
+          </>
         ) : (
           <div className="text-center py-20 space-y-4">
             <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto text-slate-300">

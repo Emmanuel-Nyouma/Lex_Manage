@@ -3,6 +3,13 @@ import apiClient from '../lib/api';
 import { QUERY_KEYS } from '../lib/queryKeys';
 import { toast } from 'sonner';
 
+// Standardized error handler
+const handleMutationError = (error, defaultMessage) => {
+  const message = error.response?.data?.message || error.message || defaultMessage;
+  toast.error(`Erreur: ${message}`);
+  console.error("Mutation Error:", error);
+};
+
 // Hook pour récupérer tous les dossiers actifs
 export const useCases = (page = 1, limit = 10) => {
   return useQuery({
@@ -12,6 +19,10 @@ export const useCases = (page = 1, limit = 10) => {
       return data;
     },
     placeholderData: keepPreviousData,
+    select: (response) => ({
+      cases: response.data,
+      pagination: response.meta,
+    }),
   });
 };
 
@@ -28,9 +39,7 @@ export const useCreateCase = () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.cases });
       toast.success("Le dossier a été créé avec succès");
     },
-    onError: (error) => {
-      toast.error(`Erreur lors de la création : ${error.response?.data?.message || error.message}`);
-    },
+    onError: (err) => handleMutationError(err, "Erreur lors de la création du dossier"),
   });
 };
 
@@ -46,9 +55,7 @@ export const useDeleteCase = () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.cases });
       toast.success("Dossier supprimé avec succès");
     },
-    onError: (error) => {
-      toast.error(`Erreur lors de la suppression : ${error.response?.data?.message || error.message}`);
-    },
+    onError: (err) => handleMutationError(err, "Erreur lors de la suppression"),
   });
 };
 
@@ -78,6 +85,7 @@ export const useCreateDeadline = (caseId) => {
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.cases, caseId, 'deadlines'] });
       toast.success("Échéance ajoutée");
     },
+    onError: (err) => handleMutationError(err, "Erreur lors de l'ajout de l'échéance"),
   });
 };
 
@@ -93,5 +101,25 @@ export const useMarkDeadlineDone = (caseId) => {
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.cases, caseId, 'deadlines'] });
       toast.success("Échéance complétée");
     },
+    onError: (err) => handleMutationError(err, "Erreur lors de la mise à jour de l'échéance"),
+  });
+};
+
+// Hook pour supprimer un délai
+export const useDeleteDeadline = (caseId = 'none') => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id) => {
+      // Use the provided caseId or default to 'none' for global events
+      const targetId = caseId || 'none';
+      await apiClient.delete(`/cases/${targetId}/deadlines/${id}`);
+    },
+    onSuccess: (_data, _variables, _context) => {
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.cases, caseId, 'deadlines'] });
+      queryClient.invalidateQueries({ queryKey: ['calendar-deadlines'] });
+      toast.success("Échéance supprimée");
+    },
+    onError: (err) => handleMutationError(err, "Erreur lors de la suppression"),
   });
 };

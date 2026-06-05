@@ -25,6 +25,7 @@ export const Input = forwardRef(({
       {label && (
         <label htmlFor={inputId} className="block text-sm font-medium text-slate-700 dark:text-slate-300">
           {label}
+          {props.required && <span className="text-red-500 ml-1" aria-hidden="true">*</span>}
         </label>
       )}
       <div className="relative group">

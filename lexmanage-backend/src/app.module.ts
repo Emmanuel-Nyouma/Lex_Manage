@@ -2,7 +2,9 @@ import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { CacheModule } from '@nestjs/cache-manager';
 import { BullModule } from '@nestjs/bull';
+
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -40,6 +42,11 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
       { name: 'medium', ttl: 60000, limit: 60 },   // 60 reqs/min
       { name: 'long', ttl: 3600000, limit: 600 },  // 600 reqs/hour
     ]),
+    CacheModule.register({
+      isGlobal: true,
+      ttl: 300000, // 5 minutes default in ms (CacheManager v5+)
+      max: 1000,
+    }),
     BullModule.forRoot({
       redis: {
         host: process.env.REDIS_HOST || 'localhost',

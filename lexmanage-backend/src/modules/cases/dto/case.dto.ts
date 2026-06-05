@@ -22,6 +22,7 @@ export class CreateCaseDto {
   @ApiProperty() @IsString() clientName: string;
   @ApiPropertyOptional() @IsOptional() @IsString() courtName?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() caseNumber?: string;
+  @ApiPropertyOptional({ enum: CaseStatus }) @IsOptional() @IsEnum(CaseStatus) status?: CaseStatus;
   @ApiPropertyOptional({ enum: CasePriority }) @IsOptional() @IsEnum(CasePriority) priority?: CasePriority;
   @ApiPropertyOptional() @IsOptional() @IsString() assigneeId?: string;
   @ApiPropertyOptional({ type: [String] }) @IsOptional() @IsString({ each: true }) documentIds?: string[];

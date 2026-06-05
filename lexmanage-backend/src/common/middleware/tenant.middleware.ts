@@ -1,29 +1,35 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
+import { JwtService } from '@nestjs/jwt';
 import { tenantContext } from '../context/tenant.context';
 
 @Injectable()
 export class TenantMiddleware implements NestMiddleware {
-  use(req: Request, res: Response, next: NextFunction) {
+  constructor(private readonly jwtService: JwtService) {}
+
+  async use(req: Request, res: Response, next: NextFunction) {
     const authHeader = req.headers.authorization;
     let tenantId: string | undefined;
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.split(' ')[1];
-        if (token) {
-          const payloadPart = token.split('.')[1];
-          if (payloadPart) {
-            const decodedPayload = Buffer.from(payloadPart, 'base64').toString('utf8');
-            const payload = JSON.parse(decodedPayload);
-            if (payload && payload.tenantId) {
-              tenantId = payload.tenantId;
-            }
+      const token = authHeader.split(' ')[1];
+      if (token) {
+        try {
+          // SECURITY FIX: Verify JWT signature using JwtService
+          // This ensures the token is authentic and hasn't been tampered with
+          // CVE-2015-9235 Fix: Explicitly pin the allowed algorithms
+          const payload = await this.jwtService.verifyAsync(token, {
+            secret: process.env.JWT_SECRET,
+            algorithms: ['HS256'],
+          });
+          
+          if (payload && payload.tenantId) {
+            tenantId = payload.tenantId;
           }
+        } catch (error) {
+          // If verification fails (expired, invalid signature, etc.), 
+          // we don't set tenantId. Downstream AuthGuard will handle rejection.
         }
-      } catch (error) {
-        // Silent catch: if token parsing fails, context will remain without tenantId,
-        // and subsequent AuthGuard will handle authentication validation/failure.
       }
     }
 

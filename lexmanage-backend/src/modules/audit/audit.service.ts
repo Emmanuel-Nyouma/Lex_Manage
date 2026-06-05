@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class AuditService {
+  private readonly logger = new Logger(AuditService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async log(params: {
@@ -14,7 +16,19 @@ export class AuditService {
     details?: any;
     ipAddress?: string;
   }) {
-    return this.prisma.auditLog.create({ data: params }).catch(() => null); // Non-blocking
+    // Persistent audit log
+    return this.prisma.auditLog.create({ data: params }).catch((err) => {
+      this.logger.error(`Failed to record audit log: ${err.message}`, err.stack);
+    });
+  }
+
+  // Production Telemetry: Log system errors for monitoring
+  logSystemError(error: Error, context?: any) {
+    this.logger.error(`System Exception: ${error.message}`, {
+      stack: error.stack,
+      context,
+    });
+    // In a production environment, this would integrate with Sentry or Datadog
   }
 
   async getLogs(tenantId: string, limit = 50) {

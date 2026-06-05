@@ -56,7 +56,7 @@ const ProfileView = () => {
 
   const fullName = `${currentUser?.firstName || ''} ${currentUser?.lastName || ''}`.trim() || 'No Name Set';
   const roleDisplay = currentUser?.role?.replace('_', ' ') || 'Lawyer';
-  const isAdmin = currentUser?.role === 'CABINET_ADMIN';
+  const isAdmin = currentUser?.role === 'CABINET_ADMIN' || currentUser?.role === 'SUPER_ADMIN';
 
   if (isEditing) {
     return (

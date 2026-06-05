@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Search, FileText, Briefcase, Users, X, Loader2, Command, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../lib/api';
@@ -7,28 +7,63 @@ export const SearchPalette = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState({ cases: [], documents: [], members: [] });
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const navigate = useNavigate();
   const inputRef = useRef(null);
+
+  // Flatten results for easy keyboard navigation
+  const flatResults = useMemo(() => [
+    ...(results.cases || []).map(r => ({ ...r, type: 'case' })),
+    ...(results.documents || []).map(r => ({ ...r, type: 'doc' })),
+    ...(results.members || []).map(r => ({ ...r, type: 'member' }))
+  ], [results]);
 
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
       setQuery('');
       setResults({ cases: [], documents: [], members: [] });
+      setSelectedIndex(-1);
     }
   }, [isOpen]);
+
+  const handleResultClick = useCallback((type, id) => {
+    onClose();
+    if (type === 'case') navigate(`/cases/${id}`);
+    else if (type === 'member') navigate(`/company-settings`);
+    else navigate(`/documents`);
+  }, [navigate, onClose]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        isOpen ? onClose() : null; // This is handled by parent, but for safety
+        if (isOpen) onClose();
       }
+      
+      if (!isOpen) return;
+
       if (e.key === 'Escape') onClose();
+      
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIndex(prev => (prev < flatResults.length - 1 ? prev + 1 : prev));
+      }
+      
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIndex(prev => (prev > 0 ? prev - 1 : prev));
+      }
+      
+      if (e.key === 'Enter' && selectedIndex >= 0) {
+        e.preventDefault();
+        const selected = flatResults[selectedIndex];
+        handleResultClick(selected.type, selected.id);
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, flatResults, selectedIndex, handleResultClick]);
 
   // Debounce Search
   useEffect(() => {
@@ -42,6 +77,7 @@ export const SearchPalette = ({ isOpen, onClose }) => {
       try {
         const { data } = await apiClient.get(`/search/global?q=${encodeURIComponent(query)}`);
         setResults(data);
+        setSelectedIndex(-1); // Reset selection on new search
       } catch (err) {
         console.error("Search error:", err);
       } finally {
@@ -52,18 +88,10 @@ export const SearchPalette = ({ isOpen, onClose }) => {
     return () => clearTimeout(timer);
   }, [query]);
 
-  const handleResultClick = (type, id) => {
-    onClose();
-    if (type === 'case') navigate(`/cases/${id}`);
-    else if (type === 'member') navigate(`/company-settings`);
-    else navigate(`/documents`);
-  };
+  const totalResults = (results.cases?.length || 0) + (results.documents?.length || 0) + (results.members?.length || 0);
+  const dialogId = React.useId();
 
   if (!isOpen) return null;
-
-  const totalResults = (results.cases?.length || 0) + (results.documents?.length || 0) + (results.members?.length || 0);
-
-  const dialogId = React.useId();
 
   return (
     <div 
@@ -118,22 +146,28 @@ export const SearchPalette = ({ isOpen, onClose }) => {
               <div className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2">
                 <Briefcase size={12} /> Dossiers
               </div>
-              {results.cases.map((res) => (
-                <button
-                  key={`case-${res.id}`}
-                  onClick={() => handleResultClick('case', res.id)}
-                  className="w-full flex items-center gap-4 p-3 hover:bg-amber-50 dark:hover:bg-amber-900/10 rounded-xl transition-all text-left group"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-slate-900 dark:text-white truncate">{res.title}</div>
-                    <div className="text-xs text-slate-600 dark:text-slate-300 dark:text-slate-400 flex items-center gap-2 mt-0.5">
-                      <span className="font-semibold text-amber-600 dark:text-amber-500">{res.clientName}</span>
-                      {res.caseNumber && <span className="opacity-50">• {res.caseNumber}</span>}
+              {results.cases.map((res, idx) => {
+                const isSelected = selectedIndex === idx;
+                return (
+                  <button
+                    key={`case-${res.id}`}
+                    onClick={() => handleResultClick('case', res.id)}
+                    onMouseEnter={() => setSelectedIndex(idx)}
+                    className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all text-left group ${
+                      isSelected ? 'bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-200 dark:ring-amber-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-bold text-slate-900 dark:text-white truncate">{res.title}</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-300 dark:text-slate-400 flex items-center gap-2 mt-0.5">
+                        <span className="font-semibold text-amber-600 dark:text-amber-500">{res.clientName}</span>
+                        {res.caseNumber && <span className="opacity-50">• {res.caseNumber}</span>}
+                      </div>
                     </div>
-                  </div>
-                  <ArrowRight size={14} className="text-slate-300 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
-                </button>
-              ))}
+                    <ArrowRight size={14} className={`text-slate-300 transition-all ${isSelected ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`} />
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -143,19 +177,26 @@ export const SearchPalette = ({ isOpen, onClose }) => {
               <div className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2">
                 <FileText size={12} /> Documents
               </div>
-              {results.documents.map((res) => (
-                <button
-                  key={`doc-${res.id}`}
-                  onClick={() => handleResultClick('doc', res.id)}
-                  className="w-full flex items-center gap-4 p-3 hover:bg-blue-50 dark:hover:bg-blue-900/10 rounded-xl transition-all text-left group"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-slate-900 dark:text-white truncate">{res.title}</div>
-                    <div className="text-xs text-slate-600 dark:text-slate-300 dark:text-slate-400 mt-0.5">{res.fileName}</div>
-                  </div>
-                  <ArrowRight size={14} className="text-slate-300 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
-                </button>
-              ))}
+              {results.documents.map((res, idx) => {
+                const globalIdx = (results.cases?.length || 0) + idx;
+                const isSelected = selectedIndex === globalIdx;
+                return (
+                  <button
+                    key={`doc-${res.id}`}
+                    onClick={() => handleResultClick('doc', res.id)}
+                    onMouseEnter={() => setSelectedIndex(globalIdx)}
+                    className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all text-left group ${
+                      isSelected ? 'bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-bold text-slate-900 dark:text-white truncate">{res.title}</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-300 dark:text-slate-400 mt-0.5">{res.fileName}</div>
+                    </div>
+                    <ArrowRight size={14} className={`text-slate-300 transition-all ${isSelected ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`} />
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -165,22 +206,29 @@ export const SearchPalette = ({ isOpen, onClose }) => {
               <div className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2">
                 <Users size={12} /> Équipe
               </div>
-              {results.members.map((res) => (
-                <button
-                  key={`member-${res.id}`}
-                  onClick={() => handleResultClick('member', res.id)}
-                  className="w-full flex items-center gap-4 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all text-left group"
-                >
-                  <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-xs text-slate-600 dark:text-slate-300">
-                    {res.firstName[0]}{res.lastName[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-slate-900 dark:text-white truncate">{res.firstName} {res.lastName}</div>
-                    <div className="text-xs text-slate-600 dark:text-slate-300 dark:text-slate-400 mt-0.5">{res.role.replace('_', ' ')}</div>
-                  </div>
-                  <ArrowRight size={14} className="text-slate-300 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
-                </button>
-              ))}
+              {results.members.map((res, idx) => {
+                const globalIdx = (results.cases?.length || 0) + (results.documents?.length || 0) + idx;
+                const isSelected = selectedIndex === globalIdx;
+                return (
+                  <button
+                    key={`member-${res.id}`}
+                    onClick={() => handleResultClick('member', res.id)}
+                    onMouseEnter={() => setSelectedIndex(globalIdx)}
+                    className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all text-left group ${
+                      isSelected ? 'bg-slate-100 dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700' : 'hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-xs text-slate-600 dark:text-slate-300">
+                      {res.firstName[0]}{res.lastName[0]}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-bold text-slate-900 dark:text-white truncate">{res.firstName} {res.lastName}</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-300 dark:text-slate-400 mt-0.5">{res.role.replace('_', ' ')}</div>
+                    </div>
+                    <ArrowRight size={14} className={`text-slate-300 transition-all ${isSelected ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`} />
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -200,5 +248,3 @@ export const SearchPalette = ({ isOpen, onClose }) => {
     </div>
   );
 };
-
-

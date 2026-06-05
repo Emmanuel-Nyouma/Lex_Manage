@@ -1,21 +1,31 @@
-import React, { useEffect, useState } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Toaster, toast } from 'sonner';
-import { Lock, ShieldCheck, AlertTriangle, X as CloseIcon } from 'lucide-react';
+import { Lock, ShieldCheck, AlertTriangle, X as CloseIcon, Loader2 } from 'lucide-react';
 
-// Components
+// App shell — eager (always needed)
 import AuthScreen from './components/AuthScreen';
-import DashboardView from './components/DashboardView';
-import CaseManagementView from './components/CaseManagementView';
-import CalendarView from './components/CalendarView';
-import DocumentsView from './components/DocumentsView';
-import AdminView from './components/AdminView';
-import CompanySettingsView from './components/CompanySettingsView';
-import ProfileView from './components/ProfileView';
-import SettingsView from './components/SettingsView';
-import AiSidebar from './components/AiSidebar';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
+import { Breadcrumbs } from './components/ui';
+
+// Route views — lazy-loaded (code-split per route for faster mobile first paint)
+const DashboardView        = lazy(() => import('./components/DashboardView'));
+const CaseManagementView   = lazy(() => import('./components/CaseManagementView'));
+const CalendarView         = lazy(() => import('./components/CalendarView'));
+const DocumentsView        = lazy(() => import('./components/DocumentsView'));
+const CompanySettingsView  = lazy(() => import('./components/CompanySettingsView'));
+const NotificationCenterView = lazy(() => import('./components/NotificationCenterView'));
+const ProfileView          = lazy(() => import('./components/ProfileView'));
+const SettingsView         = lazy(() => import('./components/SettingsView'));
+const AiAssistantView      = lazy(() => import('./components/AiAssistantView'));
+
+// Fallback shown while a route chunk loads
+const RouteFallback = () => (
+  <div className="flex items-center justify-center h-full min-h-[60vh]">
+    <Loader2 className="animate-spin text-amber-500" size={32} />
+  </div>
+);
 
 // Store & Lib
 import useLexStore from './store/useLexStore';
@@ -47,8 +57,8 @@ const AdminRoute = ({ children, session, currentUser }) => {
   return children;
 };
 
-const MainLayout = ({ children, isAiOpen, setIsAiOpen, isMobileSidebarOpen, setIsMobileSidebarOpen, isSearchOpen, setIsSearchOpen }) => {
-  const location = useLocation();
+const MainLayout = ({ children, isMobileSidebarOpen, setIsMobileSidebarOpen, isSearchOpen, setIsSearchOpen }) => {
+  const navigate = useNavigate();
   const { urgentNotification, clearUrgent } = useNotifications();
 
   return (
@@ -92,27 +102,19 @@ const MainLayout = ({ children, isAiOpen, setIsAiOpen, isMobileSidebarOpen, setI
         onCloseMobile={() => setIsMobileSidebarOpen(false)} 
       />
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <Header 
-          onOpenAi={() => setIsAiOpen(true)} 
+        <Header
+          onOpenAi={() => navigate('/lex-assist')}
           onToggleMobileSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
           isSearchOpen={isSearchOpen}
           setIsSearchOpen={setIsSearchOpen}
         />
-import { Breadcrumbs } from './components/ui';
-
-// ... inside MainLayout
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 dark:bg-slate-950 focus:outline-none" tabIndex="-1">
           <Breadcrumbs />
-          {children}
+          <Suspense fallback={<RouteFallback />}>
+            {children}
+          </Suspense>
         </main>
-// ...
-
       </div>
-      <AiSidebar 
-        isOpen={isAiOpen} 
-        onClose={() => setIsAiOpen(false)} 
-        currentView={location.pathname}
-      />
     </div>
   );
 };
@@ -124,7 +126,6 @@ export default function LexManageApp() {
   const { isIdle } = useIdleTimeout(15 * 60 * 1000); // 15 minutes
   const isAuthenticated = !!accessToken;
 
-  const [isAiOpen, setIsAiOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -167,7 +168,7 @@ export default function LexManageApp() {
     );
   }
 
-  const layoutProps = { isAiOpen, setIsAiOpen, isMobileSidebarOpen, setIsMobileSidebarOpen, isSearchOpen, setIsSearchOpen };
+  const layoutProps = { isMobileSidebarOpen, setIsMobileSidebarOpen, isSearchOpen, setIsSearchOpen };
 
   return (
     <>
@@ -181,13 +182,17 @@ export default function LexManageApp() {
         <Route path="/cases" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><CaseManagementView /></MainLayout></ProtectedRoute>} />
         <Route path="/calendar" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><CalendarView /></MainLayout></ProtectedRoute>} />
         <Route path="/documents" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><DocumentsView /></MainLayout></ProtectedRoute>} />
-        <Route path="/admin" element={
+        <Route path="/lex-assist" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><AiAssistantView /></MainLayout></ProtectedRoute>} />
+        <Route path="/company-settings" element={
           <AdminRoute session={accessToken} currentUser={currentUser}>
-            <MainLayout {...layoutProps}><AdminView /></MainLayout>
+            <MainLayout {...layoutProps}><CompanySettingsView /></MainLayout>
           </AdminRoute>
         } />
-
-        <Route path="/company-settings" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><CompanySettingsView /></MainLayout></ProtectedRoute>} />
+        <Route path="/notification-center" element={
+          <AdminRoute session={accessToken} currentUser={currentUser}>
+            <MainLayout {...layoutProps}><NotificationCenterView /></MainLayout>
+          </AdminRoute>
+        } />
         <Route path="/profile" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><ProfileView /></MainLayout></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><SettingsView /></MainLayout></ProtectedRoute>} />
         
@@ -197,5 +202,3 @@ export default function LexManageApp() {
     </>
   );
 }
-
-

@@ -37,7 +37,7 @@ export const useNotificationStore = create((set, get) => ({
   clearUrgent: () => set({ urgentNotification: null }),
   setInitialToastsShown: (val) => set({ hasInitialToastsBeenShown: val }),
   
-  markAsRead: async (id, userId) => {
+  markAsRead: async (id, _userId) => {
     try {
       await apiClient.patch(`/notifications/${id}/read`);
       set((state) => {
@@ -49,6 +49,22 @@ export const useNotificationStore = create((set, get) => ({
       });
     } catch (err) {
       console.error("Failed to mark notification as read", err);
+    }
+  },
+
+  markAllAsRead: async () => {
+    // Optimistic update
+    const previous = get().notifications;
+    set((state) => ({
+      notifications: state.notifications.map(n => ({ ...n, isRead: true })),
+      unreadCount: 0,
+    }));
+    try {
+      await apiClient.patch('/notifications/read-all');
+    } catch (err) {
+      console.error("Failed to mark all notifications as read", err);
+      // Roll back on failure
+      set({ notifications: previous, unreadCount: previous.filter(n => !n.isRead).length });
     }
   }
 }));
@@ -65,6 +81,7 @@ export const useNotifications = () => {
     addNotification,
     clearUrgent,
     markAsRead,
+    markAllAsRead,
     setInitialToastsShown
   } = useNotificationStore();
 
@@ -145,11 +162,12 @@ export const useNotifications = () => {
     };
   }, [socket, addNotification, currentUser]);
 
-  return { 
-    notifications, 
-    unreadCount, 
-    urgentNotification, 
-    clearUrgent, 
-    markAsRead: (id) => markAsRead(id, currentUser?.id) 
+  return {
+    notifications,
+    unreadCount,
+    urgentNotification,
+    clearUrgent,
+    markAsRead: (id) => markAsRead(id, currentUser?.id),
+    markAllAsRead
   };
 };

@@ -1,7 +1,7 @@
-import { Body, Controller, Post, Get, Patch, UseGuards, Res } from '@nestjs/common';
+import { Body, Controller, Post, Get, Patch, UseGuards, Res, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto, RefreshTokenDto, UpdateProfileDto } from './dto/auth.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -17,7 +17,8 @@ export class AuthController {
   @ApiOperation({ summary: 'Register a new law firm (Tenant) with admin user' })
   async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
     const { refreshToken, ...result } = await this.authService.register(dto);
-    res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
+    const isProd = process.env.NODE_ENV === 'production';
+    res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: isProd, sameSite: isProd ? 'strict' : 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
     return result;
   }
 
@@ -26,18 +27,19 @@ export class AuthController {
   @ApiOperation({ summary: 'Login and get JWT tokens' })
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const { refreshToken, ...result } = await this.authService.login(dto);
-    res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
+    const isProd = process.env.NODE_ENV === 'production';
+    res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: isProd, sameSite: isProd ? 'strict' : 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
     return result;
   }
 
   @Post('refresh')
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Get a new access token using a refresh token' })
-  async refresh(@Body('refreshToken') token: string, @Res({ passthrough: true }) res: Response) {
-    // Note: In real production, this should read from cookie, not body. 
-    // Updating to read from cookie instead for better security.
-    const refreshToken = token; // Or req.cookies.refreshToken
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const refreshToken = req.cookies['refreshToken'];
     const { refreshToken: newRefreshToken, ...result } = await this.authService.refreshToken(refreshToken);
-    res.cookie('refreshToken', newRefreshToken, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60 * 1000 });
+    const isProd = process.env.NODE_ENV === 'production';
+    res.cookie('refreshToken', newRefreshToken, { httpOnly: true, secure: isProd, sameSite: isProd ? 'strict' : 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
     return result;
   }
 
@@ -61,7 +63,9 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout and invalidate refresh token' })
-  logout(@CurrentUser('id') userId: string) {
-    return this.authService.logout(userId);
+  async logout(@CurrentUser('id') userId: string, @Res({ passthrough: true }) res: Response) {
+    await this.authService.logout(userId);
+    res.clearCookie('refreshToken');
+    return { message: 'Logged out successfully' };
   }
 }

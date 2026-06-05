@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  X, Sparkles, Loader2, Lightbulb, Mail, Plus, FileText, Clock, Upload, Paperclip 
+  X, Sparkles, Loader2, Lightbulb, Mail, Plus, FileText, Clock 
 } from 'lucide-react';
-import { Badge } from './ui';
+import { Badge, FocusTrap } from './ui';
 import { useDropzone } from 'react-dropzone';
 import { uploadLegalDocument } from '../lib/documentService';
 import useLexStore from '../store/useLexStore';
+import { useKeyboardNavigation } from '../hooks/useKeyboardNavigation';
 import { toast } from 'sonner';
 import { sanitize } from '../lib/sanitizer';
 
@@ -64,6 +65,8 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
+  useKeyboardNavigation(onClose);
+
   if (!activeCase) return null;
 
   const handleAddDeadline = async (e) => {
@@ -105,24 +108,24 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
     
     const result = await onCallGemini(prompt, "You are an expert legal secretary.");
     setDraftEmail(result);
-    import { Badge, FocusTrap } from './ui';
-    // ...
-      return (
-        <>
-          <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-[1px] z-40" onClick={onClose} />
-          <FocusTrap isActive={!!activeCase} onClose={onClose}>
-            <div className={`fixed inset-y-0 right-0 w-full sm:w-[500px] bg-white dark:bg-slate-900 shadow-2xl z-50 animate-in slide-in-from-right duration-300 flex flex-col border-l border-slate-200 dark:border-slate-800 transition-all ${activeCase ? 'translate-x-0' : 'translate-x-full'}`}>
-              {/* ... */}
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-white dark:bg-slate-900 sticky top-0 z-10">
-           <div>
-              <Badge variant={activeCase.status === 'Active' || activeCase.status === 'en cours' ? 'success' : 'default'}>{activeCase.status}</Badge>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white mt-2 leading-tight">{activeCase.title}</h2>
-              <p className="text-slate-600 dark:text-slate-300 dark:text-slate-400 text-sm mt-1 font-medium">{activeCase.client_name} • {activeCase.courtName || 'Jurisdiction not defined'}</p>
-           </div>
-           <button onClick={onClose} aria-label="Close drawer" className="text-slate-500 dark:text-slate-300 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
-             <X size={20} />
-           </button>
-        </div>
+    setIsAnalyzing(false);
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-[1px] z-40" onClick={onClose} />
+      <FocusTrap isActive={!!activeCase} onClose={onClose}>
+        <div className={`fixed inset-y-0 right-0 w-full sm:w-[500px] bg-white dark:bg-slate-900 shadow-2xl z-50 animate-in slide-in-from-right duration-300 flex flex-col border-l border-slate-200 dark:border-slate-800 transition-all ${activeCase ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-white dark:bg-slate-900 sticky top-0 z-10">
+             <div>
+                <Badge variant={activeCase.status === 'Active' || activeCase.status === 'en cours' ? 'success' : 'default'}>{activeCase.status}</Badge>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white mt-2 leading-tight">{activeCase.title}</h2>
+                <p className="text-slate-600 dark:text-slate-300 dark:text-slate-400 text-sm mt-1 font-medium">{activeCase.client_name} • {activeCase.courtName || 'Jurisdiction not defined'}</p>
+             </div>
+             <button onClick={onClose} aria-label="Close drawer" className="text-slate-500 dark:text-slate-300 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
+               <X size={20} />
+             </button>
+          </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
            
            <div className="bg-amber-50/50 dark:bg-amber-900/10 rounded-2xl p-5 border border-amber-100 dark:border-amber-900/30">
@@ -268,8 +271,9 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
            </button>
         </div>
       </div>
-    </>
-  );
+    </FocusTrap>
+  </>
+);
 }
 
 export default CaseDrawer;

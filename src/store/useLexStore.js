@@ -5,24 +5,49 @@ import apiClient from '../lib/api';
 const useLexStore = create((set, get) => ({
   currentUser: null,
   accessToken: null, // Access token in-memory
+  language: localStorage.getItem('language') || 'en',
+  theme: localStorage.getItem('theme') || 'light',
   isLoading: false,
   isRefreshing: false,
-  refreshPromise: null,
-  error: null,
+
+  setLanguage: (lang) => {
+    set({ language: lang });
+    localStorage.setItem('language', lang);
+  },
+
+  setTheme: (theme) => {
+    set({ theme });
+    localStorage.setItem('theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  },
 
   // ✅ NEW: Persist token to localStorage
   setAccessToken: (token) => {
     set({ accessToken: token });
     if (token) {
       localStorage.setItem('accessToken', token);  // ✅ Persist
+      localStorage.setItem('wasLoggedIn', 'true'); // ✅ session hint
     } else {
       localStorage.removeItem('accessToken');      // ✅ Clean up
+      localStorage.removeItem('wasLoggedIn');
     }
   },
 
   // ✅ UPDATED: Initialize from localStorage
   initAuth: async () => {
     if (get().isRefreshing) return;
+
+    // Only try to refresh if we have a hint that a session might exist
+    const wasLoggedIn = localStorage.getItem('wasLoggedIn') === 'true';
+    if (!wasLoggedIn) {
+      console.log('No previous session detected, skipping auto-refresh');
+      return;
+    }
+
     set({ isLoading: true });
     try {
       // Try to restore from localStorage
@@ -33,9 +58,9 @@ const useLexStore = create((set, get) => ({
       
       // Refresh to get fresh token + user data
       await get().refreshAccessToken();
-    } catch (err) {
-      console.log('No existing session found');
-      localStorage.removeItem('accessToken');  // ✅ Clear invalid token
+    } catch (_err) {
+      console.log('Existing session expired or invalid');
+      get().setAccessToken(null); // Clears hint and token
     } finally {
       set({ isLoading: false });
     }
@@ -62,9 +87,19 @@ const useLexStore = create((set, get) => ({
       await apiClient.post('/auth/logout');
     } catch (err) {
       console.error('Logout error', err);
+      toast.error("Erreur lors de la déconnexion");
     } finally {
       set({ currentUser: null, error: null });
-      get().setAccessToken(null);  // ✅ Clears localStorage
+      get().setAccessToken(null);
+    }
+  },
+
+  fetchMe: async () => {
+    try {
+      const { data } = await apiClient.get('/auth/me');
+      set({ currentUser: data });
+    } catch (err) {
+      console.error('Fetch me error', err);
     }
   },
 
@@ -82,8 +117,13 @@ const useLexStore = create((set, get) => ({
         set({ currentUser: data.user });
         return data.accessToken;
       } catch (err) {
-        set({ currentUser: null });
-        get().setAccessToken(null);  // ✅ Clears on refresh failure
+        const isAuthError = err.response && [400, 401, 403].includes(err.response.status);
+        if (isAuthError) {
+          set({ currentUser: null });
+          get().setAccessToken(null);  // ✅ Clears on refresh failure
+        } else {
+          console.warn("Silent refresh failed due to server or network error. Retaining credentials.");
+        }
         throw err;
       } finally {
         set({ isRefreshing: false, refreshPromise: null });

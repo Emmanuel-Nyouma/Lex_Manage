@@ -7,17 +7,21 @@ const routeNames = {
   '/cases': 'Case Management',
   '/calendar': 'Calendar',
   '/documents': 'Documents',
-  '/admin': 'Administration',
-  '/company-settings': 'Company Settings',
+  '/company-settings':    'Firm Management',
+  '/notification-center': 'Notification Center',
   '/profile': 'Profile',
   '/settings': 'Settings',
 };
+
+// Routes that render their own full-screen layout (no breadcrumb)
+const HIDDEN_ROUTES = ['/lex-assist'];
 
 export const Breadcrumbs = () => {
   const location = useLocation();
   const pathnames = location.pathname.split('/').filter((x) => x);
 
   if (pathnames.length === 0) return null;
+  if (HIDDEN_ROUTES.includes(location.pathname)) return null;
 
   return (
     <nav aria-label="Breadcrumb" className="mb-4">

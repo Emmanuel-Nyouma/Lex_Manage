@@ -1,5 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { v4 as uuidv4 } from 'uuid';
+import { Document, Case } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateDocumentDto, UpdateDocumentDto, DocumentType } from './dto/document.dto';
 import { MinioService } from './minio.service';
@@ -11,29 +14,48 @@ export class DocumentsService {
     private prisma: PrismaService,
     private minio: MinioService,
     private auditService: AuditService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async findAll(tenantId: string) {
-    return this.prisma.document.findMany({
+    const cacheKey = `documents:${tenantId}`;
+    const cached = (await this.cacheManager.get(cacheKey)) as any;
+    if (cached) return cached;
+
+    const docs = await this.prisma.document.findMany({
       where: { tenantId },
       orderBy: { createdAt: 'desc' },
       include: {
         cases: true
       }
     });
+
+    await this.cacheManager.set(cacheKey, docs, 30000); // 30 seconds cache
+    return docs;
   }
 
   async findByCase(caseId: string, tenantId: string) {
-    return this.prisma.document.findMany({
+    const cacheKey = `documents:case:${caseId}`;
+    const cached = (await this.cacheManager.get(cacheKey)) as any;
+    if (cached) return cached;
+
+    const docs = await this.prisma.document.findMany({
       where: { 
         tenantId,
         case_id: caseId
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    await this.cacheManager.set(cacheKey, docs, 30000);
+    return docs;
   }
 
   async findOne(id: string, tenantId: string) {
+    const cacheKey = `document:${id}`;
+    const cached = (await this.cacheManager.get(cacheKey)) as any;
+    if (cached) return cached;
+
     const doc = await this.prisma.document.findFirst({
       where: { id, tenantId },
       include: {
@@ -41,7 +63,16 @@ export class DocumentsService {
       }
     });
     if (!doc) throw new NotFoundException('Document not found');
+
+    await this.cacheManager.set(cacheKey, doc, 60000); // 1 minute cache
     return doc;
+  }
+
+  private async invalidateDocumentCache(tenantId: string, caseId?: string | null) {
+    await this.cacheManager.del(`documents:${tenantId}`);
+    if (caseId) {
+      await this.cacheManager.del(`documents:case:${caseId}`);
+    }
   }
 
   async create(dto: CreateDocumentDto, tenantId: string, uploaderId: string) {
@@ -61,6 +92,8 @@ export class DocumentsService {
       },
     });
 
+    await this.invalidateDocumentCache(tenantId, caseId);
+
     await this.auditService.log({
       tenantId,
       userId: uploaderId,
@@ -77,7 +110,7 @@ export class DocumentsService {
     file: Express.Multer.File | undefined,
     tenantId: string,
     uploaderId: string,
-    options: { name?: string; caseId?: string; documentType?: string; category?: string; courtCaseRef?: string; pending?: boolean },
+    options: { name?: string; caseId?: string; documentType?: string; category?: string; subCategory?: string; allowedRoles?: any[]; courtCaseRef?: string; pending?: boolean },
   ) {
     if (!file) throw new BadRequestException('File is required');
     if (file.size > 50 * 1024 * 1024) throw new BadRequestException('File too large (max 50MB)');
@@ -117,11 +150,15 @@ export class DocumentsService {
         file_type: type.mime,
         file_size: file.size,
         category: options.category || options.documentType,
+        subCategory: options.subCategory,
+        allowedRoles: options.allowedRoles || [],
         // Only associate if not pending
         case_id: options.pending ? null : options.caseId,
         isPending: !!options.pending,
       },
     });
+
+    await this.invalidateDocumentCache(tenantId, options.pending ? null : options.caseId);
 
     await this.auditService.log({
       tenantId,
@@ -153,6 +190,9 @@ export class DocumentsService {
       },
     });
 
+    await this.cacheManager.del(`document:${id}`);
+    await this.invalidateDocumentCache(tenantId, original.case_id);
+
     await this.auditService.log({
       tenantId,
       userId,
@@ -164,11 +204,15 @@ export class DocumentsService {
 
     return updated;
   }
+
 async linkDocumentToCase(documentId: string, caseId: string, tenantId: string, userId: string) {
   const doc = await this.prisma.document.update({
     where: { id: documentId, tenantId },
     data: { case_id: caseId },
   });
+
+  await this.cacheManager.del(`document:${documentId}`);
+  await this.invalidateDocumentCache(tenantId, caseId);
 
   await this.auditService.log({
     tenantId,
@@ -187,6 +231,9 @@ async remove(id: string, tenantId: string, userId: string) {
   await this.prisma.document.delete({ where: { id } });
   await this.minio.deleteFile(tenantId, original.file_url).catch(() => undefined);
 
+  await this.cacheManager.del(`document:${id}`);
+  await this.invalidateDocumentCache(tenantId, original.case_id);
+
   await this.auditService.log({
     tenantId,
     userId,
@@ -199,4 +246,3 @@ async remove(id: string, tenantId: string, userId: string) {
   return { message: 'Document deleted' };
 }
 }
-

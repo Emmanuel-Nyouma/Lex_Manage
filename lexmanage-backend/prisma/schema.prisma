@@ -96,6 +96,25 @@ enum CaseStatus {
   ARCHIVED
 }
 
+enum NotificationLevel {
+  NORMAL
+  IMPORTANT
+  URGENT
+}
+
+enum NotificationMotif {
+  HEARING
+  INTERNAL_MEETING
+  DEADLINE
+  DOCUMENT_TO_SIGN
+  NEW_CLIENT
+  INVOICE_PENDING
+  LEGAL_UPDATE
+  INTERNAL_REMINDER
+  CONFLICT_DETECTED
+  OTHER
+}
+
 // ■■ Core Models ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 model Tenant {
@@ -105,18 +124,27 @@ model Tenant {
   plan          String             @default("FREE")
   country       String?
   city          String?
+  address       String?
+  phone         String?
+  fax           String?
+  website       String?
+  siret         String?
+  barNumber     String?            @map("bar_number")
+  logoUrl       String?            @map("logo_url")
   isActive      Boolean            @default(true) @map("is_active")
   createdAt     DateTime           @default(now()) @map("created_at")
   updatedAt     DateTime           @updatedAt @map("updated_at")
-  users         User[]
-  cases         Case[]
-  documents     Document[]
-  notifications Notification[]
-  deadlines     Deadline[]
-  clients       Client[]
-  auditLogs     AuditLog[]
-  conversations ChatConversation[]
-  invitations   Invitation[]
+  users              User[]
+  cases              Case[]
+  documents          Document[]
+  notifications      Notification[]
+  deadlines          Deadline[]
+  clients            Client[]
+  auditLogs          AuditLog[]
+  conversations      ChatConversation[]
+  invitations        Invitation[]
+  notifTemplates     NotificationTemplate[]
+  scheduledNotifs    ScheduledNotification[]
 
   @@map("tenants")
 }
@@ -139,7 +167,9 @@ model User {
   tenant                Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   cases                 Case[]         @relation("CaseAssignee")
   uploadedDocuments     Document[]     @relation("DocumentUploader")
-  notifications         Notification[]
+  notificationsCreated  Notification[]           @relation("NotificationCreator")
+  notifTemplates        NotificationTemplate[]    @relation("TemplateCreator")
+  scheduledNotifs       ScheduledNotification[]   @relation("ScheduledNotifCreator")
   auditLogs             AuditLog[]
   conversations         ChatConversation[]
 
@@ -153,6 +183,7 @@ model Case {
   title       String
   description String?
   clientName  String         @map("client_name")
+  courtName   String?        @map("court_name")
   caseNumber  String?        @map("case_number")
   status      CaseStatus     @default(OPEN)
   priority    String         @default("MEDIUM")
@@ -164,6 +195,8 @@ model Case {
   assignee    User?          @relation("CaseAssignee", fields: [assigneeId], references: [id])
   deadlines   Deadline[]
   documents   Document[]
+  notifications   Notification[]          @relation("CaseNotifications")
+  scheduledNotifs ScheduledNotification[] @relation("CaseScheduledNotifs")
 
   @@index([tenantId])
   @@map("cases")
@@ -180,6 +213,8 @@ model Document {
   file_type     String         @map("file_type")
   file_size     Int            @map("file_size")
   category      String?
+  subCategory   String?        @map("sub_category")
+  allowedRoles  Role[]         @default([]) @map("allowed_roles")
   type          DocumentType   @default(OTHER)
   status        DocumentStatus @default(UPLOADED)
   uploaderId    String         @map("uploader_id")
@@ -202,22 +237,72 @@ model Document {
 // ■■ Notifications ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 model Notification {
-  id          String   @id @default(cuid())
-  tenantId    String   @map("tenant_id")
-  user_id     String   @map("user_id")
-  title       String
-  message     String
-  priority    String   @default("MEDIUM")
-  type        String?
-  is_read     Boolean  @default(false) @map("is_read")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id           String            @id @default(cuid())
+  tenantId     String            @map("tenant_id")
+  level        NotificationLevel
+  motif        NotificationMotif
+  title        String?
+  message      String?           @db.VarChar(500)
+  createdById  String            @map("created_by_id")
+  recipientIds String[]          @map("recipient_ids")
+  readByIds    String[]          @map("read_by_ids")
+  caseId       String?           @map("case_id")
+  createdAt    DateTime          @default(now()) @map("created_at")
   
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  users       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  tenant       Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy    User              @relation("NotificationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  case         Case?             @relation("CaseNotifications", fields: [caseId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
-  @@index([user_id])
+  @@index([tenantId, level])
   @@map("notifications")
+}
+
+// ■■ Notification Templates ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
+model NotificationTemplate {
+  id             String            @id @default(cuid())
+  tenantId       String            @map("tenant_id")
+  name           String
+  level          NotificationLevel
+  motif          NotificationMotif
+  title          String?
+  message        String?           @db.VarChar(500)
+  recipientRoles String[]          @map("recipient_roles")
+  createdById    String            @map("created_by_id")
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  tenant      Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy   User    @relation("TemplateCreator", fields: [createdById], references: [id])
+
+  @@index([tenantId])
+  @@map("notification_templates")
+}
+
+// ■■ Scheduled Notifications ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
+model ScheduledNotification {
+  id             String            @id @default(cuid())
+  tenantId       String            @map("tenant_id")
+  level          NotificationLevel
+  motif          NotificationMotif
+  title          String?
+  message        String?           @db.VarChar(500)
+  recipientRoles String[]          @map("recipient_roles")
+  scheduledAt    DateTime          @map("scheduled_at")
+  status         String            @default("PENDING") // PENDING | SENT | CANCELLED
+  jobId          String?           @map("job_id")
+  caseId         String?           @map("case_id")
+  createdById    String            @map("created_by_id")
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  tenant    Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy User    @relation("ScheduledNotifCreator", fields: [createdById], references: [id])
+  case      Case?   @relation("CaseScheduledNotifs", fields: [caseId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([scheduledAt, status])
+  @@map("scheduled_notifications")
 }
 
 // ■■ Other Models ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
@@ -241,14 +326,14 @@ model Client {
 model Deadline {
   id        String   @id @default(uuid())
   tenantId  String   @map("tenant_id")
-  caseId    String   @map("case_id")
+  caseId    String?  @map("case_id")
   title     String
   dueAt     DateTime @map("due_at")
   priority  String   @default("MEDIUM")
   isDone    Boolean  @default(false) @map("is_done")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  case      Case?    @relation(fields: [caseId], references: [id], onDelete: Cascade)
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])

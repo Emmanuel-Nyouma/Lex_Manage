@@ -10,9 +10,11 @@ import {
 } from 'lucide-react';
 import { Card } from './ui';
 import { translations } from '../utils/translations';
+import useLexStore from '../store/useLexStore';
 
-const SettingsView = ({ language, setLanguage, theme, setTheme }) => {
-  const t = translations[language];
+const SettingsView = () => {
+  const { language, setLanguage, theme, setTheme } = useLexStore();
+  const t = translations[language] || translations.en;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-4xl">
