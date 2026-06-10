@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -17,10 +17,12 @@ import {
   ChevronLeft,
   UserPlus,
   Check,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import apiClient from '../lib/api';
 import useLexStore from '../store/useLexStore';
+import { API_CONFIG } from '../config/api.config';
 import { Button, Input, Badge } from './ui/index';
 
 const PasswordStrengthMeter = ({ password = "" }) => {
@@ -109,6 +111,22 @@ const AuthScreen = () => {
   const [shouldShake, setShouldShake] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [isWarmingUp, setIsWarmingUp] = useState(false);
+
+  // Cold-start handling: wake the backend as soon as the auth page loads (so it's
+  // ready by the time the user submits), and reflect retry state in the UI.
+  useEffect(() => {
+    fetch(`${API_CONFIG.BASE_URL}/health`, { method: 'GET' }).catch(() => {});
+
+    const onWarming = () => setIsWarmingUp(true);
+    const onWarmed = () => setIsWarmingUp(false);
+    window.addEventListener('api:warming-up', onWarming);
+    window.addEventListener('api:warmed', onWarmed);
+    return () => {
+      window.removeEventListener('api:warming-up', onWarming);
+      window.removeEventListener('api:warmed', onWarmed);
+    };
+  }, []);
 
   const { register, handleSubmit, watch, getValues, setError, clearErrors, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(
@@ -275,6 +293,15 @@ const AuthScreen = () => {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {isWarmingUp && (
+              <div
+                role="status"
+                className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-amber-700 dark:text-amber-300 animate-in fade-in slide-in-from-top-2 duration-300"
+              >
+                <Loader2 size={18} className="shrink-0 animate-spin" />
+                <span className="text-sm font-semibold">Waking up the server, please wait…</span>
+              </div>
+            )}
             {view === 'login' && (
               <>
                 {loginError && (
