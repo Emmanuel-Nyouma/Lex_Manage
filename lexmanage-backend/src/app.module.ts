@@ -23,8 +23,10 @@ import { StatsModule } from './modules/stats/stats.module';
 import { MailModule } from './modules/mail/mail.module';
 import { CalendarModule } from './modules/calendar/calendar.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
+import { AppController } from './app.controller';
 
 @Module({
+  controllers: [AppController],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
