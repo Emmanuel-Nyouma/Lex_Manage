@@ -22,4 +22,4 @@ COPY --from=build /app/package*.json ./
 COPY --from=build /app/prisma ./prisma
 
 EXPOSE 3001
-CMD ["npm", "run", "start:prod"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
