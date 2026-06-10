@@ -16,7 +16,8 @@ import {
   Briefcase,
   ChevronLeft,
   UserPlus,
-  Check
+  Check,
+  AlertCircle
 } from 'lucide-react';
 import apiClient from '../lib/api';
 import useLexStore from '../store/useLexStore';
@@ -107,6 +108,7 @@ const AuthScreen = () => {
   const [signupStep, setSignupStep] = useState(invitationToken ? 2 : 1);
   const [shouldShake, setShouldShake] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
   const { register, handleSubmit, watch, getValues, setError, clearErrors, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(
@@ -149,6 +151,7 @@ const AuthScreen = () => {
   };
 
   const onSubmit = async (values) => {
+    setLoginError('');
     try {
       if (view === 'login') {
         await useLexStore.getState().login(values.email, values.password);
@@ -177,9 +180,19 @@ const AuthScreen = () => {
       console.error("Auth Error:", err);
       setShouldShake(true);
       setTimeout(() => setShouldShake(false), 800);
-      // Ensure we display a clear, user-friendly message
-      const errorMessage = err.response?.data?.message || err.message || "An error occurred during authentication";
-      toast.error(errorMessage);
+
+      if (view === 'login') {
+        // Unified message — never reveal whether it was the email or the password
+        const status = err.response?.status;
+        setLoginError(
+          status === 401
+            ? 'Incorrect email or password'
+            : (err.response?.data?.message || 'Login failed. Please try again.')
+        );
+      } else {
+        const errorMessage = err.response?.data?.message || err.message || "An error occurred during authentication";
+        toast.error(errorMessage);
+      }
     }
   };
 
@@ -264,11 +277,20 @@ const AuthScreen = () => {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {view === 'login' && (
               <>
+                {loginError && (
+                  <div
+                    role="alert"
+                    className="flex items-center gap-3 p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 animate-in fade-in slide-in-from-top-2 duration-300"
+                  >
+                    <AlertCircle size={18} className="shrink-0 animate-pulse" />
+                    <span className="text-sm font-semibold">{loginError}</span>
+                  </div>
+                )}
                 <Input {...register("email")} label="Work Email" type="email" icon={Mail} error={errors.email?.message} />
                 <div className="space-y-2">
                   <Input {...register("password")} label="Password" type="password" icon={Lock} error={errors.password?.message} />
                   <div className="flex justify-end">
-                    <button type="button" onClick={() => setView('forgot_password')} className="text-xs font-bold text-amber-600 hover:text-amber-700 transition-colors">Forgot password?</button>
+                    <button type="button" onClick={() => { setLoginError(''); setView('forgot_password'); }} className="text-xs font-bold text-amber-600 hover:text-amber-700 transition-colors">Forgot password?</button>
                   </div>
                 </div>
               </>
@@ -342,7 +364,7 @@ const AuthScreen = () => {
               <p className="text-slate-600 dark:text-slate-300 text-sm mb-4">Don't have an account yet?</p>
               <button 
                 aria-label="Create a new firm"
-                onClick={() => { setView('signup'); setSignupStep(1); }} 
+                onClick={() => { setLoginError(''); setView('signup'); setSignupStep(1); }}
                 className="w-full py-3 px-6 rounded-xl border-2 border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white font-bold hover:bg-slate-50 dark:hover:bg-slate-900 transition-all flex items-center justify-center gap-2"
               >
                 <UserPlus size={18} className="text-amber-500" />
