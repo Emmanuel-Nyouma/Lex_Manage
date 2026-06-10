@@ -14,6 +14,8 @@ async function bootstrap() {
   
   if (process.env.NODE_ENV === 'production') {
     app.use((req, res, next) => {
+      // Skip HTTPS redirect for internal health checks
+      if (req.path === '/health') return next();
       if (req.header('x-forwarded-proto') !== 'https') {
         res.redirect(301, `https://${req.header('host')}${req.url}`);
       } else {
@@ -37,8 +39,8 @@ async function bootstrap() {
     }),
   );
 
-  // API prefix
-  app.setGlobalPrefix('api/v1');
+  // API prefix — exclude /health so Render's health check works without auth
+  app.setGlobalPrefix('api/v1', { exclude: ['health'] });
 
   // Swagger documentation
   const config = new DocumentBuilder()
