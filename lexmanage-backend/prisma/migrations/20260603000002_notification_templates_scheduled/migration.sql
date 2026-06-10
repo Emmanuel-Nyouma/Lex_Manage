@@ -1,3 +1,9 @@
+-- CreateEnum
+CREATE TYPE "NotificationLevel" AS ENUM ('NORMAL', 'IMPORTANT', 'URGENT');
+
+-- CreateEnum
+CREATE TYPE "NotificationMotif" AS ENUM ('HEARING', 'INTERNAL_MEETING', 'DEADLINE', 'DOCUMENT_TO_SIGN', 'NEW_CLIENT', 'INVOICE_PENDING', 'LEGAL_UPDATE', 'INTERNAL_REMINDER', 'CONFLICT_DETECTED', 'OTHER');
+
 -- CreateTable: notification_templates
 CREATE TABLE "notification_templates" (
   "id"             TEXT NOT NULL,
