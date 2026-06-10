@@ -22,4 +22,4 @@ COPY --from=build /app/package*.json ./
 COPY --from=build /app/prisma ./prisma
 
 EXPOSE 3001
-CMD ["sh", "-c", "npx prisma migrate resolve --rolled-back 20260603000002_notification_templates_scheduled 2>/dev/null || true && npx prisma migrate deploy && node dist/main"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss --skip-generate && node dist/main"]
