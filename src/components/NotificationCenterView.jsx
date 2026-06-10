@@ -71,6 +71,7 @@ const HistoryTab = () => {
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
+  const [deleting, setDeleting] = useState(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -82,6 +83,18 @@ const HistoryTab = () => {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleDelete = async (e, id) => {
+    e.stopPropagation();
+    setDeleting(id);
+    try {
+      await apiClient.delete(`/notifications/history/${id}`);
+      toast.success('Notification deleted');
+      setHistory(prev => prev.filter(n => n.id !== id));
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete notification');
+    } finally { setDeleting(null); }
+  };
 
   if (isLoading) return (
     <div className="flex items-center justify-center py-20">
@@ -133,6 +146,14 @@ const HistoryTab = () => {
                   </span>
                 )}
               </div>
+              <button
+                onClick={(e) => handleDelete(e, n.id)}
+                disabled={deleting === n.id}
+                className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all shrink-0 disabled:opacity-40"
+                title="Delete notification"
+              >
+                {deleting === n.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+              </button>
               <ChevronDown size={16} className={`text-slate-400 transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
             </div>
 
@@ -388,6 +409,17 @@ const ScheduledTab = () => {
     } finally { setCancelling(null); }
   };
 
+  const handleDelete = async (id) => {
+    setCancelling(id);
+    try {
+      await apiClient.delete(`/notifications/scheduled/${id}/permanent`);
+      toast.success('Scheduled notification deleted');
+      setScheduled(prev => prev.filter(s => s.id !== id));
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete');
+    } finally { setCancelling(null); }
+  };
+
   const pending   = scheduled.filter(s => s.status === 'PENDING');
   const past      = scheduled.filter(s => s.status !== 'PENDING');
 
@@ -421,7 +453,7 @@ const ScheduledTab = () => {
             <>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">⏳ Pending</p>
               {pending.map(s => (
-                <ScheduledRow key={s.id} item={s} onCancel={handleCancel} cancelling={cancelling === s.id} />
+                <ScheduledRow key={s.id} item={s} onCancel={handleCancel} onDelete={handleDelete} cancelling={cancelling === s.id} />
               ))}
             </>
           )}
@@ -430,7 +462,7 @@ const ScheduledTab = () => {
             <>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 mt-6">Archive</p>
               {past.map(s => (
-                <ScheduledRow key={s.id} item={s} onCancel={null} cancelling={false} />
+                <ScheduledRow key={s.id} item={s} onCancel={null} onDelete={handleDelete} cancelling={cancelling === s.id} />
               ))}
             </>
           )}
@@ -440,7 +472,7 @@ const ScheduledTab = () => {
   );
 };
 
-const ScheduledRow = ({ item: s, onCancel, cancelling }) => (
+const ScheduledRow = ({ item: s, onCancel, onDelete, cancelling }) => (
   <div className="flex items-center gap-4 px-5 py-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50">
     <LevelBadge level={s.level} />
     <div className="flex-1 min-w-0">
@@ -469,16 +501,28 @@ const ScheduledRow = ({ item: s, onCancel, cancelling }) => (
       )}
     </div>
 
-    {onCancel && s.status === 'PENDING' && (
-      <button
-        onClick={() => onCancel(s.id)}
-        disabled={cancelling}
-        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all disabled:opacity-40"
-        title="Cancel"
-      >
-        {cancelling ? <Loader2 size={15} className="animate-spin" /> : <XCircle size={15} />}
-      </button>
-    )}
+    <div className="flex items-center gap-1 shrink-0">
+      {onCancel && s.status === 'PENDING' && (
+        <button
+          onClick={() => onCancel(s.id)}
+          disabled={cancelling}
+          className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-all disabled:opacity-40"
+          title="Cancel (keep in archive)"
+        >
+          {cancelling ? <Loader2 size={15} className="animate-spin" /> : <XCircle size={15} />}
+        </button>
+      )}
+      {onDelete && (
+        <button
+          onClick={() => onDelete(s.id)}
+          disabled={cancelling}
+          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all disabled:opacity-40"
+          title="Delete permanently"
+        >
+          {cancelling ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+        </button>
+      )}
+    </div>
   </div>
 );
 

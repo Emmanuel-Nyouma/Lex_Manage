@@ -73,6 +73,16 @@ export class NotificationsController {
     return this.notificationsService.getHistory(tenantId);
   }
 
+  @Delete('history/:id')
+  @Roles('CABINET_ADMIN', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Delete a sent notification from the firm history' })
+  deleteFromHistory(
+    @CurrentUser('tenantId') tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.notificationsService.deleteFromHistory(tenantId, id);
+  }
+
   // ── Templates ──────────────────────────────────────────────────
 
   @Get('templates')
@@ -133,5 +143,15 @@ export class NotificationsController {
     @Param('id') id: string,
   ) {
     return this.notificationsService.cancelScheduled(tenantId, id);
+  }
+
+  @Delete('scheduled/:id/permanent')
+  @Roles('CABINET_ADMIN', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Permanently delete a scheduled notification (any status)' })
+  deleteScheduled(
+    @CurrentUser('tenantId') tenantId: string,
+    @Param('id') id: string,
+  ) {
+    return this.notificationsService.deleteScheduled(tenantId, id);
   }
 }

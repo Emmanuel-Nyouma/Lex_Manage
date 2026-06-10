@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Search, FileText, Briefcase, Users, X, Loader2, Command, ArrowRight } from 'lucide-react';
+import { Search, FileText, Briefcase, Users, X, Loader2, Command, ArrowRight, UserCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../lib/api';
 
 export const SearchPalette = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState({ cases: [], documents: [], members: [] });
+  const [results, setResults] = useState({ cases: [], documents: [], members: [], clients: [] });
   const [isSearching, setIsSearching] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const navigate = useNavigate();
@@ -15,14 +15,15 @@ export const SearchPalette = ({ isOpen, onClose }) => {
   const flatResults = useMemo(() => [
     ...(results.cases || []).map(r => ({ ...r, type: 'case' })),
     ...(results.documents || []).map(r => ({ ...r, type: 'doc' })),
-    ...(results.members || []).map(r => ({ ...r, type: 'member' }))
+    ...(results.members || []).map(r => ({ ...r, type: 'member' })),
+    ...(results.clients || []).map(r => ({ ...r, type: 'client' })),
   ], [results]);
 
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
       setQuery('');
-      setResults({ cases: [], documents: [], members: [] });
+      setResults({ cases: [], documents: [], members: [], clients: [] });
       setSelectedIndex(-1);
     }
   }, [isOpen]);
@@ -31,6 +32,7 @@ export const SearchPalette = ({ isOpen, onClose }) => {
     onClose();
     if (type === 'case') navigate(`/cases/${id}`);
     else if (type === 'member') navigate(`/company-settings`);
+    else if (type === 'client') navigate(`/clients/${id}`);
     else navigate(`/documents`);
   }, [navigate, onClose]);
 
@@ -88,20 +90,20 @@ export const SearchPalette = ({ isOpen, onClose }) => {
     return () => clearTimeout(timer);
   }, [query]);
 
-  const totalResults = (results.cases?.length || 0) + (results.documents?.length || 0) + (results.members?.length || 0);
+  const totalResults = (results.cases?.length || 0) + (results.documents?.length || 0) + (results.members?.length || 0) + (results.clients?.length || 0);
   const dialogId = React.useId();
 
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       role="dialog"
       aria-modal="true"
       aria-labelledby={dialogId}
-      className="fixed inset-0 z-[100] flex items-start justify-center pt-[10vh] px-4 bg-slate-950/40 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-[100] flex items-start justify-center sm:pt-[10vh] sm:px-4 bg-slate-950/40 backdrop-blur-sm animate-in fade-in duration-200"
     >
-      <div 
-        className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 slide-in-from-top-4 duration-300"
+      <div
+        className="w-full sm:max-w-2xl bg-white dark:bg-slate-900 sm:rounded-2xl shadow-2xl border-0 sm:border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 slide-in-from-top-4 duration-300 flex flex-col h-full sm:h-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input */}
@@ -124,7 +126,7 @@ export const SearchPalette = ({ isOpen, onClose }) => {
         </div>
 
         {/* Results Area */}
-        <div className="max-h-[60vh] overflow-y-auto p-2 scrollbar-thin">
+        <div className="flex-1 sm:max-h-[60vh] overflow-y-auto p-2 scrollbar-thin">
           {totalResults === 0 && query.length >= 2 && !isSearching && (
             <div className="p-10 text-center">
               <p className="text-slate-600 dark:text-slate-300 italic">Aucun résultat pour "{query}"</p>
@@ -226,6 +228,40 @@ export const SearchPalette = ({ isOpen, onClose }) => {
                       <div className="text-xs text-slate-600 dark:text-slate-300 dark:text-slate-400 mt-0.5">{res.role.replace('_', ' ')}</div>
                     </div>
                     <ArrowRight size={14} className={`text-slate-300 transition-all ${isSelected ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`} />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Group: Clients */}
+          {results.clients?.length > 0 && (
+            <div className="mb-4">
+              <div className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                <UserCheck size={12} /> Clients
+              </div>
+              {results.clients.map((res, idx) => {
+                const globalIdx = (results.cases?.length || 0) + (results.documents?.length || 0) + (results.members?.length || 0) + idx;
+                const isSelected = selectedIndex === globalIdx;
+                return (
+                  <button
+                    key={`client-${res.id}`}
+                    onClick={() => handleResultClick('client', res.id)}
+                    onMouseEnter={() => setSelectedIndex(globalIdx)}
+                    className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all text-left group ${
+                      isSelected ? 'bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-200 dark:ring-emerald-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center font-bold text-xs text-emerald-700 dark:text-emerald-400 flex-shrink-0">
+                      {res.name?.charAt(0)?.toUpperCase() || '?'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-bold text-slate-900 dark:text-white truncate">{res.name}</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                        {res.email || res.phone || res.type_client}
+                      </div>
+                    </div>
+                    <ArrowRight size={14} className={`text-slate-300 transition-all flex-shrink-0 ${isSelected ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`} />
                   </button>
                 );
               })}

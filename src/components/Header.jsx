@@ -109,14 +109,23 @@ const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen
                     </span>
                   )}
                 </div>
-                {unreadCount > 0 && (
+                <div className="flex items-center gap-1">
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={() => markAllAsRead()}
+                      className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                    >
+                      <CheckCheck size={14} aria-hidden="true" /> {t.mark_all_read}
+                    </button>
+                  )}
                   <button
-                    onClick={() => markAllAsRead()}
-                    className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                    onClick={() => setShowNotifications(false)}
+                    className="p-2 -mr-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                    aria-label={t.close}
                   >
-                    <CheckCheck size={14} aria-hidden="true" /> {t.mark_all_read}
+                    <X size={18} aria-hidden="true" />
                   </button>
-                )}
+                </div>
               </div>
 
               <div className="flex-1 overflow-y-auto">

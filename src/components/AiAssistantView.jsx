@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Bot, Send, Loader2, Sparkles, FileText, Scale, Info,
-  Plus, ShieldCheck, Copy, Check, User, MessageSquare, Trash2, Menu, Users, Briefcase,
+  Plus, ShieldCheck, Copy, Check, User, MessageSquare, Trash2, Menu,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import useLexStore from '../store/useLexStore';
 import { useConversations, chatApi } from '../hooks/useChat';
-import { useColleagues } from '../hooks/useCases';
 import useTranslation from '../hooks/useTranslation';
 
 const greeting = (t) => {
@@ -70,7 +69,7 @@ const MessageBubble = ({ msg, onTick, t }) => {
   };
 
   return (
-    <div className={`flex gap-4 ${isUser ? 'flex-row-reverse' : 'flex-row'} animate-in fade-in slide-in-from-bottom-3 duration-400`}>
+    <div className={`flex gap-2.5 sm:gap-4 ${isUser ? 'flex-row-reverse' : 'flex-row'} animate-in fade-in slide-in-from-bottom-3 duration-400`}>
       {isUser ? (
         <div className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-sm bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
           <User size={16} />
@@ -79,8 +78,8 @@ const MessageBubble = ({ msg, onTick, t }) => {
         <BotAvatar size="sm" />
       )}
 
-      <div className={`max-w-[80%] sm:max-w-[70%] group ${isUser ? 'items-end' : 'items-start'}`}>
-        <div className={`rounded-2xl px-5 py-3.5 text-[14px] leading-relaxed shadow-sm whitespace-pre-line ${
+      <div className={`max-w-[85%] sm:max-w-[70%] group ${isUser ? 'items-end' : 'items-start'}`}>
+        <div className={`rounded-2xl px-4 sm:px-5 py-3 sm:py-3.5 text-[14px] leading-relaxed shadow-sm whitespace-pre-line ${
           isUser
             ? 'bg-slate-900 dark:bg-amber-600 text-white rounded-tr-md'
             : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-tl-md'
@@ -167,76 +166,6 @@ const HistorySidebar = ({ conversations, loading, activeId, onSelect, onNew, onD
     </aside>
   </>
 );
-
-/* ─── Role badge ──────────────────────────────────────────────────────────── */
-const ROLE_LABELS = {
-  CABINET_ADMIN: { en: 'Admin', fr: 'Admin', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
-  LAWYER:        { en: 'Lawyer', fr: 'Avocat', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
-  PARALEGAL:     { en: 'Paralegal', fr: 'Juriste', color: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' },
-  SUPER_ADMIN:   { en: 'Super Admin', fr: 'Super Admin', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
-};
-
-/* ─── Colleagues panel ────────────────────────────────────────────────────── */
-const ColleaguesPanel = ({ t, language, currentUserId }) => {
-  const { data: colleagues = [], isLoading } = useColleagues();
-  const others = colleagues.filter((c) => c.id !== currentUserId);
-
-  return (
-    <div className="w-full mt-6">
-      <div className="flex items-center gap-2 mb-3">
-        <Users size={14} className="text-slate-400" />
-        <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{t.colleagues_title}</span>
-      </div>
-      {isLoading ? (
-        <div className="flex justify-center py-4"><Loader2 className="animate-spin text-amber-500" size={18} /></div>
-      ) : others.length === 0 ? (
-        <p className="text-xs text-slate-400 italic text-center py-3">{t.colleagues_empty}</p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {others.map((col) => {
-            const roleInfo = ROLE_LABELS[col.role] || ROLE_LABELS.LAWYER;
-            const caseCount = col.cases?.length ?? 0;
-            const caseLabel = caseCount === 1 ? t.colleagues_cases : t.colleagues_cases_pl;
-            return (
-              <div key={col.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 shadow-sm">
-                <div className="flex items-center gap-2.5 mb-2">
-                  <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
-                    <User size={14} className="text-slate-500 dark:text-slate-400" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-bold text-slate-800 dark:text-slate-100 truncate">
-                      {col.firstName} {col.lastName}
-                    </p>
-                    <span className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-md ${roleInfo.color}`}>
-                      {roleInfo[language] ?? roleInfo.en}
-                    </span>
-                  </div>
-                </div>
-                {caseCount === 0 ? (
-                  <p className="text-[11px] text-slate-400 italic">{t.colleagues_no_cases}</p>
-                ) : (
-                  <div>
-                    <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 mb-1.5 flex items-center gap-1">
-                      <Briefcase size={10} /> {caseCount} {caseLabel}
-                    </p>
-                    <ul className="space-y-1">
-                      {col.cases.map((c) => (
-                        <li key={c.id} className="text-[11px] text-slate-600 dark:text-slate-400 truncate flex items-center gap-1">
-                          <span className="w-1 h-1 rounded-full bg-amber-400 flex-shrink-0" />
-                          {c.title}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-};
 
 /* ════════════════════════════════════════════════════════════════════════════ */
 const AiAssistantView = () => {
@@ -391,20 +320,20 @@ const AiAssistantView = () => {
               <Loader2 className="animate-spin text-amber-500" size={28} />
             </div>
           ) : isEmpty ? (
-            <div className="h-full flex flex-col items-center justify-center px-6 max-w-2xl mx-auto text-center">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-xl shadow-amber-500/20 mb-6 animate-in zoom-in duration-500">
-                <Sparkles size={30} />
+            <div className="min-h-full flex flex-col items-center justify-center px-4 sm:px-6 py-8 max-w-2xl mx-auto text-center">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-xl shadow-amber-500/20 mb-5 sm:mb-6 animate-in zoom-in duration-500">
+                <Sparkles size={28} />
               </div>
-              <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
                 {greeting(t)}, {firstName}
               </h2>
-              <p className="text-slate-500 dark:text-slate-400 font-medium mt-2 mb-8">{t.lexassist_subtitle}</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+              <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 font-medium mt-2 mb-6 sm:mb-8">{t.lexassist_subtitle}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 w-full">
                 {SUGGESTED_PROMPTS.map((p, i) => (
                   <button
                     key={i}
                     onClick={() => handleSend(t[p.labelKey])}
-                    className="flex items-center gap-3 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-200 hover:border-amber-500 dark:hover:border-amber-500 hover:bg-amber-50/50 dark:hover:bg-amber-900/10 transition-all text-left shadow-sm active:scale-[0.98]"
+                    className="flex items-center gap-3 p-3.5 sm:p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-[13px] sm:text-sm font-bold text-slate-700 dark:text-slate-200 hover:border-amber-500 dark:hover:border-amber-500 hover:bg-amber-50/50 dark:hover:bg-amber-900/10 transition-all text-left shadow-sm active:scale-[0.98]"
                   >
                     <span className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-600 flex items-center justify-center flex-shrink-0">
                       <p.icon size={16} />
@@ -413,7 +342,6 @@ const AiAssistantView = () => {
                   </button>
                 ))}
               </div>
-              <ColleaguesPanel t={t} language={language} currentUserId={currentUser?.id} />
             </div>
           ) : (
             <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">

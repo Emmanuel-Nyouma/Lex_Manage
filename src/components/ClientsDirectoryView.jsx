@@ -5,6 +5,7 @@ import {
   Trash2, Edit2, X, Check, Building2, User as UserIcon,
   Loader2, ChevronRight, Briefcase, CalendarClock, ChevronDown, Link2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, Button, Input, Badge } from './ui';
 import { useClients, useCreateClient, useDeleteClient } from '../hooks/useClients';
 import { useCases } from '../hooks/useCases';
@@ -60,12 +61,27 @@ const ClientsDirectoryView = () => {
 
   const handleCreateClient = useCallback(async (e) => {
     e.preventDefault();
-    createClient.mutate(newClient, {
+    if (!newClient.name || newClient.name.trim().length < 2) {
+      toast.error('Client name is required (min. 2 characters).');
+      return;
+    }
+    // Strip empty optional fields — backend Zod rejects '' for uuid/email fields
+    const payload = { ...newClient };
+    if (!payload.caseId) delete payload.caseId;
+    if (!payload.deadlineId) delete payload.deadlineId;
+    if (!payload.email) delete payload.email;
+
+    createClient.mutate(payload, {
       onSuccess: () => {
+        toast.success('Client added successfully.');
         setIsModalOpen(false);
         setNewClient({ name: '', email: '', phone: '', address: '', type_client: 'physique', caseId: '', deadlineId: '' });
         setLinkExpanded(false); setCaseSearch(''); setDeadlineSearch('');
-      }
+      },
+      onError: (err) => {
+        const msg = err.response?.data?.message;
+        toast.error(Array.isArray(msg) ? msg[0] : (msg || 'Could not add the client. Please try again.'));
+      },
     });
   }, [createClient, newClient]);
 

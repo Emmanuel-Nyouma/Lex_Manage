@@ -216,6 +216,14 @@ export class NotificationsService {
     });
   }
 
+  /** Delete a sent notification from the firm history (admin only). */
+  async deleteFromHistory(tenantId: string, id: string) {
+    const notif = await this.prisma.notification.findFirst({ where: { id, tenantId } });
+    if (!notif) throw new NotFoundException('Notification not found');
+    await this.prisma.notification.delete({ where: { id } });
+    return { message: 'Notification deleted' };
+  }
+
   // ── Templates ────────────────────────────────────────────────────
 
   async getTemplates(tenantId: string) {
@@ -326,5 +334,23 @@ export class NotificationsService {
       where: { id },
       data: { status: 'CANCELLED' },
     });
+  }
+
+  /** Permanently delete a scheduled notification (any status). Removes the BullMQ job if still pending. */
+  async deleteScheduled(tenantId: string, id: string) {
+    const record = await this.prisma.scheduledNotification.findFirst({ where: { id, tenantId } });
+    if (!record) throw new NotFoundException('Scheduled notification not found');
+
+    if (record.status === 'PENDING' && record.jobId) {
+      try {
+        const job = await this.remindersQueue.getJob(record.jobId);
+        if (job) await job.remove();
+      } catch {
+        // Job may have already fired — ignore
+      }
+    }
+
+    await this.prisma.scheduledNotification.delete({ where: { id } });
+    return { message: 'Scheduled notification deleted' };
   }
 }

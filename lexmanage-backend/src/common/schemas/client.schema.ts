@@ -8,8 +8,9 @@ export const CreateClientSchema = z.object({
   phone:      z.string().optional(),
   address:    z.string().optional(),
   type_client: ClientTypeEnum,
-  caseId:     z.string().uuid().optional(),
-  deadlineId: z.string().uuid().optional(),
+  // Tolerate '' from the frontend (unselected option) by mapping it to undefined
+  caseId:     z.preprocess((v) => (v === '' ? undefined : v), z.string().uuid().optional()),
+  deadlineId: z.preprocess((v) => (v === '' ? undefined : v), z.string().uuid().optional()),
 });
 
 export const UpdateClientSchema = z.object({
