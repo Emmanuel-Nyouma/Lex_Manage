@@ -133,24 +133,28 @@ export default function LexManageApp() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
+    // Run the session bootstrap exactly once on mount. initAuth/logout are stable
+    // Zustand actions; reading the token via getState() inside the handlers avoids
+    // re-subscribing on every token change (which previously caused a refresh loop).
     initAuth();
-    
+
     // SYNC: Multi-tab session synchronization
     const handleStorageChange = (e) => {
-      if (e.key === 'accessToken' && !e.newValue && accessToken) {
+      const currentToken = useLexStore.getState().accessToken;
+      if (e.key === 'accessToken' && !e.newValue && currentToken) {
         // Token was removed in another tab (logout)
         console.log("Session terminated in another tab, logging out...");
         logout();
       }
-      if (e.key === 'wasLoggedIn' && e.newValue === 'true' && !accessToken) {
+      if (e.key === 'wasLoggedIn' && e.newValue === 'true' && !currentToken) {
         // User logged in in another tab, refresh to get session
         console.log("Session detected in another tab, initializing...");
         initAuth();
       }
     };
-    
+
     window.addEventListener('storage', handleStorageChange);
-    
+
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
@@ -158,12 +162,13 @@ export default function LexManageApp() {
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [initAuth, logout, accessToken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (socket) {

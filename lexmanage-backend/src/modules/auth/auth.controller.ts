@@ -47,7 +47,10 @@ export class AuthController {
     const refreshToken = req.cookies['refreshToken'];
     const { refreshToken: newRefreshToken, ...result } = await this.authService.refreshToken(refreshToken);
     const isProd = process.env.NODE_ENV === 'production';
-    res.cookie('refreshToken', newRefreshToken, { httpOnly: true, secure: isProd, sameSite: isProd ? 'strict' : 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
+    // Must match the login/register cookie: SameSite=None so the cookie is sent
+    // on the cross-site POST /auth/refresh (frontend and backend are on different
+    // domains). 'strict' here silently broke session persistence after the first refresh.
+    res.cookie('refreshToken', newRefreshToken, { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
     return result;
   }
 
