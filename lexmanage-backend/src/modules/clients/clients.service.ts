@@ -20,23 +20,47 @@ export class ClientsService {
   async findOne(id: string, tenantId: string) {
     const client = await this.prisma.client.findFirst({
       where: { id, tenantId },
+      include: {
+        cases: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            assignee: { select: { id: true, firstName: true, lastName: true } },
+            _count: { select: { documents: true } },
+          },
+        },
+      },
     });
     if (!client) throw new NotFoundException('Client not found');
     return client;
   }
 
-  async create(dto: CreateClientDto, tenantId: string, userId: string) {
-    const client = await this.prisma.client.create({
-      data: { ...dto, tenantId },
+  async create(dto: any, tenantId: string, userId: string) {
+    const { caseId, deadlineId, ...clientData } = dto;
+
+    const client = await this.prisma.$transaction(async (tx) => {
+      const newClient = await tx.client.create({ data: { ...clientData, tenantId } });
+
+      // Resolve caseId: either direct or via deadline's case
+      let resolvedCaseId: string | null = caseId ?? null;
+      if (!resolvedCaseId && deadlineId) {
+        const deadline = await tx.deadline.findFirst({ where: { id: deadlineId, tenantId } });
+        resolvedCaseId = deadline?.caseId ?? null;
+      }
+
+      if (resolvedCaseId) {
+        await tx.case.update({
+          where: { id: resolvedCaseId },
+          data: { clientId: newClient.id },
+        });
+      }
+
+      return newClient;
     });
 
     await this.auditService.log({
-      tenantId,
-      userId,
-      action: 'CREATE',
-      entity: 'Client',
-      entityId: client.id,
-      details: { after: client },
+      tenantId, userId,
+      action: 'CREATE', entity: 'Client', entityId: client.id,
+      details: { after: client, linkedCaseId: caseId, linkedDeadlineId: deadlineId },
     });
 
     return client;

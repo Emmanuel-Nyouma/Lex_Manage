@@ -13,6 +13,11 @@ describe('NotificationsService', () => {
     add: jest.fn(),
   };
 
+  const mockRemindersQueue = {
+    add: jest.fn(),
+    getJob: jest.fn(),
+  };
+
   const mockEventsGateway = {
     sendToTenant: jest.fn(),
   };
@@ -28,6 +33,7 @@ describe('NotificationsService', () => {
     user: {
       findMany: jest.fn(),
     },
+    $transaction: jest.fn((promises) => Promise.all(promises)),
   };
 
   beforeEach(async () => {
@@ -37,6 +43,7 @@ describe('NotificationsService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: EventsGateway, useValue: mockEventsGateway },
         { provide: getQueueToken('mail'), useValue: mockMailQueue },
+        { provide: getQueueToken('reminders'), useValue: mockRemindersQueue },
       ],
     }).compile();
 

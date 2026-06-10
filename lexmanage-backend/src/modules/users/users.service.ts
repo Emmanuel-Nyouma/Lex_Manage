@@ -101,6 +101,28 @@ export class UsersService {
     return updated;
   }
 
+  async findColleagues(tenantId: string) {
+    const users = await this.prisma.user.findMany({
+      where: { tenantId, isActive: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+        avatarUrl: true,
+        cases: {
+          where: { status: { notIn: ['CLOSED', 'ARCHIVED'] } },
+          select: { id: true, title: true, status: true, priority: true },
+          orderBy: { updatedAt: 'desc' },
+          take: 5,
+        },
+      },
+      orderBy: { firstName: 'asc' },
+    });
+    return users;
+  }
+
   async deactivate(id: string, tenantId: string, userId: string) {
     await this.findOne(id, tenantId);
     await this.prisma.user.update({ where: { id }, data: { isActive: false } });

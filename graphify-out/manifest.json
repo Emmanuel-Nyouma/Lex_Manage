@@ -1,0 +1,892 @@
+{
+  "C:\\Users\\hp\\lex-manage\\.claude\\settings.local.json": {
+    "mtime": 1780996405.574782,
+    "ast_hash": "5f5a8bebfab563a8e6f6d73a55870992",
+    "semantic_hash": "5f5a8bebfab563a8e6f6d73a55870992"
+  },
+  "C:\\Users\\hp\\lex-manage\\LexmanageRAG.json": {
+    "mtime": 1780393932.68187,
+    "ast_hash": "b58b4f0c5ec1ad70cbed0c262f5014aa",
+    "semantic_hash": "b58b4f0c5ec1ad70cbed0c262f5014aa"
+  },
+  "C:\\Users\\hp\\lex-manage\\eslint.config.js": {
+    "mtime": 1780650404.700304,
+    "ast_hash": "715dc98a00150b922519b976b213a7d3",
+    "semantic_hash": "715dc98a00150b922519b976b213a7d3"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\check-user.js": {
+    "mtime": 1779990121.3030875,
+    "ast_hash": "a95d207dbb081a0362057d79705322d0",
+    "semantic_hash": "a95d207dbb081a0362057d79705322d0"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\nest-cli.json": {
+    "mtime": 1779304263.3378148,
+    "ast_hash": "b6c9c4b64b7092bea720263a47b574cf",
+    "semantic_hash": "b6c9c4b64b7092bea720263a47b574cf"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\package.json": {
+    "mtime": 1780379170.3115215,
+    "ast_hash": "8a9bc225a0f5f7b6680391997957861b",
+    "semantic_hash": "8a9bc225a0f5f7b6680391997957861b"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\prisma\\migrations\\20260523010719_add_client_model\\migration.sql": {
+    "mtime": 1779498439.632402,
+    "ast_hash": "2cdc410e6de30e6f242bbb28d3f44ce8",
+    "semantic_hash": "2cdc410e6de30e6f242bbb28d3f44ce8"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\prisma\\migrations\\20260531074004_add_document_category\\migration.sql": {
+    "mtime": 1780213204.273377,
+    "ast_hash": "ac56bec8ffbd1885092be83617ba5a08",
+    "semantic_hash": "ac56bec8ffbd1885092be83617ba5a08"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\prisma\\migrations\\20260601113842_add_is_pending_to_document\\migration.sql": {
+    "mtime": 1780375296.5021105,
+    "ast_hash": "65bbab13928ddf03862b5958d5d408cb",
+    "semantic_hash": "65bbab13928ddf03862b5958d5d408cb"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\prisma\\migrations\\20260601120654_update_document_type_enum\\migration.sql": {
+    "mtime": 1780375296.5332313,
+    "ast_hash": "de2a10f31aa5ef24306965ee9ffc7e4e",
+    "semantic_hash": "de2a10f31aa5ef24306965ee9ffc7e4e"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\prisma\\migrations\\20260601122010_add_status_and_type_to_document\\migration.sql": {
+    "mtime": 1780375296.5550182,
+    "ast_hash": "ef548f1df899e4b90a34ac4bdb9ba0ad",
+    "semantic_hash": "ef548f1df899e4b90a34ac4bdb9ba0ad"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\prisma\\migrations\\20260603000001_tenant_firm_info\\migration.sql": {
+    "mtime": 1780484966.5618606,
+    "ast_hash": "7102b564b79285974a53cf82ac3bf298",
+    "semantic_hash": "7102b564b79285974a53cf82ac3bf298"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\prisma\\migrations\\20260603000002_notification_templates_scheduled\\migration.sql": {
+    "mtime": 1780485782.5881355,
+    "ast_hash": "07a2838e389a8aea84d057444bf79552",
+    "semantic_hash": "07a2838e389a8aea84d057444bf79552"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\prisma\\seed.ts": {
+    "mtime": 1780212613.0927145,
+    "ast_hash": "c46471a7c42fdd36285a24cfa527e251",
+    "semantic_hash": "c46471a7c42fdd36285a24cfa527e251"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\app.module.ts": {
+    "mtime": 1780934203.0674615,
+    "ast_hash": "ef76106792b9f31daef98a936ba86149",
+    "semantic_hash": "ef76106792b9f31daef98a936ba86149"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\common\\context\\tenant.context.ts": {
+    "mtime": 1780820437.9272864,
+    "ast_hash": "99e1b4fccf505ab16aee828628ba9317",
+    "semantic_hash": "99e1b4fccf505ab16aee828628ba9317"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\common\\decorators\\current-user.decorator.ts": {
+    "mtime": 1779304525.666395,
+    "ast_hash": "809e3f8338d28ba7df172d4eef8f4576",
+    "semantic_hash": "809e3f8338d28ba7df172d4eef8f4576"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\common\\decorators\\roles.decorator.ts": {
+    "mtime": 1779304524.2584853,
+    "ast_hash": "155f61ea03e3ef7d3d5e2fee554f8428",
+    "semantic_hash": "155f61ea03e3ef7d3d5e2fee554f8428"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\common\\guards\\jwt-auth.guard.ts": {
+    "mtime": 1779304518.161479,
+    "ast_hash": "490fa3f92682f8dbdc4a631a581721b9",
+    "semantic_hash": "490fa3f92682f8dbdc4a631a581721b9"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\common\\guards\\roles.guard.ts": {
+    "mtime": 1779304520.0320175,
+    "ast_hash": "e2b02b5dfbdb57c253992413e0189972",
+    "semantic_hash": "e2b02b5dfbdb57c253992413e0189972"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\common\\middleware\\tenant.middleware.spec.ts": {
+    "mtime": 1780379378.1885276,
+    "ast_hash": "7aecb2f25a7c204cb476e59bcae23698",
+    "semantic_hash": "7aecb2f25a7c204cb476e59bcae23698"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\common\\middleware\\tenant.middleware.ts": {
+    "mtime": 1780379055.0498402,
+    "ast_hash": "568e2e825a1376dfc62ba3ac961b685a",
+    "semantic_hash": "568e2e825a1376dfc62ba3ac961b685a"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\common\\pipes\\zod-validation.pipe.ts": {
+    "mtime": 1780544884.4561977,
+    "ast_hash": "47306e1d889425ca7fb72cbbf9052449",
+    "semantic_hash": "47306e1d889425ca7fb72cbbf9052449"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\common\\schemas\\case.schema.ts": {
+    "mtime": 1780475682.8667216,
+    "ast_hash": "43e635e03966251892dd8cf84a434417",
+    "semantic_hash": "43e635e03966251892dd8cf84a434417"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\common\\schemas\\client.schema.ts": {
+    "mtime": 1780926657.461984,
+    "ast_hash": "ba3cc3709b86ee35ed3a2e3eb587f7b7",
+    "semantic_hash": "ba3cc3709b86ee35ed3a2e3eb587f7b7"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\common\\schemas\\notification.schema.ts": {
+    "mtime": 1780502523.4601238,
+    "ast_hash": "13815df90daea78e76734be9d51ce822",
+    "semantic_hash": "13815df90daea78e76734be9d51ce822"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\common\\schemas\\user.schema.ts": {
+    "mtime": 1780375296.658925,
+    "ast_hash": "a917350fd331f907663d35e31b21c788",
+    "semantic_hash": "a917350fd331f907663d35e31b21c788"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\main.ts": {
+    "mtime": 1780375296.681607,
+    "ast_hash": "460bd141e41f5f48ae279f3edf090bca",
+    "semantic_hash": "460bd141e41f5f48ae279f3edf090bca"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\ai\\ai.controller.ts": {
+    "mtime": 1780933588.3163147,
+    "ast_hash": "917d562ff36f8386f16624a479b9a4d8",
+    "semantic_hash": "917d562ff36f8386f16624a479b9a4d8"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\ai\\ai.module.ts": {
+    "mtime": 1780928949.624954,
+    "ast_hash": "d93f2578010127c3ce28406f54cc5b82",
+    "semantic_hash": "d93f2578010127c3ce28406f54cc5b82"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\ai\\n8n-rag.module.ts": {
+    "mtime": 1780817917.4117322,
+    "ast_hash": "7e784bb265c27f68cc61ceecacb8ab03",
+    "semantic_hash": "7e784bb265c27f68cc61ceecacb8ab03"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\ai\\n8n-rag.service.ts": {
+    "mtime": 1780817917.360635,
+    "ast_hash": "9aebe102c0f500054100ae4a5faf8088",
+    "semantic_hash": "9aebe102c0f500054100ae4a5faf8088"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\audit\\audit.controller.ts": {
+    "mtime": 1779305225.5153453,
+    "ast_hash": "0ba96e4ab9889c5e0b6cbb1868f1caa4",
+    "semantic_hash": "0ba96e4ab9889c5e0b6cbb1868f1caa4"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\audit\\audit.module.ts": {
+    "mtime": 1779305227.643092,
+    "ast_hash": "b53164ecb63aab1cdaabcb5f61186ed4",
+    "semantic_hash": "b53164ecb63aab1cdaabcb5f61186ed4"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\audit\\audit.service.ts": {
+    "mtime": 1780389042.3333807,
+    "ast_hash": "0ffe4040e036a0345618736d1db3c485",
+    "semantic_hash": "0ffe4040e036a0345618736d1db3c485"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\auth\\auth.controller.ts": {
+    "mtime": 1780418026.289121,
+    "ast_hash": "a8417e23fdee4c1f0be181fcd7dd9f56",
+    "semantic_hash": "a8417e23fdee4c1f0be181fcd7dd9f56"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\auth\\auth.module.ts": {
+    "mtime": 1780377220.87217,
+    "ast_hash": "7a80aeefce293af6d173c7dfec4a7b67",
+    "semantic_hash": "7a80aeefce293af6d173c7dfec4a7b67"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\auth\\auth.service.ts": {
+    "mtime": 1780820623.342692,
+    "ast_hash": "a52141a55799def146788f9102b4d58e",
+    "semantic_hash": "a52141a55799def146788f9102b4d58e"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\auth\\dto\\auth.dto.ts": {
+    "mtime": 1779987333.8123293,
+    "ast_hash": "d47418327bc999c9e5a1d3cbf6c7c8eb",
+    "semantic_hash": "d47418327bc999c9e5a1d3cbf6c7c8eb"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\auth\\strategies\\jwt.strategy.ts": {
+    "mtime": 1780379055.0498402,
+    "ast_hash": "dbc33c0f9493e75ebf85576cf05e79c4",
+    "semantic_hash": "dbc33c0f9493e75ebf85576cf05e79c4"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\calendar\\calendar.controller.ts": {
+    "mtime": 1780375296.6963162,
+    "ast_hash": "39837958b76aa11282793b44138a07a4",
+    "semantic_hash": "39837958b76aa11282793b44138a07a4"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\calendar\\calendar.module.ts": {
+    "mtime": 1780375296.7122276,
+    "ast_hash": "417f5a03361a03ceac003f492acce0c8",
+    "semantic_hash": "417f5a03361a03ceac003f492acce0c8"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\case-documents\\case-documents.controller.ts": {
+    "mtime": 1780375296.7249088,
+    "ast_hash": "a52b0fbe207bd8cea1d7a5a5a3986a8e",
+    "semantic_hash": "a52b0fbe207bd8cea1d7a5a5a3986a8e"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\case-documents\\case-documents.module.ts": {
+    "mtime": 1780375296.7463317,
+    "ast_hash": "b024a2b4ec58be4a650d05a45d9fd219",
+    "semantic_hash": "b024a2b4ec58be4a650d05a45d9fd219"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\case-documents\\case-documents.service.ts": {
+    "mtime": 1780375296.769476,
+    "ast_hash": "aa36a42da812a77bf55982e51158ac72",
+    "semantic_hash": "aa36a42da812a77bf55982e51158ac72"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\cases\\cases.controller.ts": {
+    "mtime": 1780375296.7872198,
+    "ast_hash": "cd8edbaa388ff5decb2686e248347938",
+    "semantic_hash": "cd8edbaa388ff5decb2686e248347938"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\cases\\cases.module.ts": {
+    "mtime": 1780375296.8017726,
+    "ast_hash": "74376a5022a4b3b69f37037bb7bc72e6",
+    "semantic_hash": "74376a5022a4b3b69f37037bb7bc72e6"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\cases\\cases.service.spec.ts": {
+    "mtime": 1780416222.7115927,
+    "ast_hash": "26713be3dc21607b2a07ddf852ba4a57",
+    "semantic_hash": "26713be3dc21607b2a07ddf852ba4a57"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\cases\\cases.service.ts": {
+    "mtime": 1780914446.0880094,
+    "ast_hash": "44036bffae241a543083e397f2594eb3",
+    "semantic_hash": "44036bffae241a543083e397f2594eb3"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\cases\\deadlines.controller.ts": {
+    "mtime": 1780482344.2665355,
+    "ast_hash": "6dfb823cae7fd6e267dc91216126e407",
+    "semantic_hash": "6dfb823cae7fd6e267dc91216126e407"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\cases\\dto\\case.dto.ts": {
+    "mtime": 1780914414.4560463,
+    "ast_hash": "bcc6c6d77bdc95a7478ab6071f5aa400",
+    "semantic_hash": "bcc6c6d77bdc95a7478ab6071f5aa400"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\chat\\chat.controller.ts": {
+    "mtime": 1780821797.3448367,
+    "ast_hash": "be0cbdd4254e8a29896e556368af3317",
+    "semantic_hash": "be0cbdd4254e8a29896e556368af3317"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\chat\\chat.module.ts": {
+    "mtime": 1780821602.471885,
+    "ast_hash": "999af9d97ffd5ee745b51e0148d35e41",
+    "semantic_hash": "999af9d97ffd5ee745b51e0148d35e41"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\chat\\chat.service.ts": {
+    "mtime": 1780821795.2179914,
+    "ast_hash": "3c8d544524d8bbb53f4dcab04cc1ba60",
+    "semantic_hash": "3c8d544524d8bbb53f4dcab04cc1ba60"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\clients\\clients.controller.ts": {
+    "mtime": 1780927500.122799,
+    "ast_hash": "79317ff75678b3be251d235d94b9e25f",
+    "semantic_hash": "79317ff75678b3be251d235d94b9e25f"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\clients\\clients.module.ts": {
+    "mtime": 1780375296.862653,
+    "ast_hash": "23fe77e6f490e5b24219b7b7c3acccda",
+    "semantic_hash": "23fe77e6f490e5b24219b7b7c3acccda"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\clients\\clients.service.ts": {
+    "mtime": 1780926726.9447196,
+    "ast_hash": "61321bcd5e3eb9badae05888c4361612",
+    "semantic_hash": "61321bcd5e3eb9badae05888c4361612"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\clients\\dto\\client.dto.ts": {
+    "mtime": 1779489893.710796,
+    "ast_hash": "4a25bb8068c12e014f499bea73f5976e",
+    "semantic_hash": "4a25bb8068c12e014f499bea73f5976e"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\documents\\documents.controller.ts": {
+    "mtime": 1780659502.9893868,
+    "ast_hash": "f47ff5612c6fb734c9d567bf3c81f8d6",
+    "semantic_hash": "f47ff5612c6fb734c9d567bf3c81f8d6"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\documents\\documents.module.ts": {
+    "mtime": 1780817927.2445118,
+    "ast_hash": "c13bde41cd5def7ade98e5e1da478dc6",
+    "semantic_hash": "c13bde41cd5def7ade98e5e1da478dc6"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\documents\\documents.service.ts": {
+    "mtime": 1780938547.8002427,
+    "ast_hash": "6a012550a915ff23306afb9f2e561730",
+    "semantic_hash": "6a012550a915ff23306afb9f2e561730"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\documents\\dto\\document.dto.ts": {
+    "mtime": 1780375296.921352,
+    "ast_hash": "45aa7e4e608b2656073419cf988783ee",
+    "semantic_hash": "45aa7e4e608b2656073419cf988783ee"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\documents\\minio.service.ts": {
+    "mtime": 1780928805.3681211,
+    "ast_hash": "24016a2cae6ecbe0278e3bc8f082f534",
+    "semantic_hash": "24016a2cae6ecbe0278e3bc8f082f534"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\documents\\ocr.service.ts": {
+    "mtime": 1779386619.8370483,
+    "ast_hash": "dbca4ba3e52ab9cc58277fad90bbf741",
+    "semantic_hash": "dbca4ba3e52ab9cc58277fad90bbf741"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\events\\events.gateway.ts": {
+    "mtime": 1780379328.898512,
+    "ast_hash": "0eacac5e4a9509279c7a9c1fcaa59d91",
+    "semantic_hash": "0eacac5e4a9509279c7a9c1fcaa59d91"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\events\\events.module.ts": {
+    "mtime": 1779499312.1021795,
+    "ast_hash": "49f265b9f79728258bf60e0691a19c9b",
+    "semantic_hash": "49f265b9f79728258bf60e0691a19c9b"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\mail\\mail.module.ts": {
+    "mtime": 1780375296.943007,
+    "ast_hash": "a84ac192d2b9f662bcfd826420c61f4a",
+    "semantic_hash": "a84ac192d2b9f662bcfd826420c61f4a"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\mail\\mail.service.ts": {
+    "mtime": 1780725149.7922993,
+    "ast_hash": "097ab9be9c272ef29a2881379d1deba0",
+    "semantic_hash": "097ab9be9c272ef29a2881379d1deba0"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\notifications\\cleanup.service.ts": {
+    "mtime": 1780375296.9648728,
+    "ast_hash": "825aedda433a3ef8d4e9f4424bbd1bd4",
+    "semantic_hash": "825aedda433a3ef8d4e9f4424bbd1bd4"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\notifications\\dto\\create-notification.dto.ts": {
+    "mtime": 1780471258.7193472,
+    "ast_hash": "6698a4303a4ee4b6445f6d7db06fef4b",
+    "semantic_hash": "6698a4303a4ee4b6445f6d7db06fef4b"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\notifications\\mail.processor.ts": {
+    "mtime": 1780375296.989409,
+    "ast_hash": "9f98697e42fe816f8b43cee0b9bf560e",
+    "semantic_hash": "9f98697e42fe816f8b43cee0b9bf560e"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\notifications\\notifications.controller.ts": {
+    "mtime": 1780546145.6022198,
+    "ast_hash": "d786f1098ae6b6d5f7490265f33a9492",
+    "semantic_hash": "d786f1098ae6b6d5f7490265f33a9492"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\notifications\\notifications.module.ts": {
+    "mtime": 1780375297.0097723,
+    "ast_hash": "d7452472d7d6f1302bfd13dca27868a4",
+    "semantic_hash": "d7452472d7d6f1302bfd13dca27868a4"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\notifications\\notifications.service.spec.ts": {
+    "mtime": 1780658156.8232887,
+    "ast_hash": "a9489914d15051c43c8463fdcc33b9db",
+    "semantic_hash": "a9489914d15051c43c8463fdcc33b9db"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\notifications\\notifications.service.ts": {
+    "mtime": 1780546127.0367882,
+    "ast_hash": "359bd24dadf0953b6c4cb771a628850a",
+    "semantic_hash": "359bd24dadf0953b6c4cb771a628850a"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\notifications\\reminders.processor.ts": {
+    "mtime": 1780485866.2528677,
+    "ast_hash": "2275c3db831b372d31e3b1e028dd5d06",
+    "semantic_hash": "2275c3db831b372d31e3b1e028dd5d06"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\notifications\\reminders.service.ts": {
+    "mtime": 1780375297.050063,
+    "ast_hash": "3c548cde14e8a1cc5b9818d59146c737",
+    "semantic_hash": "3c548cde14e8a1cc5b9818d59146c737"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\search\\search.controller.ts": {
+    "mtime": 1779483350.6871343,
+    "ast_hash": "5de5a87f9a93d2ed487c7ab129d6a9a7",
+    "semantic_hash": "5de5a87f9a93d2ed487c7ab129d6a9a7"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\search\\search.module.ts": {
+    "mtime": 1779483350.6871343,
+    "ast_hash": "e12c4e1a7f8bed745c4ae89c67e461cf",
+    "semantic_hash": "e12c4e1a7f8bed745c4ae89c67e461cf"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\search\\search.service.ts": {
+    "mtime": 1780375297.0711267,
+    "ast_hash": "d61424ad646203d3fa672abd709a6f65",
+    "semantic_hash": "d61424ad646203d3fa672abd709a6f65"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\stats\\stats.controller.ts": {
+    "mtime": 1779958423.909257,
+    "ast_hash": "f54f7577820d36e8e677c72ceeb3c45f",
+    "semantic_hash": "f54f7577820d36e8e677c72ceeb3c45f"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\stats\\stats.module.ts": {
+    "mtime": 1779491575.941898,
+    "ast_hash": "9213147061aa3968dfdc15885b198c15",
+    "semantic_hash": "9213147061aa3968dfdc15885b198c15"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\stats\\stats.service.ts": {
+    "mtime": 1780925606.3014648,
+    "ast_hash": "3b6ed611c35027d6c14eab5754f817ff",
+    "semantic_hash": "3b6ed611c35027d6c14eab5754f817ff"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\tenants\\tenants.controller.ts": {
+    "mtime": 1780487019.3140683,
+    "ast_hash": "164e04de59f7ef501758886d0a189b2b",
+    "semantic_hash": "164e04de59f7ef501758886d0a189b2b"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\tenants\\tenants.module.ts": {
+    "mtime": 1780485071.3747723,
+    "ast_hash": "4968eff81c7fadb5e30ba80ce3a31927",
+    "semantic_hash": "4968eff81c7fadb5e30ba80ce3a31927"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\tenants\\tenants.service.ts": {
+    "mtime": 1780487310.2102425,
+    "ast_hash": "2d0947da9b263ab90fa817e3a096d0f2",
+    "semantic_hash": "2d0947da9b263ab90fa817e3a096d0f2"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\users\\dto\\user.dto.ts": {
+    "mtime": 1779304849.6733923,
+    "ast_hash": "ac938b7df9827f4880771ee06cf8f460",
+    "semantic_hash": "ac938b7df9827f4880771ee06cf8f460"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\users\\users.controller.ts": {
+    "mtime": 1780920508.3464892,
+    "ast_hash": "4d35806da1d0d7fca42a551e096145b3",
+    "semantic_hash": "4d35806da1d0d7fca42a551e096145b3"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\users\\users.module.ts": {
+    "mtime": 1780375297.1270394,
+    "ast_hash": "40b8bb0100f26f0b31e7ddd9c7cd7f7d",
+    "semantic_hash": "40b8bb0100f26f0b31e7ddd9c7cd7f7d"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\modules\\users\\users.service.ts": {
+    "mtime": 1780924479.3361678,
+    "ast_hash": "e2a572c6aabba4b8df07080bdbcd7673",
+    "semantic_hash": "e2a572c6aabba4b8df07080bdbcd7673"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\prisma\\prisma.module.ts": {
+    "mtime": 1779304488.4335554,
+    "ast_hash": "3505a1831c78f0a9475e4ce0f0092410",
+    "semantic_hash": "3505a1831c78f0a9475e4ce0f0092410"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\prisma\\prisma.service.ts": {
+    "mtime": 1780929894.9830217,
+    "ast_hash": "dc5afd27a23c6e47e33f0b6a72b87666",
+    "semantic_hash": "dc5afd27a23c6e47e33f0b6a72b87666"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\stats\\stats.controller.spec.ts": {
+    "mtime": 1779992738.3234293,
+    "ast_hash": "46bd71fcd2142d3bda433db57f1d649a",
+    "semantic_hash": "46bd71fcd2142d3bda433db57f1d649a"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\stats\\stats.controller.ts": {
+    "mtime": 1779498860.8436594,
+    "ast_hash": "fda12334eaaaa5e895b17d3876bf9c1e",
+    "semantic_hash": "fda12334eaaaa5e895b17d3876bf9c1e"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\stats\\stats.module.ts": {
+    "mtime": 1779495118.2895389,
+    "ast_hash": "f9f0db6f0a2a910c516ccc1941ee5720",
+    "semantic_hash": "f9f0db6f0a2a910c516ccc1941ee5720"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\stats\\stats.service.spec.ts": {
+    "mtime": 1779992738.4859686,
+    "ast_hash": "46032cd1f85dd195fa2c52c3fc0bf73e",
+    "semantic_hash": "46032cd1f85dd195fa2c52c3fc0bf73e"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\src\\stats\\stats.service.ts": {
+    "mtime": 1779498767.2541902,
+    "ast_hash": "cb24bce0072a63d73a10b570aa499eeb",
+    "semantic_hash": "cb24bce0072a63d73a10b570aa499eeb"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\tsconfig.json": {
+    "mtime": 1779304261.277055,
+    "ast_hash": "8c90df5f1a371cb06805ba6c6172d84a",
+    "semantic_hash": "8c90df5f1a371cb06805ba6c6172d84a"
+  },
+  "C:\\Users\\hp\\lex-manage\\package.json": {
+    "mtime": 1780375297.17699,
+    "ast_hash": "6df32714ce6243d399d1120f44fd57ac",
+    "semantic_hash": "6df32714ce6243d399d1120f44fd57ac"
+  },
+  "C:\\Users\\hp\\lex-manage\\postcss.config.js": {
+    "mtime": 1769170161.9617207,
+    "ast_hash": "8e5f2021f5b1721b527c842f43f78c73",
+    "semantic_hash": "8e5f2021f5b1721b527c842f43f78c73"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\App.jsx": {
+    "mtime": 1780924718.2181098,
+    "ast_hash": "b8bca4a30823b4ac209978960d29f9b7",
+    "semantic_hash": "b8bca4a30823b4ac209978960d29f9b7"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\AiAssistantView.jsx": {
+    "mtime": 1780920845.2085526,
+    "ast_hash": "8529e1debc4dd5304df818895cd9c082",
+    "semantic_hash": "8529e1debc4dd5304df818895cd9c082"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\AiDashboardView.jsx": {
+    "mtime": 1780917688.041498,
+    "ast_hash": "c7428f838b048f64bf38a6c26edbe544",
+    "semantic_hash": "c7428f838b048f64bf38a6c26edbe544"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\AuditLogsTable.jsx": {
+    "mtime": 1780658817.543145,
+    "ast_hash": "51cfbdfbecc0cb3c7a1a9e88ab69dd59",
+    "semantic_hash": "51cfbdfbecc0cb3c7a1a9e88ab69dd59"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\AuthScreen.jsx": {
+    "mtime": 1780377101.542741,
+    "ast_hash": "1f9a56ebba2c9571d306e8b987625be1",
+    "semantic_hash": "1f9a56ebba2c9571d306e8b987625be1"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\CalendarView.jsx": {
+    "mtime": 1780649886.2243562,
+    "ast_hash": "21e2afc0f9a89e7380ab90650d4fcf16",
+    "semantic_hash": "21e2afc0f9a89e7380ab90650d4fcf16"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\CaseDrawer.jsx": {
+    "mtime": 1780649043.2571833,
+    "ast_hash": "6cfccd078b48ed1e7a80b3f3da573df2",
+    "semantic_hash": "6cfccd078b48ed1e7a80b3f3da573df2"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\CaseManagementView.jsx": {
+    "mtime": 1780914572.754367,
+    "ast_hash": "d1f9905cd668421cfe09df1101cc922e",
+    "semantic_hash": "d1f9905cd668421cfe09df1101cc922e"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\ClientsDirectoryView.jsx": {
+    "mtime": 1780927686.1732225,
+    "ast_hash": "f6008561d18092da33b885e9069edb75",
+    "semantic_hash": "f6008561d18092da33b885e9069edb75"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\CompanySettingsView.jsx": {
+    "mtime": 1780650454.643756,
+    "ast_hash": "8189ff181fbad4bc0c80ee1ef49963fb",
+    "semantic_hash": "8189ff181fbad4bc0c80ee1ef49963fb"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\ConfirmDialog.jsx": {
+    "mtime": 1780375297.272238,
+    "ast_hash": "e2a77399e31c5cb703d0eaeee9d889e3",
+    "semantic_hash": "e2a77399e31c5cb703d0eaeee9d889e3"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\DashboardView.jsx": {
+    "mtime": 1780925768.7091527,
+    "ast_hash": "0ecaa67763ef1573138fdcd5041c229a",
+    "semantic_hash": "0ecaa67763ef1573138fdcd5041c229a"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\DocumentUpload.jsx": {
+    "mtime": 1780933477.55514,
+    "ast_hash": "bcb166304543c95e5ec673306df1d2aa",
+    "semantic_hash": "bcb166304543c95e5ec673306df1d2aa"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\DocumentsView.jsx": {
+    "mtime": 1780929179.0648408,
+    "ast_hash": "af544c0270838b56ddebb33ba20e0eec",
+    "semantic_hash": "af544c0270838b56ddebb33ba20e0eec"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\EmptyState.jsx": {
+    "mtime": 1780375297.301939,
+    "ast_hash": "91e1f9ab6d574ec520f90c4892dc4330",
+    "semantic_hash": "91e1f9ab6d574ec520f90c4892dc4330"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\ErrorHandler.jsx": {
+    "mtime": 1780378686.801394,
+    "ast_hash": "c46d2992072a3de670fc20287ec80436",
+    "semantic_hash": "c46d2992072a3de670fc20287ec80436"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\GlobalErrorBoundary.jsx": {
+    "mtime": 1780378698.524765,
+    "ast_hash": "b13604e2a12de1addca0fb644639ee44",
+    "semantic_hash": "b13604e2a12de1addca0fb644639ee44"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\Header.jsx": {
+    "mtime": 1780917596.454424,
+    "ast_hash": "4b83fc4c7ff8599d57d3c784f3ae6283",
+    "semantic_hash": "4b83fc4c7ff8599d57d3c784f3ae6283"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\NewCaseDialog.jsx": {
+    "mtime": 1780976059.5992548,
+    "ast_hash": "a4cc52e6ae3441aa416b3106cf055638",
+    "semantic_hash": "a4cc52e6ae3441aa416b3106cf055638"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\NewEventDialog.jsx": {
+    "mtime": 1780650404.700304,
+    "ast_hash": "3b9f63aebfa97c09bb9f5c5e1cbd06bb",
+    "semantic_hash": "3b9f63aebfa97c09bb9f5c5e1cbd06bb"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\NotificationCenterView.jsx": {
+    "mtime": 1780650454.643756,
+    "ast_hash": "c79ee7dbcc2e03188185855a84670223",
+    "semantic_hash": "c79ee7dbcc2e03188185855a84670223"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\PdfPreviewModal.jsx": {
+    "mtime": 1780375297.3190813,
+    "ast_hash": "711cde6c614b617b4dea966ebb445be8",
+    "semantic_hash": "711cde6c614b617b4dea966ebb445be8"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\ProfileView.jsx": {
+    "mtime": 1780659613.7102132,
+    "ast_hash": "c132d3c1f47f513afa5d9311b53b9f53",
+    "semantic_hash": "c132d3c1f47f513afa5d9311b53b9f53"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\SendNotificationDialog.jsx": {
+    "mtime": 1780650101.7383091,
+    "ast_hash": "390c75ca8e7955d3b4129411e1c1df0a",
+    "semantic_hash": "390c75ca8e7955d3b4129411e1c1df0a"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\SettingsView.jsx": {
+    "mtime": 1780403461.469842,
+    "ast_hash": "fba0beb2aa06f3bc93f04756ffe78cb7",
+    "semantic_hash": "fba0beb2aa06f3bc93f04756ffe78cb7"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\Sidebar.jsx": {
+    "mtime": 1780924775.0286243,
+    "ast_hash": "c5f2394f13278f7943d9a63f0f6e4d84",
+    "semantic_hash": "c5f2394f13278f7943d9a63f0f6e4d84"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\search\\SearchPalette.jsx": {
+    "mtime": 1780650597.1361735,
+    "ast_hash": "e939009323f21bbdda34621846640588",
+    "semantic_hash": "e939009323f21bbdda34621846640588"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\ui\\Badge.jsx": {
+    "mtime": 1780377373.1531866,
+    "ast_hash": "e6bb1e9ea6eda13f5ae940ea976871e3",
+    "semantic_hash": "e6bb1e9ea6eda13f5ae940ea976871e3"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\ui\\Breadcrumb.jsx": {
+    "mtime": 1780375297.3607693,
+    "ast_hash": "e8c518e4eae78375262fee1debc499a2",
+    "semantic_hash": "e8c518e4eae78375262fee1debc499a2"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\ui\\Breadcrumbs.jsx": {
+    "mtime": 1780547638.14985,
+    "ast_hash": "c79fd67fbf68069ae26e8c56279889e0",
+    "semantic_hash": "c79fd67fbf68069ae26e8c56279889e0"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\ui\\Button.jsx": {
+    "mtime": 1780400995.2483654,
+    "ast_hash": "dd5b85bfec6e27dd58ea33a42bfd5869",
+    "semantic_hash": "dd5b85bfec6e27dd58ea33a42bfd5869"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\ui\\Card.jsx": {
+    "mtime": 1779997091.901929,
+    "ast_hash": "76b355b6b2831dfd1fff15402f8e328b",
+    "semantic_hash": "76b355b6b2831dfd1fff15402f8e328b"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\ui\\Checkbox.jsx": {
+    "mtime": 1780379809.6195781,
+    "ast_hash": "447164c051c11393fb4e3cc91819ccf1",
+    "semantic_hash": "447164c051c11393fb4e3cc91819ccf1"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\ui\\FocusTrap.jsx": {
+    "mtime": 1780378925.7359142,
+    "ast_hash": "7d5d64958bdc42cd3c0a2fef088cb190",
+    "semantic_hash": "7d5d64958bdc42cd3c0a2fef088cb190"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\ui\\Input.jsx": {
+    "mtime": 1780378537.9364817,
+    "ast_hash": "ce8ef3ae54ddb2bae10f0fb34643734b",
+    "semantic_hash": "ce8ef3ae54ddb2bae10f0fb34643734b"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\ui\\Skeleton.jsx": {
+    "mtime": 1779997120.0855453,
+    "ast_hash": "a08661080d7297f87ba909b1ca0a12d8",
+    "semantic_hash": "a08661080d7297f87ba909b1ca0a12d8"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\ui\\Textarea.jsx": {
+    "mtime": 1780378546.0759995,
+    "ast_hash": "ae581f4e6c5b9676e27705857a66cee6",
+    "semantic_hash": "ae581f4e6c5b9676e27705857a66cee6"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\ui\\Tooltip.jsx": {
+    "mtime": 1780375297.3810184,
+    "ast_hash": "11b27c5b791c6be97c529231ed3ea9c4",
+    "semantic_hash": "11b27c5b791c6be97c529231ed3ea9c4"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\components\\ui\\index.js": {
+    "mtime": 1780378952.3185518,
+    "ast_hash": "1793ac29ee451502bd4dfe85a6dc762c",
+    "semantic_hash": "1793ac29ee451502bd4dfe85a6dc762c"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\config\\api.config.js": {
+    "mtime": 1780380496.1531198,
+    "ast_hash": "a847f3cf86d39da2c30e318dc5f4a8d7",
+    "semantic_hash": "a847f3cf86d39da2c30e318dc5f4a8d7"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\config\\dms.config.js": {
+    "mtime": 1780479219.7960808,
+    "ast_hash": "e21715871967718f98f694b1805ba93c",
+    "semantic_hash": "e21715871967718f98f694b1805ba93c"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\hooks\\useCalendar.js": {
+    "mtime": 1780375297.387187,
+    "ast_hash": "40796a819bce2a11ff66e73cbe1a46c7",
+    "semantic_hash": "40796a819bce2a11ff66e73cbe1a46c7"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\hooks\\useCases.js": {
+    "mtime": 1780920774.1439438,
+    "ast_hash": "90aded106f0ee179659b9c89f37fb628",
+    "semantic_hash": "90aded106f0ee179659b9c89f37fb628"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\hooks\\useChat.js": {
+    "mtime": 1780548172.9410517,
+    "ast_hash": "9028c703ca5cdfa8287fc26cbda6fc05",
+    "semantic_hash": "9028c703ca5cdfa8287fc26cbda6fc05"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\hooks\\useClients.js": {
+    "mtime": 1780918538.3370438,
+    "ast_hash": "9c6984657ad93ff2627fb9cd28ac7fe6",
+    "semantic_hash": "9c6984657ad93ff2627fb9cd28ac7fe6"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\hooks\\useDocuments.js": {
+    "mtime": 1780658942.7174284,
+    "ast_hash": "56101bd8411e67872fa2f529e0eebe93",
+    "semantic_hash": "56101bd8411e67872fa2f529e0eebe93"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\hooks\\useIdleTimeout.js": {
+    "mtime": 1778799898.254987,
+    "ast_hash": "fe566dec1fbd9ffd3621a60c1582e703",
+    "semantic_hash": "fe566dec1fbd9ffd3621a60c1582e703"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\hooks\\useKeyboardNavigation.js": {
+    "mtime": 1780375297.3986158,
+    "ast_hash": "3a07802ba5573907b32fc52ac741013a",
+    "semantic_hash": "3a07802ba5573907b32fc52ac741013a"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\hooks\\useNotifications.js": {
+    "mtime": 1780650196.521116,
+    "ast_hash": "30cd6f6facd54bb8f5dad6cc3864244c",
+    "semantic_hash": "30cd6f6facd54bb8f5dad6cc3864244c"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\hooks\\useProfile.js": {
+    "mtime": 1780375297.4072428,
+    "ast_hash": "fd08c2af30664c9de20209f19df1faa2",
+    "semantic_hash": "fd08c2af30664c9de20209f19df1faa2"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\hooks\\useSocket.js": {
+    "mtime": 1780659190.0522654,
+    "ast_hash": "476474788bc8892da3a2b2364baa5ee1",
+    "semantic_hash": "476474788bc8892da3a2b2364baa5ee1"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\lib\\api.js": {
+    "mtime": 1780380504.0009499,
+    "ast_hash": "dad3a0f36e8303e53aa29bf2707c2809",
+    "semantic_hash": "dad3a0f36e8303e53aa29bf2707c2809"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\lib\\documentService.js": {
+    "mtime": 1780479414.6668086,
+    "ast_hash": "6209706159f2039ddd0267ec1ba444b4",
+    "semantic_hash": "6209706159f2039ddd0267ec1ba444b4"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\lib\\gemini.js": {
+    "mtime": 1779955705.7929752,
+    "ast_hash": "def790941c7988998314aa68df42f837",
+    "semantic_hash": "def790941c7988998314aa68df42f837"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\lib\\geminiGuard.js": {
+    "mtime": 1779955723.1826797,
+    "ast_hash": "f6e8c063110d122c47144f87faa701dc",
+    "semantic_hash": "f6e8c063110d122c47144f87faa701dc"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\lib\\queryKeys.js": {
+    "mtime": 1780375297.436821,
+    "ast_hash": "990acabb8fbf14a35096c542742fcd1a",
+    "semantic_hash": "990acabb8fbf14a35096c542742fcd1a"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\lib\\sanitizer.js": {
+    "mtime": 1780375297.4401727,
+    "ast_hash": "1e842b84132eab3df1e185444220233e",
+    "semantic_hash": "1e842b84132eab3df1e185444220233e"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\lib\\schemas\\case.schema.js": {
+    "mtime": 1780914457.9682584,
+    "ast_hash": "1b1556299a84d69d5bde94c006f4ce44",
+    "semantic_hash": "1b1556299a84d69d5bde94c006f4ce44"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\lib\\schemas\\notification.schema.js": {
+    "mtime": 1780486706.2768533,
+    "ast_hash": "adbc582c017f0fff6e3392f9e9e013db",
+    "semantic_hash": "adbc582c017f0fff6e3392f9e9e013db"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\main.jsx": {
+    "mtime": 1780973224.9151695,
+    "ast_hash": "aa6ed1aa6b46211c1af395cdebda9ec5",
+    "semantic_hash": "aa6ed1aa6b46211c1af395cdebda9ec5"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\store\\useLexStore.js": {
+    "mtime": 1780974932.2666678,
+    "ast_hash": "f34b5a6ae80cfe28f2bbc4d92f9648ae",
+    "semantic_hash": "f34b5a6ae80cfe28f2bbc4d92f9648ae"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\types\\index.ts": {
+    "mtime": 1780388800.6272914,
+    "ast_hash": "27d53329761facaf9861646bde59d334",
+    "semantic_hash": "27d53329761facaf9861646bde59d334"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\utils\\export.js": {
+    "mtime": 1778794447.7992144,
+    "ast_hash": "8c7c8c6b8609b43638d68b1aeaeb9fcb",
+    "semantic_hash": "8c7c8c6b8609b43638d68b1aeaeb9fcb"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\utils\\hooks.js": {
+    "mtime": 1779392262.0458004,
+    "ast_hash": "864667d344d34c79151fdb15b0740c07",
+    "semantic_hash": "864667d344d34c79151fdb15b0740c07"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\utils\\translations.js": {
+    "mtime": 1780924619.7815146,
+    "ast_hash": "9d0b81b35fc3333721bbbf6b779b0663",
+    "semantic_hash": "9d0b81b35fc3333721bbbf6b779b0663"
+  },
+  "C:\\Users\\hp\\lex-manage\\tailwind.config.js": {
+    "mtime": 1772228025.1454089,
+    "ast_hash": "1ed6976350132f45e4dcc9b27afad9d1",
+    "semantic_hash": "1ed6976350132f45e4dcc9b27afad9d1"
+  },
+  "C:\\Users\\hp\\lex-manage\\vite.config.js": {
+    "mtime": 1779303143.2195392,
+    "ast_hash": "88439104b3c207f17d33ef3160e3b080",
+    "semantic_hash": "88439104b3c207f17d33ef3160e3b080"
+  },
+  "C:\\Users\\hp\\lex-manage\\.github\\workflows\\ci.yml": {
+    "mtime": 1780213919.716603,
+    "ast_hash": "968bb08127e830f6aee0e751e76e6cee",
+    "semantic_hash": "968bb08127e830f6aee0e751e76e6cee"
+  },
+  "C:\\Users\\hp\\lex-manage\\DESIGN_SYSTEM.md": {
+    "mtime": 1780375296.3471224,
+    "ast_hash": "80b1587f79061c27cfd01b331cf42196",
+    "semantic_hash": "80b1587f79061c27cfd01b331cf42196"
+  },
+  "C:\\Users\\hp\\lex-manage\\GEMINI.md": {
+    "mtime": 1780375296.35161,
+    "ast_hash": "caa580d376d39ae4a3ec9e49eb8683b7",
+    "semantic_hash": "caa580d376d39ae4a3ec9e49eb8683b7"
+  },
+  "C:\\Users\\hp\\lex-manage\\LEXMANAGE_COMPREHENSIVE_AUDIT_REPORT.md": {
+    "mtime": 1780375295.057995,
+    "ast_hash": "a2c0b970e414c7d01aff63f2361691e9",
+    "semantic_hash": "a2c0b970e414c7d01aff63f2361691e9"
+  },
+  "C:\\Users\\hp\\lex-manage\\LEXMANAGE_DOC.md": {
+    "mtime": 1780375296.3737068,
+    "ast_hash": "52d330748916afb0b2345d947c72903d",
+    "semantic_hash": "52d330748916afb0b2345d947c72903d"
+  },
+  "C:\\Users\\hp\\lex-manage\\README.md": {
+    "mtime": 1780212578.9315958,
+    "ast_hash": "83b73fc08929617ee0f824d2cc3b81fb",
+    "semantic_hash": "83b73fc08929617ee0f824d2cc3b81fb"
+  },
+  "C:\\Users\\hp\\lex-manage\\docker-compose.yml": {
+    "mtime": 1780375296.3784914,
+    "ast_hash": "32c4bd372244b7fa05734493229b5065",
+    "semantic_hash": "32c4bd372244b7fa05734493229b5065"
+  },
+  "C:\\Users\\hp\\lex-manage\\index.html": {
+    "mtime": 1780375296.4003277,
+    "ast_hash": "61aa54425c1d8504e0ebf7a63b6ddded",
+    "semantic_hash": "61aa54425c1d8504e0ebf7a63b6ddded"
+  },
+  "C:\\Users\\hp\\lex-manage\\lexmanage-backend\\docker-compose.yml": {
+    "mtime": 1779305274.1059797,
+    "ast_hash": "cd73ecb9b0f7e0f17e50dcc0dd7abecb",
+    "semantic_hash": "cd73ecb9b0f7e0f17e50dcc0dd7abecb"
+  },
+  "C:\\Users\\hp\\lex-manage\\public\\vite.svg": {
+    "mtime": 1768922181.3398545,
+    "ast_hash": "8e3a10e157f75ada21ab742c022d5430",
+    "semantic_hash": "8e3a10e157f75ada21ab742c022d5430"
+  },
+  "C:\\Users\\hp\\lex-manage\\src\\assets\\react.svg": {
+    "mtime": 1768922181.2774045,
+    "ast_hash": "f0402b67b6ce880f65666bb49e841696",
+    "semantic_hash": "f0402b67b6ce880f65666bb49e841696"
+  }
+}

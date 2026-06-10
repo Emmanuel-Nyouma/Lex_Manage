@@ -20,13 +20,15 @@ export const AuditLogsTable = ({ logs = [] }) => {
         {logs.length > 0 ? logs.map((log) => (
           <div key={log.id} className="p-4">
             <div className="flex items-center justify-between gap-2 mb-1.5">
-              <span className="text-sm font-bold text-slate-900 dark:text-white truncate">{log.user.name}</span>
-              <Badge variant={log.actionType === 'DELETE' ? 'error' : 'neutral'} className="shrink-0">
+              <span className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                {log.user?.firstName} {log.user?.lastName}
+              </span>
+              <Badge variant={log.action === 'DELETE' ? 'error' : 'neutral'} className="shrink-0">
                 {log.action}
               </Badge>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-300">
-              {log.targetType} <span className="font-mono text-slate-500 dark:text-slate-300">#{log.targetId.slice(0, 8)}</span>
+              {log.entity} <span className="font-mono text-slate-500 dark:text-slate-300">#{log.entityId?.slice(0, 8)}</span>
             </p>
             <p className="text-[10px] text-slate-400 font-mono mt-1">
               {new Date(log.createdAt).toLocaleString()}
@@ -56,14 +58,16 @@ export const AuditLogsTable = ({ logs = [] }) => {
                 <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-300 font-mono">
                   {new Date(log.createdAt).toLocaleString()}
                 </td>
-                <td className="px-6 py-4 text-sm font-medium">{log.user.name}</td>
+                <td className="px-6 py-4 text-sm font-medium">
+                  {log.user?.firstName} {log.user?.lastName}
+                </td>
                 <td className="px-6 py-4">
-                  <Badge variant={log.actionType === 'DELETE' ? 'error' : 'neutral'}>
+                  <Badge variant={log.action === 'DELETE' ? 'error' : 'neutral'}>
                     {log.action}
                   </Badge>
                 </td>
                 <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
-                  {log.targetType} <span className="font-mono text-slate-500 dark:text-slate-300">#{log.targetId.slice(0, 8)}</span>
+                  {log.entity} <span className="font-mono text-slate-500 dark:text-slate-300">#{log.entityId?.slice(0, 8)}</span>
                 </td>
               </tr>
             )) : (

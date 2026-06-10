@@ -4,6 +4,7 @@ export const CreateCaseSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters"),
   description: z.string().optional().or(z.literal('')),
   clientName: z.string().min(1, "Client name is required"),
+  clientId: z.string().uuid().optional().nullable(),
   courtName: z.string().optional(),
   caseNumber: z.string().optional(),
   status: z.enum(["OPEN", "IN_PROGRESS", "PENDING", "CLOSED", "ARCHIVED"]).default("OPEN"),
@@ -15,6 +16,8 @@ export const CreateCaseSchema = z.object({
 export const UpdateCaseSchema = z.object({
   title: z.string().min(2).optional(),
   description: z.string().optional(),
+  clientName: z.string().optional(),
+  clientId: z.string().uuid().optional().nullable(),
   courtName: z.string().optional(),
   caseNumber: z.string().optional(),
   status: z.enum(["OPEN", "IN_PROGRESS", "PENDING", "CLOSED", "ARCHIVED"]).optional(),

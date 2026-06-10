@@ -43,7 +43,11 @@ export class TenantsService {
     };
 
     const { users, ...rest } = tenant;
-    return { ...rest, roleStats };
+    // logoUrl is stored as an object key — sign it for direct <img> display.
+    const logoUrl = rest.logoUrl
+      ? await this.minioService.getAssetUrl(id, rest.logoUrl).catch(() => null)
+      : null;
+    return { ...rest, logoUrl, roleStats };
   }
 
   async getMyTenant(tenantId: string) {
@@ -153,7 +157,7 @@ export class TenantsService {
     const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
     if (!tenant) throw new NotFoundException('Tenant not found');
 
-    return this.prisma.tenant.update({
+    const updated = await this.prisma.tenant.update({
       where: { id: tenantId },
       data: {
         ...(dto.name      !== undefined && { name: dto.name }),
@@ -174,6 +178,14 @@ export class TenantsService {
         isActive: true, createdAt: true, updatedAt: true,
       },
     });
+
+    // Sign the stored logo key so the frontend can render it directly.
+    if (updated.logoUrl) {
+      updated.logoUrl = await this.minioService
+        .getAssetUrl(tenantId, updated.logoUrl)
+        .catch(() => updated.logoUrl);
+    }
+    return updated;
   }
 
   async uploadLogo(tenantId: string, file: Express.Multer.File) {
@@ -185,12 +197,18 @@ export class TenantsService {
       throw new BadRequestException('Logo must be under 2 MB');
     }
 
-    const { fileUrl } = await this.minioService.uploadFile(file, tenantId, 'logos/');
+    const { objectName } = await this.minioService.uploadFile(file, tenantId, 'logos/');
 
-    return this.prisma.tenant.update({
+    const updated = await this.prisma.tenant.update({
       where: { id: tenantId },
-      data: { logoUrl: fileUrl },
+      data: { logoUrl: objectName }, // store the object key, not a URL
       select: { id: true, logoUrl: true },
     });
+
+    // Return a signed URL so the new logo displays immediately.
+    return {
+      ...updated,
+      logoUrl: await this.minioService.getAssetUrl(tenantId, objectName).catch(() => null),
+    };
   }
 }

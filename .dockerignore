@@ -1,0 +1,17 @@
+# Frontend image build context (repo root). Keep it lean and avoid baking
+# host secrets / the backend tree into the frontend image.
+node_modules
+dist
+.git
+.gitignore
+lexmanage-backend
+graphify-out
+.claude
+.vscode
+.idea
+# Exclude env files so Vite uses the build ARGs, not the host's dev .env
+.env
+.env.*
+!.env.example
+*.log
+npm-debug.log*

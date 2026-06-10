@@ -74,7 +74,8 @@ const DocumentUpload = ({ onUploadSuccess, existingDocuments = [] }) => {
     onDrop,
     accept: {
       'application/pdf': ['.pdf'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'text/plain': ['.txt'],
     },
     maxSize: MAX_SIZE,
     multiple: true,
@@ -189,7 +190,7 @@ const DocumentUpload = ({ onUploadSuccess, existingDocuments = [] }) => {
           <p className="text-lg font-bold text-slate-900 dark:text-white">
             {isDragActive ? "Déposez pour importer" : "Cliquez ou glissez vos documents ici"}
           </p>
-          <p className="text-xs text-slate-500 mt-2 font-medium">PDF ou DOCX uniquement (max 50 Mo)</p>
+          <p className="text-xs text-slate-500 mt-2 font-medium">PDF, DOCX ou TXT (max 50 Mo)</p>
         </div>
       </div>
 

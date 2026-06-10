@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { AiService } from '../ai/ai.service';
+import { N8nRagService } from '../ai/n8n-rag.service';
 
 @Injectable()
 export class ChatService {
   constructor(
     private prisma: PrismaService,
-    private ai: AiService,
+    private n8nRag: N8nRagService,
   ) {}
 
   async getConversations(tenantId: string, userId: string) {
@@ -17,9 +17,9 @@ export class ChatService {
     });
   }
 
-  async getConversation(id: string, tenantId: string) {
+  async getConversation(id: string, tenantId: string, userId: string) {
     const conv = await this.prisma.chatConversation.findFirst({
-      where: { id, tenantId },
+      where: { id, tenantId, userId },
       include: { messages: { orderBy: { createdAt: 'asc' } } },
     });
     if (!conv) throw new NotFoundException('Conversation not found');
@@ -44,8 +44,13 @@ export class ChatService {
       data: { conversationId, role: 'user', content: message },
     });
 
-    // Get AI response (RAG + Gemini)
-    const { text: aiResponse, sources } = await this.ai.chat(message, conversationId, tenantId);
+    // Get AI response from the n8n Legal RAG workflow (tenant-isolated, per-conversation memory)
+    const { text: aiResponse, sources } = await this.n8nRag.chat({
+      tenantId,
+      userId,
+      chatInput: message,
+      sessionId: conversationId,
+    });
 
     // Save assistant response
     const saved = await this.prisma.chatMessage.create({

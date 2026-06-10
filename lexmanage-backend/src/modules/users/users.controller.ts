@@ -21,6 +21,11 @@ export class UsersController {
     return this.usersService.findAll(tenantId);
   }
 
+  @Get('colleagues')
+  findColleagues(@CurrentUser('tenantId') tenantId: string) {
+    return this.usersService.findColleagues(tenantId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser('tenantId') tenantId: string) {
     return this.usersService.findOne(id, tenantId);

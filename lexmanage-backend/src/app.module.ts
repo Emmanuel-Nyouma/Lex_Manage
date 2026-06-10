@@ -29,10 +29,19 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
     ConfigModule.forRoot({
       isGlobal: true,
       validate(config) {
-        const required = ['DATABASE_URL', 'JWT_SECRET'];
+        const required = ['DATABASE_URL', 'JWT_SECRET', 'ALLOWED_ORIGINS'];
         const missing = required.filter((key) => !config[key]);
         if (missing.length > 0) {
           throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+        }
+        if (config['NODE_ENV'] === 'production') {
+          const origins: string = config['ALLOWED_ORIGINS'] || '';
+          if (origins.split(',').some((o: string) => o.trim().includes('localhost'))) {
+            throw new Error('ALLOWED_ORIGINS must not contain localhost in production');
+          }
+          if (!config['REDIS_HOST'] || config['REDIS_HOST'] === 'localhost') {
+            console.warn('[config] REDIS_HOST not set for production — defaulting to redis service');
+          }
         }
         return config;
       },
@@ -51,6 +60,12 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
       redis: {
         host: process.env.REDIS_HOST || 'localhost',
         port: parseInt(process.env.REDIS_PORT || '6379'),
+        // Managed Redis (Upstash, Render Key Value) needs auth + TLS.
+        ...(process.env.REDIS_PASSWORD ? { password: process.env.REDIS_PASSWORD } : {}),
+        ...(process.env.REDIS_TLS === 'true' ? { tls: {} } : {}),
+        // Required for serverless/hosted Redis to avoid premature command retries.
+        maxRetriesPerRequest: null,
+        enableReadyCheck: false,
       },
     }),
     PrismaModule,

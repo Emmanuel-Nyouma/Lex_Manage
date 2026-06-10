@@ -5,10 +5,14 @@ import { Resend } from 'resend';
 @Injectable()
 export class MailService {
   private resend: Resend;
+  private readonly fromEmail: string;
   private readonly logger = new Logger(MailService.name);
 
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
+    // Sender address. Must be a Resend-verified domain in production.
+    // Defaults to Resend's sandbox sender (delivers only to your Resend account email).
+    this.fromEmail = this.configService.get<string>('MAIL_FROM') || 'onboarding@resend.dev';
     if (apiKey) {
       this.resend = new Resend(apiKey);
     } else {
@@ -49,15 +53,25 @@ export class MailService {
     `;
 
     try {
-      await this.resend.emails.send({
-        from: `${firmName} LexManage <noreply@lexmanage.com>`,
+      const { data, error } = await this.resend.emails.send({
+        from: `${firmName} via LexManage <${this.fromEmail}>`,
         to: [to],
         subject,
         html,
       });
-      this.logger.log(`Urgent email sent to ${to} for motif: ${motifLabel}`);
+
+      // Resend reports API-level failures (invalid domain, rate limit, etc.) via
+      // the `error` field rather than throwing — so we must check it explicitly.
+      if (error) {
+        throw new Error(`Resend API error: ${error.name} - ${error.message}`);
+      }
+
+      this.logger.log(`Urgent email sent to ${to} for motif: ${motifLabel} (id: ${data?.id})`);
     } catch (error) {
+      // Re-throw so the Bull queue marks the job failed and retries it
+      // (configured with attempts: 3 + exponential backoff in NotificationsService).
       this.logger.error(`Failed to send urgent email to ${to}`, error);
+      throw error;
     }
   }
 

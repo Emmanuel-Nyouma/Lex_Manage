@@ -2,12 +2,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { toast } from 'sonner';
 
-// Hook pour récupérer tous les documents
-export const useDocuments = (caseId = null) => {
+// Hook pour récupérer tous les documents avec pagination
+export const useDocuments = (page = 1, limit = 10, category = 'ALL', caseId = null) => {
   return useQuery({
-    queryKey: ['documents', caseId],
+    queryKey: ['documents', page, limit, category, caseId],
     queryFn: async () => {
-      const url = caseId ? `/documents?caseId=${caseId}` : '/documents';
+      let url = '/documents?';
+      if (caseId) url += `caseId=${caseId}&`;
+      url += `page=${page}&limit=${limit}&category=${category}`;
+      
       const { data } = await apiClient.get(url);
       return data;
     },

@@ -114,7 +114,14 @@ const useLexStore = create((set, get) => ({
       try {
         const { data } = await apiClient.post('/auth/refresh');
         get().setAccessToken(data.accessToken);  // ✅ Persists + sets
-        set({ currentUser: data.user });
+        // The /auth/refresh response does NOT include the user object. Only update
+        // currentUser when one is actually returned; otherwise keep the existing
+        // profile (post-login) or hydrate it from /auth/me (e.g. after a page reload).
+        if (data.user) {
+          set({ currentUser: data.user });
+        } else if (!get().currentUser) {
+          await get().fetchMe();
+        }
         return data.accessToken;
       } catch (err) {
         const isAuthError = err.response && [400, 401, 403].includes(err.response.status);

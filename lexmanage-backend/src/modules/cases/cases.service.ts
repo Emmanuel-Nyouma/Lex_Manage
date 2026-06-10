@@ -30,6 +30,7 @@ export class CasesService {
         where: { tenantId },
         include: {
           assignee: { select: { id: true, firstName: true, lastName: true } },
+          client: true,
           _count: { select: { documents: true } },
         },
         orderBy: { createdAt: 'desc' },
@@ -54,7 +55,7 @@ export class CasesService {
   }
 
   async findOne(id: string, tenantId: string) {
-    const cacheKey = `case:${id}`;
+    const cacheKey = `case:${tenantId}:${id}`;
     const cached = await this.cacheManager.get(cacheKey);
     if (cached) return cached;
 
@@ -62,6 +63,7 @@ export class CasesService {
       where: { id, tenantId },
       include: {
         assignee: { select: { id: true, firstName: true, lastName: true, email: true } },
+        client: true,
         documents: { 
           orderBy: {
             createdAt: 'desc'
@@ -76,11 +78,15 @@ export class CasesService {
   }
 
   private async invalidateTenantCases(tenantId: string) {
-    // In a production app with Redis, we'd use a pattern search.
-    // For now, we clear the first few pages or rely on TTL.
-    // To be safer, we can just let TTL handle it if it's short,
-    // or manually clear known keys.
-    await this.cacheManager.del(`cases:${tenantId}:1:10`);
+    // Clear the most common first page results for different limit options
+    const commonLimits = [10, 20, 50];
+    const pagesToClear = 5;
+
+    for (const limit of commonLimits) {
+      for (let page = 1; page <= pagesToClear; page++) {
+        await this.cacheManager.del(`cases:${tenantId}:${page}:${limit}`);
+      }
+    }
   }
 
   async create(dto: CreateCaseDto, tenantId: string, userId: string) {
@@ -133,7 +139,7 @@ export class CasesService {
         });
       }
 
-      await this.cacheManager.del(`case:${id}`);
+      await this.cacheManager.del(`case:${tenantId}:${id}`);
       await this.invalidateTenantCases(tenantId);
 
       await this.auditService.log({
@@ -153,7 +159,7 @@ export class CasesService {
     const originalCase = await this.findOne(id, tenantId);
     await this.prisma.case.delete({ where: { id } });
 
-    await this.cacheManager.del(`case:${id}`);
+    await this.cacheManager.del(`case:${tenantId}:${id}`);
     await this.invalidateTenantCases(tenantId);
 
     await this.auditService.log({

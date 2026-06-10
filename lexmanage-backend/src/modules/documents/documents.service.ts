@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Inject, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { v4 as uuidv4 } from 'uuid';
@@ -7,31 +7,55 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateDocumentDto, UpdateDocumentDto, DocumentType } from './dto/document.dto';
 import { MinioService } from './minio.service';
 import { AuditService } from '../audit/audit.service';
+import { N8nRagService } from '../ai/n8n-rag.service';
 
 @Injectable()
 export class DocumentsService {
+  private readonly logger = new Logger(DocumentsService.name);
   constructor(
     private prisma: PrismaService,
     private minio: MinioService,
     private auditService: AuditService,
+    private n8nRag: N8nRagService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
-  async findAll(tenantId: string) {
-    const cacheKey = `documents:${tenantId}`;
+  async findAll(tenantId: string, page: number = 1, limit: number = 10, category?: string) {
+    const cacheKey = `documents:${tenantId}:${page}:${limit}:${category || 'ALL'}`;
     const cached = (await this.cacheManager.get(cacheKey)) as any;
     if (cached) return cached;
 
-    const docs = await this.prisma.document.findMany({
-      where: { tenantId },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        cases: true
-      }
-    });
+    const skip = (page - 1) * limit;
+    const where: any = { tenantId };
+    if (category && category !== 'ALL') {
+      where.category = category;
+    }
 
-    await this.cacheManager.set(cacheKey, docs, 30000); // 30 seconds cache
-    return docs;
+    const [data, total] = await Promise.all([
+      this.prisma.document.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          cases: true
+        },
+        skip,
+        take: limit,
+      }),
+      this.prisma.document.count({ where }),
+    ]);
+
+    const result = {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+
+    await this.cacheManager.set(cacheKey, result, 30000); // 30 seconds cache
+    return result;
   }
 
   async findByCase(caseId: string, tenantId: string) {
@@ -123,11 +147,15 @@ export class DocumentsService {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'image/jpeg',
-      'image/png'
+      'image/png',
     ];
-    
-    if (!type || !allowedMimes.includes(type.mime)) {
-      throw new BadRequestException(`Invalid file type: ${type?.mime || 'unknown'}`);
+
+    // TXT files have no magic bytes — file-type returns undefined, so we fall
+    // back to the MIME type declared by the client.
+    const isPlainText = !type && file.mimetype === 'text/plain';
+
+    if (!isPlainText && (!type || !allowedMimes.includes(type.mime))) {
+      throw new BadRequestException(`Invalid file type: ${type?.mime || file.mimetype || 'unknown'}`);
     }
 
     // New path structure: documents/{year}/{month}/{cuid()}/{original-filename}
@@ -147,7 +175,7 @@ export class DocumentsService {
         title: options.name || file.originalname,
         file_name: file.originalname,
         file_url: objectName,
-        file_type: type.mime,
+        file_type: type?.mime || file.mimetype,
         file_size: file.size,
         category: options.category || options.documentType,
         subCategory: options.subCategory,
@@ -168,6 +196,23 @@ export class DocumentsService {
       entityId: document.id,
       details: { after: document, pending: options.pending },
     });
+
+    // Sync to the n8n Legal RAG knowledge base (tenant-scoped, fire-and-forget).
+    const N8N_INGESTABLE = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+    ];
+    const effectiveMime = type?.mime || file.mimetype;
+    if (N8N_INGESTABLE.includes(effectiveMime)) {
+      void this.n8nRag.ingestDocument({
+        tenantId,
+        userId: uploaderId,
+        filename: file.originalname,
+        buffer: file.buffer,
+        caseId: options.pending ? null : options.caseId,
+      });
+    }
 
     const signedUrl = await this.minio.getPresignedUrl(tenantId, objectName);
     return { ...document, url: signedUrl };

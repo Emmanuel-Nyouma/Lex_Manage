@@ -1,23 +1,30 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { 
-  Files, Search, Folder, FileText, Trash2, Download, Plus, ChevronDown, ChevronRight, X, Eye, Calendar as CalendarIcon, Filter
+import {
+  Files, Search, Folder, FileText, Trash2, Download, Plus, ChevronDown, ChevronRight, X, Eye, Calendar as CalendarIcon, Filter, RefreshCcw, Brain, Loader2
 } from 'lucide-react';
 import DocumentUpload from './DocumentUpload';
-import { Badge, Card, Skeleton } from './ui';
+import { Badge, Card, Skeleton, Button } from './ui';
 import { useDocuments, useDeleteDocument } from '../hooks/useDocuments';
 import { getDocumentSignedUrl } from '../lib/documentService';
 import { toast } from 'sonner';
 import useLexStore from '../store/useLexStore';
 import ConfirmDialog from './ConfirmDialog';
 import { DMS_CATEGORIES } from '../config/dms.config';
+import { useIngestToLexAssist } from '../hooks/useIngestToLexAssist';
 
 const DocumentsView = () => {
   const { currentUser } = useLexStore();
-  const { data: documents, isLoading, refetch } = useDocuments();
-  const deleteDoc = useDeleteDocument();
-  
+  const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchCategory, setSearchCategory] = useState('ALL');
+  
+  const { data, isLoading, refetch, error } = useDocuments(page, 12, searchCategory);
+  const documents = data?.data || [];
+  const meta = data?.meta;
+  
+  const deleteDoc = useDeleteDocument();
+  const ingestToAi = useIngestToLexAssist();
+
   const [showSearchPopup, setShowSearchPopup] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState([]);
@@ -77,31 +84,36 @@ const DocumentsView = () => {
     }
   };
 
+  // Note: Searching is now combined with server-side category filtering
   const filteredDocs = useMemo(() => {
-    return (documents || []).filter(doc => {
-      const matchesSearch = (doc.title || doc.file_name).toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = searchCategory === 'ALL' || doc.category === searchCategory;
-      return matchesSearch && matchesCategory;
-    });
-  }, [documents, searchQuery, searchCategory]);
+    if (!searchQuery) return documents;
+    return documents.filter(doc => 
+      (doc.title || doc.file_name).toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [documents, searchQuery]);
 
   const groupedDocs = useMemo(() => {
-    const initial = DMS_CATEGORIES.reduce((acc, cat) => {
+    // If we're filtering by a specific category, we only show that one
+    const categoriesToShow = searchCategory === 'ALL' 
+      ? [...DMS_CATEGORIES, { id: 'Autre', label: 'Autre' }]
+      : [...DMS_CATEGORIES, { id: 'Autre', label: 'Autre' }].filter(c => c.id === searchCategory);
+
+    const initial = categoriesToShow.reduce((acc, cat) => {
       acc[cat.id] = [];
       return acc;
-    }, { 'Autre': [] });
+    }, {});
 
-    return (documents || []).reduce((acc, doc) => {
+    return documents.reduce((acc, doc) => {
       const catId = doc.category || 'Autre';
       if (acc[catId]) {
         acc[catId].push(doc);
-      } else {
-        // Fallback for subcategories or legacy categories
+      } else if (searchCategory === 'ALL') {
+        if (!acc['Autre']) acc['Autre'] = [];
         acc['Autre'].push(doc);
       }
       return acc;
     }, initial);
-  }, [documents]);
+  }, [documents, searchCategory]);
 
   const toggleCategory = (catId) => {
     setExpandedCategories(prev => 
@@ -123,6 +135,26 @@ const DocumentsView = () => {
       }
     }, 100);
   };
+
+  // Reset to first page when category changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchCategory]);
+
+  if (error) {
+    return (
+      <div className="p-6 bg-white dark:bg-slate-900 border-l-4 border-red-500 rounded-2xl shadow-sm flex items-start gap-4">
+        <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-xl text-red-500">
+          <RefreshCcw size={24} />
+        </div>
+        <div>
+          <h3 className="font-bold text-slate-900 dark:text-white">Error Loading Documents</h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">{error.message || "Failed to sync with document repository."}</p>
+          <Button onClick={() => refetch()} variant="secondary" size="sm" className="mt-4">Retry Sync</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
@@ -161,7 +193,7 @@ const DocumentsView = () => {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-300 group-focus-within:text-amber-500 transition-colors" size={20} />
           <input 
             type="text"
-            placeholder="Rechercher un document..."
+            placeholder="Rechercher un document dans cette page..."
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -171,11 +203,11 @@ const DocumentsView = () => {
             className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all shadow-sm font-medium"
           />
 
-          {/* Search Results Popup */}
+          {/* Search Results Popup (local page search) */}
           {showSearchPopup && filteredDocs.length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 max-h-96 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
               <div className="p-2">
-                <p className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Résultats Probables</p>
+                <p className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Résultats sur cette page</p>
                 {filteredDocs.slice(0, 10).map(doc => (
                   <button
                     key={doc.id}
@@ -221,13 +253,19 @@ const DocumentsView = () => {
            ))}
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-8">
           {[...DMS_CATEGORIES, { id: 'Autre', label: 'Autre', subCategories: [] }].map(cat => {
-            const docs = groupedDocs[cat.id] || [];
-            const isExpanded = expandedCategories.includes(cat.id);
+            const docs = groupedDocs[cat.id];
+            if (!docs) return null; // If not in current category filter
+
+            const isExpanded = expandedCategories.includes(cat.id) || searchCategory !== 'ALL';
             
-            // Only show category if it has docs or if we're not searching
-            if (docs.length === 0 && (searchQuery || searchCategory !== 'ALL')) return null;
+            // If we're searching locally, filter the docs displayed in categories
+            const categoryDocs = searchQuery 
+              ? docs.filter(doc => (doc.title || doc.file_name).toLowerCase().includes(searchQuery.toLowerCase()))
+              : docs;
+
+            if (categoryDocs.length === 0 && searchQuery) return null;
 
             return (
               <div key={cat.id} className="space-y-2">
@@ -240,15 +278,15 @@ const DocumentsView = () => {
                     <div className="p-1.5 rounded-lg bg-white dark:bg-slate-800 shadow-sm">
                        {isExpanded ? <ChevronDown size={16} className="text-slate-600 dark:text-slate-300" /> : <ChevronRight size={16} className="text-slate-600 dark:text-slate-300" />}
                     </div>
-                    <Folder size={20} className={docs.length > 0 ? "text-amber-500 fill-amber-500/20" : "text-slate-500 dark:text-slate-300"} />
+                    <Folder size={20} className={categoryDocs.length > 0 ? "text-amber-500 fill-amber-500/20" : "text-slate-500 dark:text-slate-300"} />
                     <span className="font-black text-slate-800 dark:text-slate-200 text-sm tracking-tight">{cat.label.toUpperCase()}</span>
-                    <Badge variant="neutral" className="ml-2 bg-white dark:bg-slate-800">{docs.length}</Badge>
+                    <Badge variant="neutral" className="ml-2 bg-white dark:bg-slate-800">{categoryDocs.length}</Badge>
                   </div>
                 </button>
 
                 {isExpanded && (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pl-4 animate-in slide-in-from-top-2 duration-300">
-                    {docs.length > 0 ? docs.map(doc => (
+                    {categoryDocs.length > 0 ? categoryDocs.map(doc => (
                       <div 
                         key={doc.id} 
                         id={`doc-${doc.id}`}
@@ -261,30 +299,38 @@ const DocumentsView = () => {
                           <div className="min-w-0">
                             <p className="text-sm font-bold text-slate-900 dark:text-white truncate pr-4 group-hover:text-amber-600 transition-colors">{doc.title || doc.file_name}</p>
                             <div className="flex flex-wrap items-center gap-3 mt-1.5">
-                              <span className="text-[10px] text-slate-500 dark:text-slate-300 uppercase font-black tracking-tighter bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 rounded">{doc.file_type || 'DOC'}</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-300 uppercase font-black tracking-tighter bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 rounded">{doc.file_type?.split('/').pop().toUpperCase() || 'DOC'}</span>
                               <span className="text-[10px] text-slate-500 dark:text-slate-300 font-bold flex items-center gap-1">
                                 <CalendarIcon size={10} />
                                 {new Date(doc.createdAt).toLocaleDateString()}
                               </span>
                               <span className="text-[10px] text-slate-500 dark:text-slate-300 font-bold">{Math.round(doc.file_size / 1024 / 1024 * 100) / 100} MB</span>
-                              {doc.subCategory && (
-                                <Badge variant="neutral" className="text-[8px] py-0 px-1 bg-slate-50 dark:bg-slate-800 text-slate-400">
-                                  {doc.subCategory.split('_').join(' ')}
-                                </Badge>
-                              )}
                             </div>
                           </div>
                         </div>
                         
                         <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all translate-x-0 md:translate-x-2 md:group-hover:translate-x-0 flex-shrink-0">
-                          <button 
+                          {/* Import to LexAssist AI */}
+                          <button
+                            onClick={() => ingestToAi.mutate(doc.id)}
+                            disabled={ingestToAi.isPending && ingestToAi.variables === doc.id}
+                            aria-label="Importer dans LexAssist AI"
+                            title="Importer dans LexAssist AI"
+                            className="p-3 text-slate-500 dark:text-slate-300 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-xl transition-all disabled:opacity-50"
+                          >
+                            {ingestToAi.isPending && ingestToAi.variables === doc.id
+                              ? <Loader2 size={20} className="animate-spin text-purple-500" />
+                              : <Brain size={20} />
+                            }
+                          </button>
+                          <button
                             onClick={() => handleView(doc.id)}
                             aria-label="Voir document"
                             className="p-3 text-slate-500 dark:text-slate-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl transition-all"
                           >
                             <Eye size={20} />
                           </button>
-                          <button 
+                          <button
                             onClick={() => handleDownload(doc.id, doc.file_name)}
                             aria-label="Télécharger document"
                             className="p-3 text-slate-500 dark:text-slate-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all"
@@ -292,8 +338,8 @@ const DocumentsView = () => {
                             <Download size={20} />
                           </button>
                           {canDelete && (
-                            <button 
-                              onClick={() => handleDelete(doc)} 
+                            <button
+                              onClick={() => handleDelete(doc)}
                               aria-label="Supprimer document"
                               className="p-3 text-slate-500 dark:text-slate-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all"
                             >
@@ -312,6 +358,70 @@ const DocumentsView = () => {
               </div>
             );
           })}
+
+          {/* Pagination Controls */}
+          {meta && meta.totalPages > 1 && (
+            <div 
+              className="flex flex-col sm:flex-row items-center justify-between p-6 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 gap-4 mt-8"
+              aria-live="polite"
+              aria-label="Pagination"
+            >
+              <div className="flex flex-wrap items-center justify-center gap-2 order-2 sm:order-1">
+                <Button 
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  variant="secondary"
+                  size="sm"
+                  className="px-4 py-3 sm:py-1 text-xs font-bold min-w-[3rem]"
+                >
+                  Précédent
+                </Button>
+                
+                <div className="flex items-center gap-1">
+                  {[...Array(meta.totalPages)].map((_, i) => {
+                    const pageNum = i + 1;
+                    if (
+                      pageNum === 1 || 
+                      pageNum === meta.totalPages || 
+                      (pageNum >= page - 1 && pageNum <= page + 1)
+                    ) {
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setPage(pageNum)}
+                          className={`w-10 h-10 rounded-lg text-xs font-black transition-all ${
+                            page === pageNum 
+                              ? 'bg-slate-900 dark:bg-amber-600 text-white shadow-md' 
+                              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    }
+                    if (pageNum === page - 2 || pageNum === page + 2) {
+                      return <span key={pageNum} className="text-slate-400 px-1">...</span>;
+                    }
+                    return null;
+                  })}
+                </div>
+
+                <Button 
+                  onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
+                  disabled={page === meta.totalPages}
+                  variant="secondary"
+                  size="sm"
+                  className="px-4 py-3 sm:py-1 text-xs font-bold min-w-[3rem]"
+                >
+                  Suivant
+                </Button>
+              </div>
+              
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 order-1 sm:order-2">
+                Affichage de <span className="text-slate-900 dark:text-white">{Math.min(meta.total, (page - 1) * 12 + 1)}-{Math.min(meta.total, page * 12)}</span> sur <span className="text-slate-900 dark:text-white">{meta.total}</span> documents
+              </div>
+            </div>
+          )}
         </div>
       )}
 

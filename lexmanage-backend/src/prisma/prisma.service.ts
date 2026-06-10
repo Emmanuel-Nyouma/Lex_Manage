@@ -12,6 +12,8 @@ const TENANT_BOUND_MODELS = [
   'AuditLog',
   'Deadline',
   'Notification',
+  'NotificationTemplate',
+  'ScheduledNotification',
 ];
 
 function isTenantBound(modelName: string): boolean {
@@ -36,142 +38,128 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       query: {
         $allModels: {
           async findMany({ model, args, query }: any) {
-            if (isTenantBound(model)) {
+            if (isTenantBound(model) && !tenantContext.isUnscoped()) {
               const tenantId = tenantContext.getTenantId();
-              if (tenantId) {
-                args.where = { ...args.where, tenantId };
-              }
+              if (!tenantId) throw new Error(`CRITICAL: Attempted to query tenant-bound model ${model} without tenantId context.`);
+              args.where = { ...args.where, tenantId };
             }
             return query(args);
           },
           async findFirst({ model, args, query }: any) {
-            if (isTenantBound(model)) {
+            if (isTenantBound(model) && !tenantContext.isUnscoped()) {
               const tenantId = tenantContext.getTenantId();
-              if (tenantId) {
-                args.where = { ...args.where, tenantId };
-              }
+              if (!tenantId) throw new Error(`CRITICAL: Attempted to query tenant-bound model ${model} without tenantId context.`);
+              args.where = { ...args.where, tenantId };
             }
             return query(args);
           },
           async findUnique({ model, args, query }: any) {
-            if (isTenantBound(model)) {
+            if (isTenantBound(model) && !tenantContext.isUnscoped()) {
               const tenantId = tenantContext.getTenantId();
-              if (tenantId) {
-                const modelKey = getModelPropertyName(model);
-                return (self.extendedClient as any)[modelKey].findFirst({
-                  ...args,
-                  where: { ...args.where, tenantId },
-                });
-              }
+              if (!tenantId) throw new Error(`CRITICAL: Attempted to query tenant-bound model ${model} without tenantId context.`);
+              const modelKey = getModelPropertyName(model);
+              return (self.extendedClient as any)[modelKey].findFirst({
+                ...args,
+                where: { ...args.where, tenantId },
+              });
             }
             return query(args);
           },
           async findUniqueOrThrow({ model, args, query }: any) {
-            if (isTenantBound(model)) {
+            if (isTenantBound(model) && !tenantContext.isUnscoped()) {
               const tenantId = tenantContext.getTenantId();
-              if (tenantId) {
-                const modelKey = getModelPropertyName(model);
-                return (self.extendedClient as any)[modelKey].findFirstOrThrow({
-                  ...args,
-                  where: { ...args.where, tenantId },
-                });
-              }
+              if (!tenantId) throw new Error(`CRITICAL: Attempted to query tenant-bound model ${model} without tenantId context.`);
+              const modelKey = getModelPropertyName(model);
+              return (self.extendedClient as any)[modelKey].findFirstOrThrow({
+                ...args,
+                where: { ...args.where, tenantId },
+              });
             }
             return query(args);
           },
           async count({ model, args, query }: any) {
-            if (isTenantBound(model)) {
+            if (isTenantBound(model) && !tenantContext.isUnscoped()) {
               const tenantId = tenantContext.getTenantId();
-              if (tenantId) {
-                args.where = { ...args.where, tenantId };
-              }
+              if (!tenantId) throw new Error(`CRITICAL: Attempted to query tenant-bound model ${model} without tenantId context.`);
+              args.where = { ...args.where, tenantId };
             }
             return query(args);
           },
           async aggregate({ model, args, query }: any) {
-            if (isTenantBound(model)) {
+            if (isTenantBound(model) && !tenantContext.isUnscoped()) {
               const tenantId = tenantContext.getTenantId();
-              if (tenantId) {
-                args.where = { ...args.where, tenantId };
-              }
+              if (!tenantId) throw new Error(`CRITICAL: Attempted to query tenant-bound model ${model} without tenantId context.`);
+              args.where = { ...args.where, tenantId };
             }
             return query(args);
           },
           async groupBy({ model, args, query }: any) {
-            if (isTenantBound(model)) {
+            if (isTenantBound(model) && !tenantContext.isUnscoped()) {
               const tenantId = tenantContext.getTenantId();
-              if (tenantId) {
-                args.where = { ...args.where, tenantId };
-              }
+              if (!tenantId) throw new Error(`CRITICAL: Attempted to query tenant-bound model ${model} without tenantId context.`);
+              args.where = { ...args.where, tenantId };
             }
             return query(args);
           },
           async create({ model, args, query }: any) {
-            if (isTenantBound(model)) {
+            if (isTenantBound(model) && !tenantContext.isUnscoped()) {
               const tenantId = tenantContext.getTenantId();
-              if (tenantId) {
+              if (!tenantId) throw new Error(`CRITICAL: Attempted to create record in tenant-bound model ${model} without tenantId context.`);
+              args.data = { ...args.data, tenantId };
+            }
+            return query(args);
+          },
+          async createMany({ model, args, query }: any) {
+            if (isTenantBound(model) && !tenantContext.isUnscoped()) {
+              const tenantId = tenantContext.getTenantId();
+              if (!tenantId) throw new Error(`CRITICAL: Attempted to createMany records in tenant-bound model ${model} without tenantId context.`);
+              if (Array.isArray(args.data)) {
+                args.data = args.data.map((item: any) => ({ ...item, tenantId }));
+              } else {
                 args.data = { ...args.data, tenantId };
               }
             }
             return query(args);
           },
-          async createMany({ model, args, query }: any) {
-            if (isTenantBound(model)) {
-              const tenantId = tenantContext.getTenantId();
-              if (tenantId) {
-                if (Array.isArray(args.data)) {
-                  args.data = args.data.map((item: any) => ({ ...item, tenantId }));
-                } else {
-                  args.data = { ...args.data, tenantId };
-                }
-              }
-            }
-            return query(args);
-          },
           async update({ model, args, query }: any) {
-            if (isTenantBound(model)) {
+            if (isTenantBound(model) && !tenantContext.isUnscoped()) {
               const tenantId = tenantContext.getTenantId();
-              if (tenantId) {
-                args.where = { ...args.where, tenantId };
-              }
+              if (!tenantId) throw new Error(`CRITICAL: Attempted to update record in tenant-bound model ${model} without tenantId context.`);
+              args.where = { ...args.where, tenantId };
             }
             return query(args);
           },
           async updateMany({ model, args, query }: any) {
-            if (isTenantBound(model)) {
+            if (isTenantBound(model) && !tenantContext.isUnscoped()) {
               const tenantId = tenantContext.getTenantId();
-              if (tenantId) {
-                args.where = { ...args.where, tenantId };
-              }
+              if (!tenantId) throw new Error(`CRITICAL: Attempted to updateMany records in tenant-bound model ${model} without tenantId context.`);
+              args.where = { ...args.where, tenantId };
             }
             return query(args);
           },
           async upsert({ model, args, query }: any) {
-            if (isTenantBound(model)) {
+            if (isTenantBound(model) && !tenantContext.isUnscoped()) {
               const tenantId = tenantContext.getTenantId();
-              if (tenantId) {
-                args.where = { ...args.where, tenantId };
-                args.create = { ...args.create, tenantId };
-                args.update = { ...args.update, tenantId };
-              }
+              if (!tenantId) throw new Error(`CRITICAL: Attempted to upsert record in tenant-bound model ${model} without tenantId context.`);
+              args.where = { ...args.where, tenantId };
+              args.create = { ...args.create, tenantId };
+              args.update = { ...args.update, tenantId };
             }
             return query(args);
           },
           async delete({ model, args, query }: any) {
-            if (isTenantBound(model)) {
+            if (isTenantBound(model) && !tenantContext.isUnscoped()) {
               const tenantId = tenantContext.getTenantId();
-              if (tenantId) {
-                args.where = { ...args.where, tenantId };
-              }
+              if (!tenantId) throw new Error(`CRITICAL: Attempted to delete record in tenant-bound model ${model} without tenantId context.`);
+              args.where = { ...args.where, tenantId };
             }
             return query(args);
           },
           async deleteMany({ model, args, query }: any) {
-            if (isTenantBound(model)) {
+            if (isTenantBound(model) && !tenantContext.isUnscoped()) {
               const tenantId = tenantContext.getTenantId();
-              if (tenantId) {
-                args.where = { ...args.where, tenantId };
-              }
+              if (!tenantId) throw new Error(`CRITICAL: Attempted to deleteMany records in tenant-bound model ${model} without tenantId context.`);
+              args.where = { ...args.where, tenantId };
             }
             return query(args);
           },

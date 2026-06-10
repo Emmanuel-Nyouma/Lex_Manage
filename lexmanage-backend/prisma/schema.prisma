@@ -187,11 +187,13 @@ model Case {
   caseNumber  String?        @map("case_number")
   status      CaseStatus     @default(OPEN)
   priority    String         @default("MEDIUM")
+  clientId    String?        @map("client_id")
   assigneeId  String?        @map("assignee_id")
   closedAt    DateTime?      @map("closed_at")
   createdAt   DateTime       @default(now()) @map("created_at")
   updatedAt   DateTime       @updatedAt @map("updated_at")
   tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  client      Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
   assignee    User?          @relation("CaseAssignee", fields: [assigneeId], references: [id])
   deadlines   Deadline[]
   documents   Document[]
@@ -318,6 +320,7 @@ model Client {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  cases       Case[]
 
   @@index([tenantId])
   @@map("clients")

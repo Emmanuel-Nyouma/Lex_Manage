@@ -50,6 +50,7 @@ const ProfileView = () => {
       onSuccess: () => {
         setIsEditing(false);
         fetchMe();
+        toast.success("Profile updated successfully");
       }
     });
   };

@@ -10,6 +10,18 @@ const handleMutationError = (error, defaultMessage) => {
   console.error("Mutation Error:", error);
 };
 
+// Hook pour récupérer les collègues du cabinet avec leurs dossiers actifs
+export const useColleagues = () => {
+  return useQuery({
+    queryKey: ['colleagues'],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/users/colleagues');
+      return data;
+    },
+    staleTime: 60000,
+  });
+};
+
 // Hook pour récupérer tous les dossiers actifs
 export const useCases = (page = 1, limit = 10) => {
   return useQuery({

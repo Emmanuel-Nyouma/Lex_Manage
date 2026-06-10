@@ -1,0 +1,414 @@
+{
+  "name": "LexManage Chatbot Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook').item.json.body.chatInput }}",
+        "options": {
+          "systemMessage": "=\nROLE & GOAL\n\nYou are LexAssist, an expert legal assistant for the LexManage platform. Your primary goal is to assist lawyers and legal professionals with inquiries regarding their cases, documents, and firm procedures. You are professional, precise, and adhere to strict legal terminology.\n\nINFORMATION RETRIEVAL & TOOL USAGE (Pinecone Vector Store)\n\nYour knowledge base is a Pinecone vector store containing document excerpts from the specific firm (tenant) you are currently assisting. To answer user queries, you must follow this retrieval process:\n\nRephrase for Search: First, rephrase the user's question into a focused, concise search query.\n\nQuery Pinecone: Use the pinecone.search() tool with that query.\n\nSynthesize Information: Your response must be based only on the information retrieved from the Pinecone search results. Cite the documents if possible.\n\nHandle Missing Information: If the Pinecone store returns no relevant information, state clearly that you cannot find the requested details in the firm's documents.\n\nGUIDING PRINCIPLES\n\nZero Hallucination 🛑: If information is not found, say so. Never invent legal facts or documents.\n\nSpecificity and Precision 🎯: Always use exact details and names retrieved from the database.\n\nConfidentiality 🔒: Never share information between different firms (tenants). You are currently isolated to the provided tenant context."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -544,
+        -240
+      ],
+      "id": "b3284c3c-7ca4-428e-9ff6-c1b718aa0868",
+      "name": "AI Agent",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "retryOnFail": true,
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -64,
+        -240
+      ],
+      "id": "ff701200-9e1e-4406-b706-1d9a09df82ae",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lexmanage-chatbot",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -976,
+        -240
+      ],
+      "id": "2705fbb0-c552-48b1-ab09-e0cf55af614a",
+      "name": "Webhook",
+      "webhookId": "62799321-d8b8-48e6-b282-3ecc6eb240bd"
+    },
+    {
+      "parameters": {
+        "options": {
+          "maxTokens": 12000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -752,
+        16
+      ],
+      "id": "ac596f80-e635-4f2c-b6c4-67ef0d71e38f",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "oP5YJMpA7jhRrnKN",
+          "name": "OpenRouter account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "public": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1408,
+        -48
+      ],
+      "id": "4720effe-a4bc-48c4-bf94-35c94347db32",
+      "name": "When chat message received",
+      "webhookId": "1c5d3ac6-7f7f-41da-819d-ae125796e0c1"
+    },
+    {
+      "parameters": {
+        "formTitle": "DELIT",
+        "formDescription": "Upload Company Docs",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "file",
+              "fieldType": "file"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        -992,
+        240
+      ],
+      "id": "2e8bd8a3-babc-4426-8c1f-0b286225de5c",
+      "name": "On form submission",
+      "webhookId": "f055ea59-deb3-46fc-8cef-9b920762b3eb"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "nj435",
+          "mode": "list",
+          "cachedResultName": "nj435"
+        },
+        "pineconeNamespace": "={{ $('Webhook').item.json.body.tenantId }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        -752,
+        240
+      ],
+      "id": "d3751c6a-918c-4bd3-93ec-b173ff388ccf",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "kM4wisVvwuKi0tkN",
+          "name": "PineconeApi account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        544
+      ],
+      "id": "3c080ad9-6141-44b4-8db1-1d78e2b31054",
+      "name": "Embeddings HuggingFace Inference",
+      "credentials": {
+        "huggingFaceApi": {
+          "id": "oNiVYfEVMBRXlkpg",
+          "name": "HuggingFaceApi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "textSplittingMode": "custom",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        -560,
+        432
+      ],
+      "id": "b15a39bb-a93d-458d-8ec0-93c8da8f1610",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "chunkSize": 2000,
+        "chunkOverlap": 200,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        -432,
+        592
+      ],
+      "id": "5b7bd673-a0e8-4a2b-b77a-b4b29a3b25fc",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "This is a RAG database and it contains all what you need to answser questions",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "nj435",
+          "mode": "list",
+          "cachedResultName": "nj435"
+        },
+        "pineconeNamespace": "={{ $('Webhook').item.json.body.tenantId }}",
+        "topK": 20,
+        "useReranker": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        -128,
+        -32
+      ],
+      "id": "9445a1c9-4d94-4802-adc1-6bfef81af5b4",
+      "name": "Pinecone Vector Store1",
+      "credentials": {
+        "pineconeApi": {
+          "id": "kM4wisVvwuKi0tkN",
+          "name": "PineconeApi account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference",
+      "typeVersion": 1,
+      "position": [
+        -176,
+        176
+      ],
+      "id": "5226a9bd-974f-441d-bc8f-8314dba7551c",
+      "name": "Embeddings HuggingFace Inference1",
+      "credentials": {
+        "huggingFaceApi": {
+          "id": "oNiVYfEVMBRXlkpg",
+          "name": "HuggingFaceApi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+      "typeVersion": 1,
+      "position": [
+        80,
+        160
+      ],
+      "id": "88b31a25-da8a-40e8-806e-90a279da1806",
+      "name": "Reranker Cohere",
+      "credentials": {
+        "cohereApi": {
+          "id": "tKm0kTdWqiHhgFBp",
+          "name": "CohereApi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.tenantId }}_{{ $('Webhook').item.json.body.userId }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -464,
+        32
+      ],
+      "id": "60995de6-fa23-45d9-b018-f895d303241a",
+      "name": "Simple Memory"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        []
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings HuggingFace Inference": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings HuggingFace Inference1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reranker Cohere": {
+      "ai_reranker": [
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "ai_reranker",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b0712fd2-027d-412c-938e-353897766198",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "12575cc293f26d20635241ddcab9b2fb27a8a41cf7430106b9bec3fd1091c810"
+  },
+  "id": "Oj9uQ8xiIm0X0Zef",
+  "tags": []
+}

@@ -18,7 +18,11 @@ export class AuthController {
   async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
     const { refreshToken, ...result } = await this.authService.register(dto);
     const isProd = process.env.NODE_ENV === 'production';
-    res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: isProd, sameSite: isProd ? 'strict' : 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
+    // SameSite=None (prod) so the cookie is sent on the cross-site POST /auth/refresh
+    // XHR when the SPA and API live on different domains. Requires Secure (HTTPS),
+    // which holds in prod. If you deploy same-origin (one domain via reverse proxy),
+    // you may tighten this back to 'strict' for stronger CSRF protection.
+    res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
     return result;
   }
 
@@ -28,7 +32,11 @@ export class AuthController {
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const { refreshToken, ...result } = await this.authService.login(dto);
     const isProd = process.env.NODE_ENV === 'production';
-    res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: isProd, sameSite: isProd ? 'strict' : 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
+    // SameSite=None (prod) so the cookie is sent on the cross-site POST /auth/refresh
+    // XHR when the SPA and API live on different domains. Requires Secure (HTTPS),
+    // which holds in prod. If you deploy same-origin (one domain via reverse proxy),
+    // you may tighten this back to 'strict' for stronger CSRF protection.
+    res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
     return result;
   }
 

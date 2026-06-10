@@ -3,15 +3,19 @@ import {
   ConflictException,
   UnauthorizedException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto, RegisterDto, UpdateProfileDto } from './dto/auth.dto';
+import { tenantContext } from '../../common/context/tenant.context';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
@@ -21,7 +25,8 @@ export class AuthService {
 
   // ── REGISTER (Creates a new Tenant + Admin user OR Joins via Invitation) ─
   async register(dto: RegisterDto) {
-    console.log('Registering new user:', dto.email);
+    return tenantContext.runUnscoped(async () => {
+    this.logger.debug('Registering new user');
     try {
       const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
       if (existing) throw new ConflictException('Email already registered');
@@ -30,7 +35,7 @@ export class AuthService {
       let role: any = 'CABINET_ADMIN';
 
       if (dto.invitationToken) {
-        console.log('Joining via invitation token');
+        this.logger.debug('Joining via invitation token');
         const invitation = await this.prisma.invitation.findUnique({
           where: { token: dto.invitationToken },
         });
@@ -51,7 +56,7 @@ export class AuthService {
         if (!dto.tenantName) throw new ConflictException('Tenant name is required for new cabinets');
         
         const slug = dto.tenantName.toLowerCase().replace(/\s+/g, '-') + '-' + uuidv4().slice(0, 6);
-        console.log('Creating new tenant with slug:', slug);
+        this.logger.debug('Creating new tenant');
 
         const tenant = await this.prisma.tenant.create({
           data: { 
@@ -64,10 +69,10 @@ export class AuthService {
         tenantId = tenant.id;
       }
 
-      console.log('Hashing password...');
+      this.logger.debug('Hashing password');
       const passwordHash = await bcrypt.hash(dto.password, 12);
 
-      console.log('Creating user record for tenant:', tenantId);
+      this.logger.debug('Creating user record');
       const user = await this.prisma.user.create({
         data: {
           tenantId,
@@ -80,7 +85,7 @@ export class AuthService {
         },
       });
 
-      console.log('Generating tokens...');
+      this.logger.debug('Generating tokens');
       const tokens = await this.generateTokens(user.id, user.email, user.role, user.tenantId);
       await this.storeRefreshToken(user.id, tokens.refreshToken);
 
@@ -90,9 +95,10 @@ export class AuthService {
         user: this.sanitizeUser(user),
       };
     } catch (error) {
-      console.error('Registration Error Details:', error);
+      this.logger.error('Registration failed', error);
       throw error;
     }
+    });
   }
 
   async getMe(userId: string) {
@@ -117,37 +123,41 @@ export class AuthService {
 
   // ── LOGIN ─────────────────────────────────────────────────────────────────
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (!user || !user.isActive) throw new UnauthorizedException('Invalid credentials');
+    return tenantContext.runUnscoped(async () => {
+      const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+      if (!user || !user.isActive) throw new UnauthorizedException('Invalid credentials');
 
-    const passwordValid = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!passwordValid) throw new UnauthorizedException('Invalid credentials');
+      const passwordValid = await bcrypt.compare(dto.password, user.passwordHash);
+      if (!passwordValid) throw new UnauthorizedException('Invalid credentials');
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role, user.tenantId);
-    await this.storeRefreshToken(user.id, tokens.refreshToken);
+      const tokens = await this.generateTokens(user.id, user.email, user.role, user.tenantId);
+      await this.storeRefreshToken(user.id, tokens.refreshToken);
 
-    return {
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      user: this.sanitizeUser(user),
-    };
+      return {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        user: this.sanitizeUser(user),
+      };
+    });
   }
 
   // ── REFRESH TOKEN ─────────────────────────────────────────────────────────
   async refreshToken(token: string) {
-    const user = await this.prisma.user.findFirst({
-      where: { refreshToken: token },
-    });
-    if (!user || !user.refreshToken) throw new UnauthorizedException('Invalid refresh token');
-    if (user.refreshTokenExpiresAt && user.refreshTokenExpiresAt < new Date()) {
-      throw new UnauthorizedException('Refresh token expired');
-    }
-    // Block deactivated accounts — even if they hold a valid token
-    if (!user.isActive) throw new UnauthorizedException('Account has been deactivated');
+    return tenantContext.runUnscoped(async () => {
+      const user = await this.prisma.user.findFirst({
+        where: { refreshToken: token },
+      });
+      if (!user || !user.refreshToken) throw new UnauthorizedException('Invalid refresh token');
+      if (user.refreshTokenExpiresAt && user.refreshTokenExpiresAt < new Date()) {
+        throw new UnauthorizedException('Refresh token expired');
+      }
+      // Block deactivated accounts — even if they hold a valid token
+      if (!user.isActive) throw new UnauthorizedException('Account has been deactivated');
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role, user.tenantId);
-    await this.storeRefreshToken(user.id, tokens.refreshToken);
-    return tokens;
+      const tokens = await this.generateTokens(user.id, user.email, user.role, user.tenantId);
+      await this.storeRefreshToken(user.id, tokens.refreshToken);
+      return tokens;
+    });
   }
 
   // ── LOGOUT ────────────────────────────────────────────────────────────────

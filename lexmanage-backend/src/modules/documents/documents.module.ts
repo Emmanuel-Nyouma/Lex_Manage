@@ -4,9 +4,10 @@ import { DocumentsController } from './documents.controller';
 import { MinioService } from './minio.service';
 import { OcrService } from './ocr.service';
 import { AuditModule } from '../audit/audit.module';
+import { N8nRagModule } from '../ai/n8n-rag.module';
 
 @Module({
-  imports: [AuditModule],
+  imports: [AuditModule, N8nRagModule],
   controllers: [DocumentsController],
   providers: [DocumentsService, MinioService, OcrService],
   exports: [DocumentsService, MinioService],

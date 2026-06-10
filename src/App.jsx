@@ -14,11 +14,14 @@ const DashboardView        = lazy(() => import('./components/DashboardView'));
 const CaseManagementView   = lazy(() => import('./components/CaseManagementView'));
 const CalendarView         = lazy(() => import('./components/CalendarView'));
 const DocumentsView        = lazy(() => import('./components/DocumentsView'));
+const ClientsDirectoryView = lazy(() => import('./components/ClientsDirectoryView'));
+const ClientDetailView    = lazy(() => import('./components/ClientDetailView'));
 const CompanySettingsView  = lazy(() => import('./components/CompanySettingsView'));
 const NotificationCenterView = lazy(() => import('./components/NotificationCenterView'));
 const ProfileView          = lazy(() => import('./components/ProfileView'));
 const SettingsView         = lazy(() => import('./components/SettingsView'));
 const AiAssistantView      = lazy(() => import('./components/AiAssistantView'));
+const ColleaguesView       = lazy(() => import('./components/ColleaguesView'));
 
 // Fallback shown while a route chunk loads
 const RouteFallback = () => (
@@ -131,6 +134,23 @@ export default function LexManageApp() {
 
   useEffect(() => {
     initAuth();
+    
+    // SYNC: Multi-tab session synchronization
+    const handleStorageChange = (e) => {
+      if (e.key === 'accessToken' && !e.newValue && accessToken) {
+        // Token was removed in another tab (logout)
+        console.log("Session terminated in another tab, logging out...");
+        logout();
+      }
+      if (e.key === 'wasLoggedIn' && e.newValue === 'true' && !accessToken) {
+        // User logged in in another tab, refresh to get session
+        console.log("Session detected in another tab, initializing...");
+        initAuth();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
@@ -138,8 +158,12 @@ export default function LexManageApp() {
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [initAuth]);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [initAuth, logout, accessToken]);
 
   useEffect(() => {
     if (socket) {
@@ -182,7 +206,10 @@ export default function LexManageApp() {
         <Route path="/cases" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><CaseManagementView /></MainLayout></ProtectedRoute>} />
         <Route path="/calendar" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><CalendarView /></MainLayout></ProtectedRoute>} />
         <Route path="/documents" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><DocumentsView /></MainLayout></ProtectedRoute>} />
+        <Route path="/clients" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><ClientsDirectoryView /></MainLayout></ProtectedRoute>} />
+        <Route path="/clients/:id" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><ClientDetailView /></MainLayout></ProtectedRoute>} />
         <Route path="/lex-assist" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><AiAssistantView /></MainLayout></ProtectedRoute>} />
+        <Route path="/colleagues" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><ColleaguesView /></MainLayout></ProtectedRoute>} />
         <Route path="/company-settings" element={
           <AdminRoute session={accessToken} currentUser={currentUser}>
             <MainLayout {...layoutProps}><CompanySettingsView /></MainLayout>

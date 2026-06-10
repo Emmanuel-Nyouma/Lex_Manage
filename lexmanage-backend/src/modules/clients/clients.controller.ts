@@ -4,11 +4,13 @@ import { ClientsService } from './clients.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { CreateClientSchema, UpdateClientSchema } from '../../common/schemas/client.schema';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('clients')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('clients')
 export class ClientsController {
   constructor(private readonly clientsService: ClientsService) {}
@@ -24,6 +26,7 @@ export class ClientsController {
   }
 
   @Post()
+  @Roles('CABINET_ADMIN', 'SUPER_ADMIN')
   @UsePipes(new ZodValidationPipe(CreateClientSchema))
   create(
     @Body() dto: any,
@@ -34,6 +37,7 @@ export class ClientsController {
   }
 
   @Patch(':id')
+  @Roles('CABINET_ADMIN', 'SUPER_ADMIN')
   @UsePipes(new ZodValidationPipe(UpdateClientSchema))
   update(
     @Param('id') id: string,
@@ -45,6 +49,7 @@ export class ClientsController {
   }
 
   @Delete(':id')
+  @Roles('CABINET_ADMIN', 'SUPER_ADMIN')
   remove(
     @Param('id') id: string,
     @CurrentUser('tenantId') tenantId: string,

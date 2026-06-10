@@ -4,23 +4,33 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { DocumentsService } from './documents.service';
 import { CreateDocumentDto, UpdateDocumentDto, DocumentType } from './dto/document.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('documents')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('documents')
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all documents for the firm' })
+  @ApiOperation({ summary: 'Get all documents for the firm with pagination' })
   findAll(
     @CurrentUser('tenantId') tenantId: string,
     @Query('caseId') caseId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('category') category?: string,
   ) {
     if (caseId) return this.documentsService.findByCase(caseId, tenantId);
-    return this.documentsService.findAll(tenantId);
+    return this.documentsService.findAll(
+      tenantId, 
+      page ? parseInt(page) : 1, 
+      limit ? parseInt(limit) : 10,
+      category
+    );
   }
 
   @Get(':id')
@@ -35,6 +45,7 @@ export class DocumentsController {
   }
 
   @Post('upload')
+  @Roles('CABINET_ADMIN', 'SUPER_ADMIN', 'LAWYER')
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({ summary: 'Upload a new document' })
   upload(
@@ -64,6 +75,7 @@ export class DocumentsController {
   }
 
   @Post()
+  @Roles('CABINET_ADMIN', 'SUPER_ADMIN', 'LAWYER')
   create(
     @Body() dto: CreateDocumentDto,
     @CurrentUser('tenantId') tenantId: string,
@@ -73,6 +85,7 @@ export class DocumentsController {
   }
 
   @Patch(':id')
+  @Roles('CABINET_ADMIN', 'SUPER_ADMIN', 'LAWYER')
   update(
     @Param('id') id: string,
     @Body() dto: UpdateDocumentDto,
@@ -83,6 +96,7 @@ export class DocumentsController {
   }
 
   @Patch(':id/link-to-case')
+  @Roles('CABINET_ADMIN', 'SUPER_ADMIN', 'LAWYER')
   @ApiOperation({ summary: 'Link an existing document to a case' })
   linkToCase(
     @Param('id') id: string,
@@ -94,6 +108,7 @@ export class DocumentsController {
   }
 
   @Delete(':id')
+  @Roles('CABINET_ADMIN', 'SUPER_ADMIN')
   remove(
     @Param('id') id: string,
     @CurrentUser('tenantId') tenantId: string,

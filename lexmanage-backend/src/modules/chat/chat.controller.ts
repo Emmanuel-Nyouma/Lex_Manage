@@ -27,8 +27,8 @@ export class ChatController {
   }
 
   @Get('conversations/:id')
-  getConversation(@Param('id') id: string, @CurrentUser('tenantId') tenantId: string) {
-    return this.chatService.getConversation(id, tenantId);
+  getConversation(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.chatService.getConversation(id, user.tenantId, user.id);
   }
 
   @Post('conversations/:id/messages')

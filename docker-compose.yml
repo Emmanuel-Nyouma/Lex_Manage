@@ -1,6 +1,24 @@
-version: '3.8'
-
 services:
+  # Static SPA served by nginx, which also reverse-proxies /api and /socket.io
+  # to the backend so the whole app is one origin (no CORS, WS upgrade handled).
+  # FRONTEND_PUBLIC_URL is this frontend's own public origin (where browsers reach
+  # it) — Vite bakes it in at build time. Defaults to http://localhost for a local
+  # `docker compose up`. For a separate backend domain, point VITE_API_URL/VITE_WS_URL
+  # at the backend instead and drop the proxy blocks in nginx.conf.
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${FRONTEND_PUBLIC_URL:-http://localhost}
+        VITE_WS_URL: ${FRONTEND_PUBLIC_URL:-http://localhost}
+    container_name: lex-manage-frontend
+    restart: always
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      - backend
+
   backend:
     build:
       context: ./lexmanage-backend
@@ -14,21 +32,32 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY}
       JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY}
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
-      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio}
-      MINIO_PORT: ${MINIO_PORT:-9000}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
-      MINIO_BUCKET: ${MINIO_BUCKET}
-      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
-      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
-      QDRANT_COLLECTION: ${QDRANT_COLLECTION}
+      PORT: ${PORT:-3001}
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
+      S3_BUCKET: ${S3_BUCKET:-lexmanage-documents}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_TLS: ${REDIS_TLS:-false}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-onboarding@resend.dev}
+      N8N_RAG_CHAT_URL: ${N8N_RAG_CHAT_URL:-}
+      N8N_RAG_INGEST_URL: ${N8N_RAG_INGEST_URL:-}
+    command: >
+      sh -c "npx prisma migrate deploy && node dist/main"
     depends_on:
-      - postgres
-      - qdrant
-      - minio
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
 
   postgres:
     image: postgres:16-alpine
@@ -42,15 +71,25 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-lexmanage}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  qdrant:
-    image: qdrant/qdrant:latest
-    container_name: lex-manage-qdrant
+  redis:
+    image: redis:7-alpine
+    container_name: lex-manage-redis
     restart: always
     ports:
-      - "6333:6333"
+      - "6379:6379"
     volumes:
-      - qdrant_data:/qdrant/storage
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   minio:
     image: minio/minio:latest
@@ -58,15 +97,20 @@ services:
     restart: always
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
     ports:
       - "9000:9000"
       - "9001:9001"
     volumes:
       - minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/minio/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
-  qdrant_data:
+  redis_data:
   minio_data:
