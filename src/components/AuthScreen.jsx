@@ -108,25 +108,43 @@ const AuthScreen = () => {
   const [shouldShake, setShouldShake] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
 
-  const { register, handleSubmit, trigger, watch, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, watch, getValues, setError, clearErrors, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(
-      view === 'login' ? loginSchema : 
-      view === 'signup' ? signupSchema : 
+      view === 'login' ? loginSchema :
+      view === 'signup' ? signupSchema :
       view === 'mfa_challenge' ? mfaSchema :
       forgotPasswordSchema
     ),
     mode: "onChange"
   });
 
+  // Step 1 (firm info) is mandatory before reaching step 2. The signup schema
+  // keeps these fields optional (so invited users who skip step 1 can register),
+  // so we enforce them manually here for the firm-creation flow.
   const nextStep = async () => {
-    const isStepValid = await trigger(['firmName', 'country', 'city']);
+    const { firmName, country, city } = getValues();
+    let valid = true;
 
-    if (isStepValid) {
+    if (!firmName || firmName.trim().length < 2) {
+      setError('firmName', { type: 'manual', message: 'Firm name is required' });
+      valid = false;
+    }
+    if (!country || country.trim().length < 2) {
+      setError('country', { type: 'manual', message: 'Country is required' });
+      valid = false;
+    }
+    if (!city || city.trim().length < 2) {
+      setError('city', { type: 'manual', message: 'City is required' });
+      valid = false;
+    }
+
+    if (valid) {
+      clearErrors(['firmName', 'country', 'city']);
       setSignupStep(2);
     } else {
       setShouldShake(true);
       setTimeout(() => setShouldShake(false), 800);
-      toast.error("Please fill in all firm details.");
+      toast.error("Please fill in all firm details before continuing.");
     }
   };
 
@@ -222,9 +240,9 @@ const AuthScreen = () => {
               <button 
                 aria-label="Back"
                 onClick={() => {
-                  if (view === 'signup' && signupStep === 2) setSignupStep(1);
+                  if (view === 'signup' && signupStep === 2 && !invitationToken) setSignupStep(1);
                   else setView('login');
-                }} 
+                }}
                 className="flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-amber-600 mb-6 transition-all group"
               >
                 <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Back
@@ -284,9 +302,22 @@ const AuthScreen = () => {
                   </div>
                   <Input {...register("confirmPassword")} label="Confirm Password" type="password" icon={ShieldCheck} error={errors.confirmPassword?.message} />
                 </div>
-                <Button type="submit" isLoading={isSubmitting} className="w-full h-14 text-lg font-bold" icon={Check}>
-                  {invitationToken ? 'Join now' : 'Create firm'}
-                </Button>
+                <div className="flex gap-3">
+                  {!invitationToken && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setSignupStep(1)}
+                      icon={ChevronLeft}
+                      className="h-14 px-6 text-base font-bold"
+                    >
+                      Back
+                    </Button>
+                  )}
+                  <Button type="submit" isLoading={isSubmitting} className="flex-1 h-14 text-lg font-bold" icon={Check}>
+                    {invitationToken ? 'Join now' : 'Create firm'}
+                  </Button>
+                </div>
               </div>
             )}
 
