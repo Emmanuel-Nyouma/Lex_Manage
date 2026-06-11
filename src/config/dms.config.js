@@ -54,6 +54,16 @@ export const DMS_CATEGORIES = [
       { id: 'politique_procedures', label: 'Politique de procédures du cabinet' },
       { id: 'rh_gestion', label: 'RH et gestion' }
     ]
+  },
+  {
+    id: 'law_library',
+    label: 'Law Library',
+    subCategories: [
+      { id: 'legislation_codes', label: 'Législation et codes' },
+      { id: 'jurisprudence', label: 'Jurisprudence' },
+      { id: 'doctrine_doctrine', label: 'Doctrine et commentaires' },
+      { id: 'traites_conventions', label: 'Traités et conventions' }
+    ]
   }
 ];
 
