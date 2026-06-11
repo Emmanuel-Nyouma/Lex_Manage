@@ -206,7 +206,7 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                 {/* Client selection from CRM */}
                 <div className="md:col-span-1 relative">
                   <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 ml-1">
-                    Client <span className="text-rose-500 ml-0.5">*</span>
+                    Client <span className="text-slate-400 dark:text-slate-500 font-normal normal-case tracking-normal ml-1 text-[10px]">(optional)</span>
                   </label>
                   
                   <div className="relative group">
@@ -217,10 +217,21 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                       <div className="flex items-center gap-2 truncate">
                         <User size={16} className={selectedClientId ? "text-amber-500" : "text-slate-400"} />
                         <span className={`truncate ${selectedClientName ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-400'}`}>
-                          {selectedClientName || "Select or type client name"}
+                          {selectedClientName || "Select a client (optional)"}
                         </span>
                       </div>
-                      <ChevronDown size={14} className={`text-slate-400 transition-transform ${showClientSelector ? 'rotate-180' : ''}`} />
+                      {selectedClientName ? (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setValue("clientId", null); setValue("clientName", ""); }}
+                          className="p-0.5 text-slate-400 hover:text-rose-500 transition-colors rounded"
+                          aria-label="Clear client"
+                        >
+                          <X size={14} />
+                        </button>
+                      ) : (
+                        <ChevronDown size={14} className={`text-slate-400 transition-transform ${showClientSelector ? 'rotate-180' : ''}`} />
+                      )}
                     </div>
 
                     {showClientSelector && (

@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const CreateCaseSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters"),
   description: z.string().optional().or(z.literal('')),
-  clientName: z.string().min(1, "Client name is required"),
+  clientName: z.string().optional().or(z.literal('')),
   clientId: z.string().uuid().optional().nullable(),
   courtName: z.string().optional(),
   caseNumber: z.string().optional(),
