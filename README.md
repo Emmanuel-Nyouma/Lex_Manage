@@ -1,282 +1,256 @@
-# ⚖️ LexManage v2 (SaaS Production Edition)
+# ⚖️ LexManage
 
-**LexManage** is an enterprise-grade Legal Management Platform with integrated **AI-Powered Legal RAG** (Retrieval-Augmented Generation). This version transitions from a simple demo to a robust **Multi-tenant SaaS architecture** designed for modern law firms.
+**LexManage** is a multi-tenant SaaS Legal Management Platform built for modern law firms. It combines case management, a document repository, a client directory, a smart notification system, and an AI-powered legal research assistant — all in a single, bilingual (FR/EN) interface.
 
-## 🚀 Key Production Features
+🔗 **Live app:** [lex-manage-olive.vercel.app](https://lex-manage-olive.vercel.app)
 
-### 1. 🏢 Multi-Tenant SaaS Engine
-- **Firm Isolation:** Strict data partitioning using Prisma Extensions and AsyncLocalStorage context.
-- **Organization Management:** Admins can invite collaborators via secure tokens.
-- **Role-Based Access (RBAC):** Distinct permissions for `admin`, `lawyer`, and `paralegal`.
+---
 
-### 2. 🤖 **LexAssist AI: Multi-Tenant RAG Workflow** ✨
-**First-class AI research assistant integrated directly into the legal workflow.**
+## ✨ Features
 
-#### Architecture
-- **Vector Store:** Pinecone (tenant-scoped namespaces for firm isolation)
-- **Embeddings & Reranking:** Cohere (embeddings + reranker for precision retrieval)
-- **LLM:** Google Gemini 2.5 Flash (or Gemini 1.5 Pro for complex analysis)
-- **Orchestration:** n8n Legal RAG workflow (webhook-based integration)
-- **File Storage:** MinIO (tenant-scoped buckets with presigned URLs)
+### 🏢 Multi-Tenant Architecture
+- Every law firm has its own isolated workspace (tenant)
+- Admins invite team members via secure token links
+- Role-based access: `SUPER_ADMIN` · `CABINET_ADMIN` · `LAWYER` · `ASSISTANT` · `SECRETARY`
+- All DB queries are automatically scoped by `tenantId`
 
-#### Key Capabilities
-- **Multi-Tenant & Multi-User:** Each firm's documents isolated in Pinecone namespace `{tenantId}`; conversation memory keyed per user (`tenantId_userId_sessionId`)
-- **Supported Formats:** PDF, DOCX, TXT (with plain-text recognition for `.txt` files without magic bytes)
-- **Dual Ingestion Paths:**
-  1. **Automatic:** Documents auto-ingested to LexAssist on PDF/DOCX upload
-  2. **Manual:** "Import to LexAssist AI" button for on-demand ingestion (supports TXT)
-- **Conversation Memory:** Per-user session memory maintained across queries
-- **Legal-Specific Prompting:** Custom system instructions for legal analysis, zero-hallucination guidance, structured output format
+### ⚖️ Case Management
+- Create, update, and close legal cases with status tracking (Open → In Progress → Pending → Closed → Archived)
+- Link cases to clients from the CRM, or enter a free-text client name (optional)
+- Assign cases to lawyers; set priority (Low / Medium / High / Urgent)
+- Per-case deadline tracker with due dates and completion status
 
-#### Workflow: Document → AI Chat
-1. Upload document (PDF, DOCX, TXT) → stored in MinIO with tenant isolation
-2. Click **"Import to LexAssist AI"** button (or auto-triggered for PDF/DOCX)
-3. n8n ingest webhook → chunks document → embeds with Cohere → indexes in Pinecone under tenant namespace
-4. Ask LexAssist a question → webhook sends query + tenantId + userId + sessionId
-5. n8n retrieves from Pinecone, reranks with Cohere, passes to Gemini
-6. AI responds with document-backed citations and source references
+### 📄 Document Management System (DMS)
+- Upload PDF and DOCX files (up to 50 MB) with drag-and-drop
+- Organize by **9 categories** and subcategories (Actes de procédures, Contrats, Pièces et preuves, Correspondance, Financier, Internes, **Law Library**, …)
+- All category/subcategory labels translate automatically with the UI language toggle (FR ↔ EN)
+- Per-document access control by role
+- Presigned download links (15-min expiry) via Supabase S3
+- Documents auto-ingested into LexAssist AI on upload (when n8n configured)
 
-#### Example Query
-```
-Q: "Quelle est la clause de confidentialité dans le contrat Globale SAS?"
-A: "📋 Query Summary: Vous avez demandé la clause de confidentialité...
-    📄 Relevant Provisions: L'Article 9 du contrat, intitulé 'Confidentialité'...
-    ⚖️ Legal Analysis: Cette obligation s'applique à tous les échanges..."
-```
+### 👥 Client Directory
+- Full CRUD for individuals and corporate clients
+- Link clients to cases; search by name, email, or phone
+- Client profile page with associated cases
 
-### 3. 📄 Document Management System (DMS) Enhancements
-- **File Type Support:** PDF, DOCX, TXT (with smart MIME detection for plain text)
-- **Organization:** Categories & sub-categories (CONTRATS, CORRESPONDANCES, etc.)
-- **Access Control:** Per-document role-based visibility (Admin-configurable)
-- **Pending Documents:** Draft uploads before case association
-- **Audit Trail:** All document uploads tracked in AuditLog
+### 🔔 Notification Center
+- Create firm-wide or targeted notifications with level (Normal / Important / Urgent)
+- **Templates** for reusable notification drafts
+- **Scheduled notifications** with BullMQ delayed jobs — cancel or permanently delete at any time
+- Notification history with per-item delete
+- Urgent notifications trigger emails via Resend
+- Real-time WebSocket push (Socket.io) to all connected users
 
-### 4. 🔔 Real-Time Intelligence
-- **Live Notifications:** Powered by Socket.io for instant updates on case changes.
-- **Urgency System:** High-priority alerts trigger instant UI pop-ups for critical deadlines.
-- **Automated Reminders:** NestJS Cron jobs scan for upcoming hearings 3 days in advance.
+### 🔍 Hybrid Smart Search
+- **Inline suggestions dropdown** in the header as you type (desktop)
+- Searches across Cases, Documents, Team Members, and Clients simultaneously
+- Hybrid approach: full-phrase match + per-token match, deduplicated — finds partial words
+- Full-screen search palette (⌘K / Ctrl+K) on desktop and mobile
 
-### 5. 🛡️ Security & Compliance
-- **JWT Auth:** Secure session management with Access/Refresh tokens.
-- **Audit Logs:** Full traceability of every `INSERT` and `UPDATE` on cases, documents, and AI queries.
-- **File Privacy:** MinIO-stored documents accessed via secure presigned URLs.
-- **Tenant Isolation:** Prisma row-level filters enforce strict firm boundaries on all queries.
+### 🤖 LexAssist AI (RAG)
+- In-app legal research assistant powered by an n8n Cloud RAG workflow
+- Per-firm document knowledge base (tenant-scoped vector store)
+- Conversation history saved per user; multiple sessions supported
+- Documents are automatically pushed to the knowledge base on upload
+
+### 📅 Calendar & Deadlines
+- Monthly/weekly calendar view for hearings and events
+- Case deadlines with priority and completion toggle
+
+### 🌐 Bilingual UI (FR / EN)
+- Language toggle in Settings — instantly switches all labels including DMS categories
+- Dark / Light mode
+
+### 📱 Mobile-First
+- Fully responsive on all screen sizes
+- Full-screen search palette on mobile
+- Compact header that preserves all action buttons on small screens
+
+---
 
 ## 🛠️ Tech Stack
-- **Frontend:** React 19 (Vite), Tailwind CSS, Lucide Icons, React Query, Zustand.
-- **Backend:** NestJS, Prisma ORM, PostgreSQL, AsyncLocalStorage (tenant context).
-- **Vector DB:** Pinecone (embeddings storage & retrieval).
-- **File Storage:** MinIO (S3-compatible document store).
-- **AI Orchestration:** n8n (Legal RAG workflow with Cohere + Gemini).
-- **Realtime:** Socket.io.
-- **Embeddings:** Cohere (embeddings + reranking).
+
+| Layer | Technology |
+|---|---|
+| **Frontend** | React 19, Vite, Tailwind CSS, React Query, Zustand, React Router, Lucide Icons |
+| **Backend** | NestJS (TypeScript), Prisma ORM, Zod validation, Socket.io, BullMQ |
+| **Database** | PostgreSQL via [Neon](https://neon.tech) (serverless) |
+| **File Storage** | [Supabase Storage](https://supabase.com/storage) (S3-compatible, AWS SDK v3) |
+| **Queue / Cache** | [Upstash Redis](https://upstash.com) (TLS, BullMQ delayed jobs) |
+| **AI Orchestration** | [n8n Cloud](https://n8n.io) (Legal RAG webhook workflow) |
+| **Email** | [Resend](https://resend.com) |
+| **Frontend Hosting** | [Vercel](https://vercel.com) |
+| **Backend Hosting** | [Render](https://render.com) (Docker web service) |
 
 ---
 
-## ⚙️ Configuration
+## 🗂️ Project Structure
 
-### Backend Environment (`.env`)
-```bash
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/lexmanage"
-
-# JWT
-JWT_SECRET="your-super-secret-key"
-JWT_EXPIRATION="15m"
-
-# MinIO (Document Storage)
-MINIO_ENDPOINT="localhost"
-MINIO_PORT=9000
-MINIO_ACCESS_KEY="minioadmin"
-MINIO_SECRET_KEY="minioadmin"
-
-# n8n Legal RAG Webhooks
-N8N_RAG_CHAT_URL="https://your-n8n-instance.app.n8n.cloud/webhook/legal-rag-chat"
-N8N_RAG_INGEST_URL="https://your-n8n-instance.app.n8n.cloud/webhook/legal-rag-ingest"
-
-# Gemini LLM (via n8n)
-GEMINI_API_KEY="your-google-ai-api-key"  # Used by n8n agent node
 ```
-
-### n8n Legal RAG Workflow Setup
-The n8n workflow requires:
-1. **Pinecone Vector DB connection** (tenant-scoped namespaces)
-2. **Cohere credentials** (embeddings + reranker models)
-3. **Google Gemini credentials** (LLM agent)
-4. **Webhook triggers:** `/legal-rag-chat` and `/legal-rag-ingest`
-
-**Payload format (chat webhook):**
-```json
-{
-  "tenantId": "firm-uuid",
-  "userId": "user-uuid",
-  "chatInput": "Your legal question here",
-  "sessionId": "conversation-session-id",
-  "caseId": "optional-case-uuid"
-}
-```
-
-**Payload format (ingest webhook):**
-```json
-{
-  "tenantId": "firm-uuid",
-  "userId": "user-uuid",
-  "filename": "document.pdf",
-  "buffer": "base64-encoded-file-content",
-  "caseId": "optional-case-uuid"
-}
-```
-
----
-
-## 📂 Project Structure
-```text
 lex-manage/
-├── lexmanage-backend/
+├── lexmanage-backend/          # NestJS API
 │   ├── src/
 │   │   ├── modules/
-│   │   │   ├── ai/
-│   │   │   │   ├── ai.controller.ts          # Chat + ingest endpoints
-│   │   │   │   ├── ai.module.ts
-│   │   │   │   └── n8n-rag.service.ts        # n8n webhook bridge
-│   │   │   ├── documents/
-│   │   │   │   ├── documents.service.ts      # Upload, validation, storage
-│   │   │   │   ├── documents.controller.ts
-│   │   │   │   └── minio.service.ts          # MinIO file operations
-│   │   │   └── auth/
-│   │   │       └── jwt.strategy.ts
-│   │   └── common/
-│   │       ├── context/
-│   │       │   └── tenant.context.ts         # AsyncLocalStorage tenant isolation
-│   │       └── middleware/
-│   │           └── tenant.middleware.ts      # JWT → tenantId extraction
-│   └── prisma/
-│       ├── schema.prisma                     # ORM schema (multi-tenant)
-│       └── prisma.service.ts                 # Row-level isolation filters
-├── src/
-│   ├── components/
-│   │   ├── DocumentUpload.jsx                # Upload UI (PDF/DOCX/TXT)
-│   │   └── ChatInterface.jsx                 # LexAssist chat UI
-│   ├── hooks/
-│   │   ├── useClients.js                     # CRUD mutations
-│   │   ├── useLexStore.js
-│   │   └── useNotifications.js
-│   └── lib/
-│       ├── documentService.js                # Frontend upload logic
-│       └── api.js                            # Axios instance
-└── README.md (this file)
+│   │   │   ├── auth/           # JWT login, refresh, invitation flow
+│   │   │   ├── cases/          # Case CRUD + status management
+│   │   │   ├── clients/        # Client directory
+│   │   │   ├── documents/      # DMS upload, S3, presigned URLs
+│   │   │   ├── notifications/  # Instant, scheduled, templates
+│   │   │   ├── search/         # Hybrid global search
+│   │   │   ├── chat/           # LexAssist conversation persistence
+│   │   │   ├── ai/             # n8n RAG bridge service
+│   │   │   ├── calendar/       # Events & deadlines
+│   │   │   ├── stats/          # Dashboard KPIs
+│   │   │   ├── users/          # Team management
+│   │   │   ├── tenants/        # Firm settings + logo
+│   │   │   ├── events/         # Socket.io gateway
+│   │   │   └── audit/          # Audit log
+│   │   └── common/             # Guards, decorators, Zod pipes, schemas
+│   ├── prisma/
+│   │   └── schema.prisma       # 13 models (Tenant, User, Case, Client, Document, …)
+│   └── Dockerfile
+├── src/                        # React frontend
+│   ├── components/             # All views and UI components
+│   ├── hooks/                  # React Query hooks (useCases, useClients, …)
+│   ├── config/
+│   │   └── dms.config.js       # DMS category tree
+│   ├── lib/
+│   │   ├── api.js              # Axios + cold-start retry logic
+│   │   └── schemas/            # Zod validation (frontend)
+│   ├── store/
+│   │   └── useLexStore.js      # Zustand global state
+│   └── utils/
+│       └── translations.js     # FR / EN strings
+├── diagrams/                   # Mermaid system diagrams (DFD, ER, Use Case, …)
+├── vercel.json                 # SPA routing config
+└── docker-compose.yml          # Local dev stack
 ```
 
 ---
 
-## 🔌 API Endpoints
+## ⚙️ Environment Variables
 
-### AI & Chat
-- **POST** `/api/v1/ai/chat` — Chat with LexAssist (from case/matter views)
-- **POST** `/api/v1/ai/dashboard-chat` — Chat with LexAssist (from dashboard)
-- **POST** `/api/v1/ai/ingest-document` — Manually ingest a DMS document to LexAssist
+### Backend (`lexmanage-backend/.env`)
 
-### Documents
-- **POST** `/api/v1/documents/upload` — Upload document (auto-ingests PDF/DOCX)
-- **GET** `/api/v1/documents` — List firm documents (paginated, categorized)
-- **GET** `/api/v1/documents/:id` — Get document details
-- **GET** `/api/v1/documents/:id/download-url` — Generate presigned download link
-- **PATCH** `/api/v1/documents/:id` — Update document metadata
-- **DELETE** `/api/v1/documents/:id` — Archive/delete document
+```bash
+# Database (Neon)
+DATABASE_URL="postgresql://user:pass@host/lexmanage?sslmode=require"
 
-### Clients
-- **GET** `/api/v1/clients` — List firm clients
-- **POST** `/api/v1/clients` — Create client
-- **PATCH** `/api/v1/clients/:id` — Update client
-- **DELETE** `/api/v1/clients/:id` — Delete client
+# JWT
+JWT_SECRET="your-secret"
+JWT_EXPIRATION="15m"
+REFRESH_TOKEN_SECRET="your-refresh-secret"
+
+# Supabase S3 Storage
+S3_ENDPOINT="https://<project-id>.supabase.co/storage/v1/s3"
+S3_REGION="eu-west-2"
+S3_ACCESS_KEY_ID="your-access-key"
+S3_SECRET_ACCESS_KEY="your-secret-key"
+S3_BUCKET_NAME="your-bucket-name"
+
+# Redis (Upstash)
+REDIS_HOST="your-host.upstash.io"
+REDIS_PORT=6379
+REDIS_PASSWORD="your-password"
+REDIS_TLS=true
+
+# n8n RAG Webhooks
+N8N_RAG_CHAT_URL="https://your-n8n.app.n8n.cloud/webhook/legal-rag-chat"
+N8N_RAG_INGEST_URL="https://your-n8n.app.n8n.cloud/webhook/legal-rag-ingest"
+
+# Email (Resend) — optional
+RESEND_API_KEY="re_xxxxxxxxxxxx"
+```
+
+### Frontend (`.env`)
+
+```bash
+VITE_API_BASE_URL="https://your-backend.onrender.com"
+```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Local Development
 
-### Local Development
 ```bash
-# Backend
+# 1. Clone
+git clone https://github.com/Emmanuel-Nyouma/Lex_Manage.git
+cd Lex_Manage
+
+# 2. Backend
 cd lexmanage-backend
+cp .env.example .env          # fill in your values
 npm install
-npm run start:dev
+npx prisma db push
+npm run start:dev             # runs on :3001
 
-# Frontend (separate terminal)
+# 3. Frontend (new terminal)
 cd ..
+cp .env.example .env          # set VITE_API_BASE_URL=http://localhost:3001
 npm install
-npm run dev
-```
-
-### Docker Compose Stack
-```bash
-docker-compose up -d
-# Starts: PostgreSQL, MinIO, Pinecone emulator (optional)
-```
-
-### Verify Setup
-1. Backend running on `http://localhost:3001`
-2. Frontend running on `http://localhost:5173`
-3. MinIO console on `http://localhost:9001` (minioadmin/minioadmin)
-4. PostgreSQL on `localhost:5432`
-
----
-
-## 🧪 Testing the RAG Workflow
-
-### Step 1: Upload a Document
-```bash
-curl -X POST http://localhost:3001/api/v1/documents/upload \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -F "file=@contract.txt;type=text/plain" \
-  -F "name=Legal Contract" \
-  -F "category=CONTRATS"
-```
-
-### Step 2: Ingest to LexAssist AI
-```bash
-curl -X POST http://localhost:3001/api/v1/ai/ingest-document \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"documentId": "DOCUMENT_ID_FROM_STEP_1"}'
-```
-
-### Step 3: Chat with LexAssist
-```bash
-curl -X POST http://localhost:3001/api/v1/ai/dashboard-chat \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "Quelle est la clause de confidentialité?",
-    "sessionId": "my-conversation-1"
-  }'
+npm run dev                   # runs on :5173
 ```
 
 ---
 
-## 🔐 Multi-Tenant Security Model
+## ☁️ Free Deployment Stack
 
-- **Tenant Binding:** Every user JWT contains `tenantId`; middleware extracts and stores in AsyncLocalStorage
-- **Row-Level Filters:** Prisma extensions auto-inject `tenantId` filter on all TENANT_BOUND_MODELS queries
-- **Vector DB Isolation:** Pinecone namespaces use `{tenantId}` as the namespace key
-- **File Isolation:** MinIO bucket names include tenant prefix: `lex-{tenantId-prefix}`
-- **Session Isolation:** Conversation memory keys: `{tenantId}_{userId}_{sessionId}`
+| Service | Purpose | Free tier |
+|---|---|---|
+| [Render](https://render.com) | Backend (Docker) | 750 h/mo — spins down after 15 min idle |
+| [Vercel](https://vercel.com) | Frontend (SPA) | Unlimited |
+| [Neon](https://neon.tech) | PostgreSQL | 0.5 GB storage |
+| [Upstash](https://upstash.com) | Redis | 10,000 commands/day |
+| [Supabase](https://supabase.com) | S3 File Storage | 1 GB storage |
+| [n8n Cloud](https://n8n.io) | AI RAG workflow | Free plan |
+
+> **Cold start:** The Render backend sleeps after 15 min. The app auto-retries up to 12× with a visible "Waking up the server…" banner.
+
+### CI/CD
+Push to `main` → Vercel redeploys frontend automatically. Render redeploys backend automatically.
 
 ---
 
-## ⚠️ Known Limitations
+## 📡 Key API Endpoints
 
-### Gemini Free Tier Quota
-- **Limit:** 5 requests per minute, ~20 per day (free-tier model)
-- **Solution:** Upgrade to Gemini 1.5 Pro (paid API) or use DeepSeek via OpenRouter with sufficient balance
+| Method | Path | Description |
+|---|---|---|
+| POST | `/auth/login` | Login, returns JWT + sets refresh cookie |
+| POST | `/auth/register` | Register new law firm |
+| GET | `/auth/me` | Current user profile |
+| GET | `/cases` | List cases (paginated) |
+| POST | `/cases` | Create case |
+| GET | `/clients` | List clients |
+| POST | `/clients` | Create client |
+| POST | `/documents/upload` | Upload document to S3 + DMS |
+| GET | `/documents/:id/download-url` | Presigned download URL |
+| GET | `/search/global?q=` | Hybrid search (cases, docs, members, clients) |
+| GET | `/notifications` | User notifications |
+| POST | `/notifications/scheduled` | Schedule a future notification |
+| DELETE | `/notifications/history/:id` | Delete sent notification |
+| POST | `/chat/message` | LexAssist chat message |
+| GET | `/health` | Health check |
 
-### TXT File Detection
-- **Issue:** Plain text files have no magic bytes; detection relies on client-declared MIME type
-- **Solution:** Frontend sends `type=text/plain`; backend validates & stores
+---
+
+## 🗺️ System Diagrams
+
+Mermaid diagrams are available in [`/diagrams`](./diagrams/):
+
+| Diagram | File |
+|---|---|
+| Data Flow (Level 0 + Level 1) | [01_data_flow_diagram.md](./diagrams/01_data_flow_diagram.md) |
+| Use Case | [02_use_case_diagram.md](./diagrams/02_use_case_diagram.md) |
+| Sequence (Login, Case+Upload, AI Chat, Scheduled Notif) | [03_sequence_diagram.md](./diagrams/03_sequence_diagram.md) |
+| Activity (Registration, Upload, Case Lifecycle, Search) | [04_activity_diagram.md](./diagrams/04_activity_diagram.md) |
+| Entity-Relationship (13 entities) | [05_er_diagram.md](./diagrams/05_er_diagram.md) |
 
 ---
 
 ## 🤝 Author
-[Emmanuel Nyouma](https://github.com/Emmanuel-Nyouma)
+
+**Emmanuel Nyouma** — [github.com/Emmanuel-Nyouma](https://github.com/Emmanuel-Nyouma)
 
 ## 📄 License
-Proprietary — LexManage SaaS Edition
+
+Proprietary — All rights reserved.
