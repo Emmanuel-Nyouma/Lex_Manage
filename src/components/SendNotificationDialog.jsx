@@ -16,8 +16,8 @@ const SendNotificationDialog = ({ isOpen, onClose, preloadTemplate = null }) => 
   const [templates, setTemplates] = useState([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
-  const { data: casesData } = useCases();
-  const cases = Array.isArray(casesData?.data) ? casesData.data : (Array.isArray(casesData) ? casesData : []);
+  const { data: casesData } = useCases(100);
+  const cases = casesData?.cases ?? [];
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
     resolver: zodResolver(CreateNotificationSchema),

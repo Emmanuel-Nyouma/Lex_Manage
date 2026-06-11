@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { QUERY_KEYS } from '../lib/queryKeys';
 import { toast } from 'sonner';
@@ -22,18 +22,21 @@ export const useColleagues = () => {
   });
 };
 
-// Hook pour récupérer tous les dossiers actifs
-export const useCases = (page = 1, limit = 10) => {
-  return useQuery({
-    queryKey: [...QUERY_KEYS.cases, page, limit],
-    queryFn: async () => {
-      const { data } = await apiClient.get(`/cases?page=${page}&limit=${limit}`);
-      return data;
+// Hook pour récupérer tous les dossiers actifs (cursor-based pagination)
+export const useCases = (limit = 10) => {
+  return useInfiniteQuery({
+    queryKey: [...QUERY_KEYS.cases, 'infinite', limit],
+    queryFn: async ({ pageParam }) => {
+      const params = new URLSearchParams({ limit: String(limit) });
+      if (pageParam) params.append('cursor', pageParam);
+      const { data } = await apiClient.get(`/cases?${params.toString()}`);
+      return data; // { data: Case[], meta: { nextCursor, hasMore, limit } }
     },
-    placeholderData: keepPreviousData,
-    select: (response) => ({
-      cases: response.data,
-      pagination: response.meta,
+    initialPageParam: null,
+    getNextPageParam: (lastPage) => lastPage.meta?.nextCursor ?? undefined,
+    select: (result) => ({
+      cases: result.pages.flatMap((p) => p.data),
+      hasMore: result.pages[result.pages.length - 1]?.meta?.hasMore ?? false,
     }),
   });
 };

@@ -20,10 +20,10 @@ export class CasesController {
   @ApiOperation({ summary: 'Get all cases for the firm' })
   findAll(
     @CurrentUser('tenantId') tenantId: string,
-    @Query('page') page: string = '1',
+    @Query('cursor') cursor?: string,
     @Query('limit') limit: string = '10',
   ) {
-    return this.casesService.findAll(tenantId, parseInt(page), parseInt(limit));
+    return this.casesService.findAll(tenantId, cursor, parseInt(limit));
   }
 
   @Get(':id')

@@ -1,19 +1,25 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../lib/api';
 import { toast } from 'sonner';
 
-// Hook pour récupérer tous les documents avec pagination
-export const useDocuments = (page = 1, limit = 10, category = 'ALL', caseId = null) => {
-  return useQuery({
-    queryKey: ['documents', page, limit, category, caseId],
-    queryFn: async () => {
-      let url = '/documents?';
-      if (caseId) url += `caseId=${caseId}&`;
-      url += `page=${page}&limit=${limit}&category=${category}`;
-      
-      const { data } = await apiClient.get(url);
-      return data;
+// Hook pour récupérer tous les documents (cursor-based pagination)
+export const useDocuments = (limit = 10, category = 'ALL', caseId = null) => {
+  return useInfiniteQuery({
+    queryKey: ['documents', 'infinite', limit, category, caseId],
+    queryFn: async ({ pageParam }) => {
+      const params = new URLSearchParams({ limit: String(limit), category });
+      if (caseId) params.append('caseId', caseId);
+      if (pageParam) params.append('cursor', pageParam);
+
+      const { data } = await apiClient.get(`/documents?${params.toString()}`);
+      return data; // { data: Document[], meta: { nextCursor, hasMore, limit } }
     },
+    initialPageParam: null,
+    getNextPageParam: (lastPage) => lastPage.meta?.nextCursor ?? undefined,
+    select: (result) => ({
+      documents: result.pages.flatMap((p) => p.data),
+      hasMore: result.pages[result.pages.length - 1]?.meta?.hasMore ?? false,
+    }),
   });
 };
 

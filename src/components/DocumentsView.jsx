@@ -15,13 +15,19 @@ import { useIngestToLexAssist } from '../hooks/useIngestToLexAssist';
 const DocumentsView = () => {
   const { currentUser } = useLexStore();
   const DMS_CATEGORIES = useDmsCategories();
-  const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchCategory, setSearchCategory] = useState('ALL');
-  
-  const { data, isLoading, refetch, error } = useDocuments(page, 12, searchCategory);
-  const documents = data?.data || [];
-  const meta = data?.meta;
+
+  const {
+    data,
+    isLoading,
+    refetch,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useDocuments(12, searchCategory);
+  const documents = data?.documents || [];
   
   const deleteDoc = useDeleteDocument();
   const ingestToAi = useIngestToLexAssist();
@@ -136,11 +142,6 @@ const DocumentsView = () => {
       }
     }, 100);
   };
-
-  // Reset to first page when category changes
-  useEffect(() => {
-    setPage(1);
-  }, [searchCategory]);
 
   if (error) {
     return (
@@ -359,67 +360,32 @@ const DocumentsView = () => {
             );
           })}
 
-          {/* Pagination Controls */}
-          {meta && meta.totalPages > 1 && (
-            <div 
+          {/* Load more (cursor-based) */}
+          {documents.length > 0 && (
+            <div
               className="flex flex-col sm:flex-row items-center justify-between p-6 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 gap-4 mt-8"
               aria-live="polite"
               aria-label="Pagination"
             >
-              <div className="flex flex-wrap items-center justify-center gap-2 order-2 sm:order-1">
-                <Button 
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  variant="secondary"
-                  size="sm"
-                  className="px-4 py-3 sm:py-1 text-xs font-bold min-w-[3rem]"
-                >
-                  Précédent
-                </Button>
-                
-                <div className="flex items-center gap-1">
-                  {[...Array(meta.totalPages)].map((_, i) => {
-                    const pageNum = i + 1;
-                    if (
-                      pageNum === 1 || 
-                      pageNum === meta.totalPages || 
-                      (pageNum >= page - 1 && pageNum <= page + 1)
-                    ) {
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => setPage(pageNum)}
-                          className={`w-10 h-10 rounded-lg text-xs font-black transition-all ${
-                            page === pageNum 
-                              ? 'bg-slate-900 dark:bg-amber-600 text-white shadow-md' 
-                              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    }
-                    if (pageNum === page - 2 || pageNum === page + 2) {
-                      return <span key={pageNum} className="text-slate-400 px-1">...</span>;
-                    }
-                    return null;
-                  })}
-                </div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 order-2 sm:order-1">
+                Affichage de <span className="text-slate-900 dark:text-white">{documents.length}</span> document{documents.length !== 1 ? 's' : ''}
+              </div>
 
-                <Button 
-                  onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
-                  disabled={page === meta.totalPages}
+              {hasNextPage && (
+                <Button
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
                   variant="secondary"
                   size="sm"
-                  className="px-4 py-3 sm:py-1 text-xs font-bold min-w-[3rem]"
+                  className="px-6 py-3 sm:py-1.5 text-xs font-bold order-1 sm:order-2"
                 >
-                  Suivant
+                  {isFetchingNextPage ? (
+                    <><Loader2 size={14} className="animate-spin mr-2" /> Chargement…</>
+                  ) : (
+                    'Charger plus'
+                  )}
                 </Button>
-              </div>
-              
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 order-1 sm:order-2">
-                Affichage de <span className="text-slate-900 dark:text-white">{Math.min(meta.total, (page - 1) * 12 + 1)}-{Math.min(meta.total, page * 12)}</span> sur <span className="text-slate-900 dark:text-white">{meta.total}</span> documents
-              </div>
+              )}
             </div>
           )}
         </div>

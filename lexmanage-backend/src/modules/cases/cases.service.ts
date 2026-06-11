@@ -18,39 +18,37 @@ export class CasesService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
-  async findAll(tenantId: string, page: number = 1, limit: number = 10) {
-    const cacheKey = `cases:${tenantId}:${page}:${limit}`;
+  async findAll(tenantId: string, cursor?: string, limit: number = 10) {
+    const cacheKey = `cases:${tenantId}:cursor:${cursor || 'start'}:${limit}`;
     const cached = await this.cacheManager.get(cacheKey);
     if (cached) return cached;
 
-    const skip = (page - 1) * limit;
-    
-    const [data, total] = await Promise.all([
-      this.prisma.case.findMany({
-        where: { tenantId },
-        include: {
-          assignee: { select: { id: true, firstName: true, lastName: true } },
-          client: true,
-          _count: { select: { documents: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.case.count({ where: { tenantId } }),
-    ]);
+    // Fetch limit + 1 to detect whether more items exist beyond this page.
+    // Prisma's native cursor + skip:1 continues correctly under the compound orderBy.
+    const data = await this.prisma.case.findMany({
+      where: { tenantId },
+      include: {
+        assignee: { select: { id: true, firstName: true, lastName: true } },
+        client: true,
+        _count: { select: { documents: true } },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    });
 
+    const hasMore = data.length > limit;
+    const pageItems = hasMore ? data.slice(0, limit) : data;
     const result = {
-      data,
+      data: pageItems,
       meta: {
-        total,
-        page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        nextCursor: hasMore ? pageItems[pageItems.length - 1].id : null,
+        hasMore,
       },
     };
 
-    await this.cacheManager.set(cacheKey, result, 30000); // 30 seconds cache for lists
+    await this.cacheManager.set(cacheKey, result, 30000);
     return result;
   }
 
@@ -78,14 +76,13 @@ export class CasesService {
   }
 
   private async invalidateTenantCases(tenantId: string) {
-    // Clear the most common first page results for different limit options
-    const commonLimits = [10, 20, 50];
-    const pagesToClear = 5;
-
+    // Cursor pages are keyed by an unpredictable cursor, so we can only reliably
+    // clear the first page (cursor = 'start') for common limits. That is the page
+    // that reflects newly created / deleted cases (they appear at the top).
+    // Deeper cursor pages expire on their own 30s TTL.
+    const commonLimits = [10, 12, 20, 50, 100];
     for (const limit of commonLimits) {
-      for (let page = 1; page <= pagesToClear; page++) {
-        await this.cacheManager.del(`cases:${tenantId}:${page}:${limit}`);
-      }
+      await this.cacheManager.del(`cases:${tenantId}:cursor:start:${limit}`);
     }
   }
 

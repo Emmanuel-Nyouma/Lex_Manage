@@ -527,8 +527,8 @@ const ScheduledRow = ({ item: s, onCancel, onDelete, cancelling }) => (
 );
 
 const ScheduleForm = ({ onCreated }) => {
-  const { data: casesData } = useCases();
-  const cases = Array.isArray(casesData?.data) ? casesData.data : (Array.isArray(casesData) ? casesData : []);
+  const { data: casesData } = useCases(100);
+  const cases = casesData?.cases ?? [];
 
   // Default to tomorrow at 09:00
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1); tomorrow.setHours(9, 0, 0, 0);

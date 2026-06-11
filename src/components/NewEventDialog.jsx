@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import apiClient from '../lib/api';
 
 const NewEventDialog = ({ isOpen, onClose }) => {
-  const { data: casesData } = useCases(1, 100);
+  const { data: casesData } = useCases(100);
   const cases = casesData?.cases || [];
   
   const [title, setTitle] = useState("");

@@ -34,7 +34,7 @@ const ClientsDirectoryView = () => {
   const [caseOpen,      setCaseOpen]      = useState(false);
   const [deadlineOpen,  setDeadlineOpen]  = useState(false);
 
-  const { data: casesData } = useCases(1, 100);
+  const { data: casesData } = useCases(100);
   const { data: deadlines = [] } = useGlobalDeadlines();
   const allCases = casesData?.cases ?? [];
 

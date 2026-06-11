@@ -1,0 +1,212 @@
+---
+config:
+  theme: neutral
+  er:
+    layoutDirection: TB
+---
+erDiagram
+    TENANT {
+        uuid id PK
+        string name
+        string slug UK
+        string plan
+        string country
+        string city
+        string address
+        string phone
+        string siret
+        string bar_number
+        string logo_url
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+
+    USER {
+        uuid id PK
+        uuid tenant_id FK
+        string email UK
+        string password_hash
+        string first_name
+        string last_name
+        string avatar_url
+        string phone
+        enum role
+        boolean is_active
+        string refresh_token
+        datetime created_at
+        datetime updated_at
+    }
+
+    CASE {
+        uuid id PK
+        uuid tenant_id FK
+        string title
+        string description
+        string client_name
+        string court_name
+        string case_number
+        enum status
+        string priority
+        uuid client_id FK
+        uuid assignee_id FK
+        datetime closed_at
+        datetime created_at
+        datetime updated_at
+    }
+
+    DOCUMENT {
+        cuid id PK
+        uuid tenant_id FK
+        string title
+        string file_name
+        string file_url
+        string file_type
+        int file_size
+        string category
+        string sub_category
+        enum_array allowed_roles
+        enum type
+        enum status
+        uuid uploader_id FK
+        uuid case_id FK
+        boolean is_pending
+        datetime deleted_at
+        datetime created_at
+    }
+
+    CLIENT {
+        uuid id PK
+        uuid tenant_id FK
+        string name
+        string email
+        string phone
+        string address
+        string type_client
+        datetime created_at
+        datetime updated_at
+    }
+
+    DEADLINE {
+        uuid id PK
+        uuid tenant_id FK
+        uuid case_id FK
+        string title
+        datetime due_at
+        string priority
+        boolean is_done
+        datetime created_at
+    }
+
+    NOTIFICATION {
+        cuid id PK
+        uuid tenant_id FK
+        enum level
+        enum motif
+        string title
+        string message
+        uuid created_by_id FK
+        uuid_array recipient_ids
+        uuid_array read_by_ids
+        uuid case_id FK
+        datetime created_at
+    }
+
+    NOTIFICATION_TEMPLATE {
+        cuid id PK
+        uuid tenant_id FK
+        string name
+        enum level
+        enum motif
+        string title
+        string message
+        string_array recipient_roles
+        uuid created_by_id FK
+        datetime created_at
+    }
+
+    SCHEDULED_NOTIFICATION {
+        cuid id PK
+        uuid tenant_id FK
+        enum level
+        enum motif
+        string title
+        string message
+        string_array recipient_roles
+        datetime scheduled_at
+        string status
+        string job_id
+        uuid case_id FK
+        uuid created_by_id FK
+        datetime created_at
+    }
+
+    INVITATION {
+        uuid id PK
+        uuid tenant_id FK
+        string email
+        enum role
+        string token UK
+        datetime expires_at
+        boolean used
+        datetime created_at
+    }
+
+    AUDIT_LOG {
+        uuid id PK
+        uuid tenant_id FK
+        uuid user_id FK
+        string action
+        string entity
+        string entity_id
+        json details
+        string ip_address
+        datetime created_at
+    }
+
+    CHAT_CONVERSATION {
+        uuid id PK
+        uuid tenant_id FK
+        uuid user_id FK
+        string title
+        datetime created_at
+        datetime updated_at
+    }
+
+    CHAT_MESSAGE {
+        uuid id PK
+        uuid conversation_id FK
+        string role
+        string content
+        json sources
+        datetime created_at
+    }
+
+    TENANT ||--o{ USER : "employs"
+    TENANT ||--o{ CASE : "owns"
+    TENANT ||--o{ DOCUMENT : "owns"
+    TENANT ||--o{ CLIENT : "manages"
+    TENANT ||--o{ DEADLINE : "tracks"
+    TENANT ||--o{ NOTIFICATION : "scopes"
+    TENANT ||--o{ NOTIFICATION_TEMPLATE : "defines"
+    TENANT ||--o{ SCHEDULED_NOTIFICATION : "schedules"
+    TENANT ||--o{ INVITATION : "issues"
+    TENANT ||--o{ AUDIT_LOG : "records"
+    TENANT ||--o{ CHAT_CONVERSATION : "hosts"
+
+    USER ||--o{ CASE : "is assigned"
+    USER ||--o{ DOCUMENT : "uploads"
+    USER ||--o{ NOTIFICATION : "creates"
+    USER ||--o{ NOTIFICATION_TEMPLATE : "creates"
+    USER ||--o{ SCHEDULED_NOTIFICATION : "creates"
+    USER ||--o{ AUDIT_LOG : "generates"
+    USER ||--o{ CHAT_CONVERSATION : "starts"
+
+    CLIENT ||--o{ CASE : "is party to"
+
+    CASE ||--o{ DOCUMENT : "contains"
+    CASE ||--o{ DEADLINE : "has"
+    CASE ||--o{ NOTIFICATION : "triggers"
+    CASE ||--o{ SCHEDULED_NOTIFICATION : "triggers"
+
+    CHAT_CONVERSATION ||--o{ CHAT_MESSAGE : "contains"

@@ -30,12 +30,18 @@ const CaseManagementView = () => {
   const [isNewCaseOpen, setIsNewCaseOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [page, setPage] = useState(1);
   const [sortConfig, setSortConfig] = useState({ key: 'title', direction: 'asc' });
 
-  const { data, isLoading, error, refetch } = useCases(page, 10);
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useCases(10);
+
   const cases = useMemo(() => data?.cases || [], [data]);
-  const meta = data?.pagination;
   const { callGemini } = useLexStore();
 
   const handleSort = (key) => {
@@ -337,88 +343,32 @@ const CaseManagementView = () => {
           </div>
         )}
 
-        {meta && meta.totalPages > 1 && (
-          <div 
+        {!searchQuery && cases.length > 0 && (
+          <div
             className="flex flex-col sm:flex-row items-center justify-between p-4 gap-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-800"
             aria-live="polite"
             aria-label="Pagination"
           >
-            <div className="flex flex-wrap items-center justify-center gap-2 order-2 sm:order-1">
-              <Button 
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
+            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 order-2 sm:order-1">
+              Showing <span className="text-slate-900 dark:text-white">{cases.length}</span> case{cases.length !== 1 ? 's' : ''}
+            </div>
+
+            {hasNextPage && (
+              <Button
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
                 variant="secondary"
                 size="sm"
-                className="px-4 py-3 sm:py-1 text-xs font-bold min-w-[3rem]"
-                aria-label="Previous page"
+                className="px-6 py-3 sm:py-1.5 text-xs font-bold order-1 sm:order-2"
+                aria-label="Load more cases"
               >
-                Prev
+                {isFetchingNextPage ? (
+                  <><Loader2 size={14} className="animate-spin mr-2" /> Loading…</>
+                ) : (
+                  'Load more'
+                )}
               </Button>
-              
-              <div className="flex items-center gap-1">
-                {[...Array(meta.totalPages)].map((_, i) => {
-                  const pageNum = i + 1;
-                  if (
-                    pageNum === 1 || 
-                    pageNum === meta.totalPages || 
-                    (pageNum >= page - 1 && pageNum <= page + 1)
-                  ) {
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setPage(pageNum)}
-                        className={`w-12 h-12 sm:w-10 sm:h-10 rounded-lg text-xs font-black transition-all ${
-                          page === pageNum 
-                            ? 'bg-slate-900 dark:bg-amber-600 text-white shadow-md' 
-                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
-                        }`}
-                        aria-current={page === pageNum ? 'page' : undefined}
-                        aria-label={`Go to page ${pageNum}`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  }
-                  if (pageNum === page - 2 || pageNum === page + 2) {
-                    return <span key={pageNum} className="text-slate-400 px-2" aria-hidden="true">...</span>;
-                  }
-                  return null;
-                })}
-              </div>
-
-              <Button 
-                onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
-                disabled={page === meta.totalPages}
-                variant="secondary"
-                size="sm"
-                className="px-4 py-3 sm:py-1 text-xs font-bold min-w-[3rem]"
-                aria-label="Next page"
-              >
-                Next
-              </Button>
-
-              <div className="flex items-center gap-2 ml-2 border-l border-slate-200 dark:border-slate-700 pl-2">
-                <span className="text-[10px] text-slate-500 font-bold uppercase">Jump to:</span>
-                <input
-                  type="number"
-                  min="1"
-                  max={meta.totalPages}
-                  className="w-16 h-8 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-center text-xs font-bold"
-                  placeholder={page}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const val = parseInt(e.target.value);
-                      if (val >= 1 && val <= meta.totalPages) setPage(val);
-                    }
-                  }}
-                  aria-label="Jump to page number"
-                />
-              </div>
-            </div>
-            
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 order-1 sm:order-2">
-              Showing <span className="text-slate-900 dark:text-white">{Math.min(meta.total, (page - 1) * 10 + 1)}-{Math.min(meta.total, page * 10)}</span> of <span className="text-slate-900 dark:text-white">{meta.total}</span> cases
-            </div>
+            )}
           </div>
         )}
       </div>

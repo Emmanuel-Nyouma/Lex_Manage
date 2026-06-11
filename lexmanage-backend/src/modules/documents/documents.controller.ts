@@ -20,14 +20,14 @@ export class DocumentsController {
   findAll(
     @CurrentUser('tenantId') tenantId: string,
     @Query('caseId') caseId?: string,
-    @Query('page') page?: string,
+    @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
     @Query('category') category?: string,
   ) {
     if (caseId) return this.documentsService.findByCase(caseId, tenantId);
     return this.documentsService.findAll(
-      tenantId, 
-      page ? parseInt(page) : 1, 
+      tenantId,
+      cursor,
       limit ? parseInt(limit) : 10,
       category
     );

@@ -20,41 +20,40 @@ export class DocumentsService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
-  async findAll(tenantId: string, page: number = 1, limit: number = 10, category?: string) {
-    const cacheKey = `documents:${tenantId}:${page}:${limit}:${category || 'ALL'}`;
+  async findAll(tenantId: string, cursor?: string, limit: number = 10, category?: string) {
+    const cacheKey = `documents:${tenantId}:cursor:${cursor || 'start'}:${limit}:${category || 'ALL'}`;
     const cached = (await this.cacheManager.get(cacheKey)) as any;
     if (cached) return cached;
 
-    const skip = (page - 1) * limit;
     const where: any = { tenantId };
     if (category && category !== 'ALL') {
       where.category = category;
     }
 
-    const [data, total] = await Promise.all([
-      this.prisma.document.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          cases: true
-        },
-        skip,
-        take: limit,
-      }),
-      this.prisma.document.count({ where }),
-    ]);
+    // Fetch limit + 1 to detect whether more items exist beyond this page.
+    // Prisma's native cursor + skip:1 continues correctly under the compound orderBy.
+    const data = await this.prisma.document.findMany({
+      where,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      include: {
+        cases: true
+      },
+      take: limit + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    });
 
+    const hasMore = data.length > limit;
+    const pageItems = hasMore ? data.slice(0, limit) : data;
     const result = {
-      data,
+      data: pageItems,
       meta: {
-        total,
-        page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        nextCursor: hasMore ? pageItems[pageItems.length - 1].id : null,
+        hasMore,
       },
     };
 
-    await this.cacheManager.set(cacheKey, result, 30000); // 30 seconds cache
+    await this.cacheManager.set(cacheKey, result, 30000);
     return result;
   }
 
@@ -93,7 +92,14 @@ export class DocumentsService {
   }
 
   private async invalidateDocumentCache(tenantId: string, caseId?: string | null) {
-    await this.cacheManager.del(`documents:${tenantId}`);
+    // Cursor pages are keyed by an unpredictable cursor, so we clear the first
+    // page (cursor = 'start') for common limits in the default 'ALL' view — that
+    // is where newly uploaded / deleted documents surface. Category-filtered and
+    // deeper cursor pages expire on their own 30s TTL.
+    const commonLimits = [10, 12, 20, 50];
+    for (const limit of commonLimits) {
+      await this.cacheManager.del(`documents:${tenantId}:cursor:start:${limit}:ALL`);
+    }
     if (caseId) {
       await this.cacheManager.del(`documents:case:${caseId}`);
     }
