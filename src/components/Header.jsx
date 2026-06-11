@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Search, Bell, Bot, Check, CheckCheck, Clock, Menu, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Search, Bell, Bot, Check, CheckCheck, Clock, Menu, AlertCircle, AlertTriangle, Info, X, Briefcase, FileText, Users, UserCheck, Loader2, ArrowRight } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useNotifications } from '../hooks/useNotifications';
 import useLexStore from '../store/useLexStore';
 import { SearchPalette } from './search/SearchPalette';
 import useTranslation from '../hooks/useTranslation';
+import apiClient from '../lib/api';
 
 const LEVEL_UI = {
   URGENT:    { icon: AlertCircle,   chip: 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400',     label: 'Urgent' },
@@ -26,13 +27,73 @@ const MOTIF_LABELS_EN = {
   OTHER: 'Other',
 };
 
+const SUGGESTION_ICONS = {
+  case:   Briefcase,
+  doc:    FileText,
+  member: Users,
+  client: UserCheck,
+};
+const SUGGESTION_COLORS = {
+  case:   'text-amber-500',
+  doc:    'text-blue-500',
+  member: 'text-slate-500',
+  client: 'text-emerald-500',
+};
+
 const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen }) => {
   const { currentUser } = useLexStore();
   const { t, language } = useTranslation();
+  const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [selectedNotif, setSelectedNotif] = useState(null);
   const notificationRef = useRef(null);
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+
+  // ── Inline search suggestions ────────────────────────────────
+  const [query, setQuery] = useState('');
+  const [suggestions, setSuggestions] = useState(null);
+  const [isFetching, setIsFetching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchContainerRef = useRef(null);
+  const searchInputRef = useRef(null);
+
+  useEffect(() => {
+    if (query.trim().length < 2) { setSuggestions(null); return; }
+    const t = setTimeout(async () => {
+      setIsFetching(true);
+      try {
+        const { data } = await apiClient.get(`/search/global?q=${encodeURIComponent(query)}`);
+        setSuggestions(data);
+      } catch { setSuggestions(null); }
+      finally { setIsFetching(false); }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target))
+        setShowSuggestions(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleSuggestionClick = useCallback((type, id) => {
+    setShowSuggestions(false);
+    setQuery('');
+    if (type === 'case') navigate(`/cases/${id}`);
+    else if (type === 'client') navigate(`/clients/${id}`);
+    else if (type === 'member') navigate('/company-settings');
+    else navigate('/documents');
+  }, [navigate]);
+
+  const flatSuggestions = suggestions ? [
+    ...(suggestions.cases    || []).map(r => ({ ...r, _type: 'case',   _label: r.title,                  _sub: r.clientName })),
+    ...(suggestions.documents|| []).map(r => ({ ...r, _type: 'doc',    _label: r.title,                  _sub: r.file_name })),
+    ...(suggestions.members  || []).map(r => ({ ...r, _type: 'member', _label: `${r.firstName} ${r.lastName}`, _sub: r.role?.replace('_',' ') })),
+    ...(suggestions.clients  || []).map(r => ({ ...r, _type: 'client', _label: r.name,                   _sub: r.email || r.phone })),
+  ].slice(0, 8) : [];
 
   const MOTIF_LABELS = language === 'fr' ? MOTIF_LABELS_FR : MOTIF_LABELS_EN;
 
@@ -67,17 +128,82 @@ const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen
         <Menu size={24} aria-hidden="true" />
       </button>
 
-      {/* Search */}
-      <div className="flex items-center flex-1 min-w-0 max-w-xl">
+      {/* Search with inline suggestions */}
+      <div className="flex items-center flex-1 min-w-0 max-w-xl relative" ref={searchContainerRef}>
+        {/* Mobile: tap opens full palette */}
         <button
           onClick={() => setIsSearchOpen(true)}
-          className="w-full flex items-center gap-3 bg-slate-100 dark:bg-slate-800 rounded-xl px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-200 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+          className="sm:hidden w-full flex items-center gap-3 bg-slate-100 dark:bg-slate-800 rounded-xl px-4 py-3 text-slate-500 dark:text-slate-400 transition-all"
           aria-label={t.search_placeholder}
         >
-          <Search size={20} aria-hidden="true" />
+          <Search size={20} />
           <span className="text-sm">{t.search_short}</span>
-          <span className="hidden sm:inline ml-auto text-[10px] bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 font-mono">⌘K</span>
         </button>
+
+        {/* Desktop: real input with suggestion dropdown */}
+        <div className="hidden sm:flex w-full items-center gap-3 bg-slate-100 dark:bg-slate-800 rounded-xl px-4 py-2.5 focus-within:ring-2 focus-within:ring-amber-500/40 transition-all">
+          <Search size={18} className="text-slate-400 flex-shrink-0" aria-hidden="true" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={query}
+            onChange={e => { setQuery(e.target.value); setShowSuggestions(true); }}
+            onFocus={() => setShowSuggestions(true)}
+            onKeyDown={e => {
+              if (e.key === 'Escape') { setShowSuggestions(false); setQuery(''); }
+              if (e.key === 'Enter' && query.trim().length >= 2) { setShowSuggestions(false); setIsSearchOpen(true); }
+            }}
+            placeholder={t.search_short}
+            className="flex-1 bg-transparent border-none outline-none text-sm text-slate-900 dark:text-white placeholder:text-slate-500"
+          />
+          {isFetching && <Loader2 size={14} className="animate-spin text-amber-500 flex-shrink-0" />}
+          {query ? (
+            <button onClick={() => { setQuery(''); setSuggestions(null); searchInputRef.current?.focus(); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex-shrink-0">
+              <X size={14} />
+            </button>
+          ) : (
+            <span className="text-[10px] bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-500 dark:text-slate-400 font-mono flex-shrink-0">⌘K</span>
+          )}
+        </div>
+
+        {/* Suggestions dropdown */}
+        {showSuggestions && flatSuggestions.length > 0 && (
+          <div className="hidden sm:block absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+            {flatSuggestions.map((item, idx) => {
+              const Icon = SUGGESTION_ICONS[item._type];
+              const color = SUGGESTION_COLORS[item._type];
+              return (
+                <button
+                  key={`${item._type}-${item.id}`}
+                  onMouseDown={e => { e.preventDefault(); handleSuggestionClick(item._type, item.id); }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left group border-b border-slate-50 dark:border-slate-800/60 last:border-0"
+                >
+                  <div className={`w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 ${color}`}>
+                    <Icon size={13} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">{item._label}</div>
+                    {item._sub && <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{item._sub}</div>}
+                  </div>
+                  <ArrowRight size={13} className="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                </button>
+              );
+            })}
+            <button
+              onMouseDown={e => { e.preventDefault(); setShowSuggestions(false); setIsSearchOpen(true); }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors border-t border-slate-100 dark:border-slate-800"
+            >
+              <Search size={12} /> Voir tous les résultats pour "{query}"
+            </button>
+          </div>
+        )}
+
+        {/* Empty state dropdown */}
+        {showSuggestions && query.trim().length >= 2 && !isFetching && flatSuggestions.length === 0 && (
+          <div className="hidden sm:flex absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 px-4 py-5 items-center justify-center animate-in fade-in duration-150">
+            <p className="text-sm text-slate-500 italic">Aucun résultat pour «{query}»</p>
+          </div>
+        )}
       </div>
 
       <SearchPalette isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
