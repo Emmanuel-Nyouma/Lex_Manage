@@ -34,8 +34,8 @@ const CaseManagementView = () => {
   const [sortConfig, setSortConfig] = useState({ key: 'title', direction: 'asc' });
 
   const { data, isLoading, error, refetch } = useCases(page, 10);
-  const cases = useMemo(() => data?.data || [], [data]);
-  const meta = data?.meta;
+  const cases = useMemo(() => data?.cases || [], [data]);
+  const meta = data?.pagination;
   const { callGemini } = useLexStore();
 
   const handleSort = (key) => {
