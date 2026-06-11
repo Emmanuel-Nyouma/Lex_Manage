@@ -4,12 +4,14 @@ import { Upload, Loader2, ChevronDown, Check, AlertCircle, Shield, Users as User
 import { toast } from 'sonner';
 import { uploadLegalDocument } from '../lib/documentService';
 import useLexStore from '../store/useLexStore';
-import { DMS_CATEGORIES, ACCESS_ROLES } from '../config/dms.config';
+import { ACCESS_ROLES } from '../config/dms.config';
+import { useDmsCategories } from '../hooks/useDmsCategories';
 
 const MAX_SIZE = 50 * 1024 * 1024; // 50 MB
 
 const DocumentUpload = ({ onUploadSuccess, existingDocuments = [] }) => {
   const { currentUser } = useLexStore();
+  const DMS_CATEGORIES = useDmsCategories();
   const [isUploading, setIsUploading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(DMS_CATEGORIES[0].id);
   const [selectedSubCategory, setSelectedSubCategory] = useState('');

@@ -9,11 +9,12 @@ import { getDocumentSignedUrl } from '../lib/documentService';
 import { toast } from 'sonner';
 import useLexStore from '../store/useLexStore';
 import ConfirmDialog from './ConfirmDialog';
-import { DMS_CATEGORIES } from '../config/dms.config';
+import { useDmsCategories } from '../hooks/useDmsCategories';
 import { useIngestToLexAssist } from '../hooks/useIngestToLexAssist';
 
 const DocumentsView = () => {
   const { currentUser } = useLexStore();
+  const DMS_CATEGORIES = useDmsCategories();
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchCategory, setSearchCategory] = useState('ALL');
@@ -94,9 +95,9 @@ const DocumentsView = () => {
 
   const groupedDocs = useMemo(() => {
     // If we're filtering by a specific category, we only show that one
-    const categoriesToShow = searchCategory === 'ALL' 
-      ? [...DMS_CATEGORIES, { id: 'Autre', label: 'Autre' }]
-      : [...DMS_CATEGORIES, { id: 'Autre', label: 'Autre' }].filter(c => c.id === searchCategory);
+    const categoriesToShow = searchCategory === 'ALL'
+      ? DMS_CATEGORIES
+      : DMS_CATEGORIES.filter(c => c.id === searchCategory);
 
     const initial = categoriesToShow.reduce((acc, cat) => {
       acc[cat.id] = [];
@@ -240,7 +241,6 @@ const DocumentsView = () => {
             {DMS_CATEGORIES.map(cat => (
               <option key={cat.id} value={cat.id}>{cat.label}</option>
             ))}
-            <option value="Autre">Autre</option>
           </select>
           <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
         </div>
@@ -254,7 +254,7 @@ const DocumentsView = () => {
         </div>
       ) : (
         <div className="space-y-8">
-          {[...DMS_CATEGORIES, { id: 'Autre', label: 'Autre', subCategories: [] }].map(cat => {
+          {DMS_CATEGORIES.map(cat => {
             const docs = groupedDocs[cat.id];
             if (!docs) return null; // If not in current category filter
 
