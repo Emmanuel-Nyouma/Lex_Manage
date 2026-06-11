@@ -68,7 +68,7 @@ const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen
       </button>
 
       {/* Search */}
-      <div className="flex items-center flex-1 max-w-xl">
+      <div className="flex items-center flex-1 min-w-0 max-w-xl">
         <button
           onClick={() => setIsSearchOpen(true)}
           className="w-full flex items-center gap-3 bg-slate-100 dark:bg-slate-800 rounded-xl px-4 py-3 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-200 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500/50"
@@ -82,7 +82,7 @@ const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen
 
       <SearchPalette isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-shrink-0">
         {/* Notifications */}
         <div className="relative" ref={notificationRef}>
           <button
@@ -184,7 +184,7 @@ const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen
 
         <button
           onClick={onOpenAi}
-          className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-sm font-bold transition-all shadow-sm ring-1 ring-amber-400/50"
+          className="flex items-center gap-2 p-3.5 sm:px-4 sm:py-2 text-amber-600 sm:bg-amber-500 sm:hover:bg-amber-600 sm:text-slate-950 hover:bg-amber-50 dark:hover:bg-amber-900/20 sm:rounded-xl rounded-lg text-sm font-bold transition-all sm:shadow-sm sm:ring-1 sm:ring-amber-400/50"
           aria-label="LexAssist AI"
         >
           <Bot size={18} aria-hidden="true" />
