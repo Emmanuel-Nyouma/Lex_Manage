@@ -19,6 +19,11 @@ dist-ssr
 **/.next
 *.local
 
+# Office temp / lock files
+~$*.docx
+~$*.xlsx
+~$*.pptx
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
