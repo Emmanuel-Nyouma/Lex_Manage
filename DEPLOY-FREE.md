@@ -110,15 +110,55 @@ Dans ton workflow n8n Cloud, vérifie que les webhooks `legal-rag-chat` et
 
 ---
 
-## ⏰ Keep-alive (éviter la mise en veille pendant la démo)
+## ⏰ Keep-alive (éviter la mise en veille du backend)
 
-1. Crée un compte gratuit sur **uptimerobot.com** (sans carte).
-2. **Add New Monitor** → type **HTTP(s)** → URL = `https://<backend>.onrender.com`
-   (ou un endpoint léger type `/api/v1/health` s'il existe).
-3. Intervalle : **5 minutes**.
+Sur le plan gratuit, Render **endort** le service après **15 minutes** d'inactivité.
+Le réveil prend ensuite 30–60 s → la 1ʳᵉ connexion peut échouer avec
+`ERR_CONNECTION_TIMED_OUT`. Solution : un ping régulier sur l'endpoint santé
+pour que le service **ne s'endorme jamais**.
 
-→ Le backend reçoit une requête régulière et **ne s'endort jamais**.
-Le jour J, ouvre quand même l'app **2-3 min avant** par sécurité.
+> ⚠️ **Endpoint correct : `/health`** (à la racine, **pas** `/api/v1/health`).
+> Vérifie : `curl https://lexmanage-api.onrender.com/health` doit renvoyer `{"status":"ok"}`.
+
+### Option A — UptimeRobot (le plus simple, sans carte)
+
+1. Crée un compte gratuit sur **uptimerobot.com**.
+2. **Add New Monitor** → type **HTTP(s)**.
+3. URL = `https://lexmanage-api.onrender.com/health`
+4. **Monitoring interval : 5 minutes** (l'intervalle gratuit le plus court ;
+   doit rester **< 15 min** pour battre la mise en veille de Render).
+5. Save.
+
+### Option B — cron-job.org (intervalle plus fin)
+
+1. Compte gratuit sur **cron-job.org**.
+2. **Create cronjob** → URL = `https://lexmanage-api.onrender.com/health`
+3. Schedule : **toutes les 10 minutes** (`*/10 * * * *`).
+4. Enable.
+
+### Option C — GitHub Actions (zéro service tiers)
+
+Ajoute `.github/workflows/keep-alive.yml` :
+
+```yaml
+name: Keep backend awake
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # toutes les 10 min
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -fsS --max-time 90 https://lexmanage-api.onrender.com/health
+```
+
+> Note : les crons GitHub Actions peuvent être différés de quelques minutes
+> en période de forte charge — UptimeRobot/cron-job.org sont plus réguliers.
+
+→ Avec l'une de ces options, le backend reçoit une requête régulière et
+**ne s'endort jamais**. Le jour J, ouvre quand même l'app **2-3 min avant**
+par sécurité.
 
 ---
 
