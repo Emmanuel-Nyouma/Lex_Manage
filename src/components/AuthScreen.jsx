@@ -24,6 +24,7 @@ import apiClient from '../lib/api';
 import useLexStore from '../store/useLexStore';
 import { API_CONFIG } from '../config/api.config';
 import { Button, Input, Badge } from './ui/index';
+import NetworkStatusBanner from './NetworkStatusBanner';
 
 const PasswordStrengthMeter = ({ password = "" }) => {
   const has8Chars = password.length >= 8;
@@ -105,6 +106,7 @@ const signupSchema = z.object({
 
 const AuthScreen = () => {
   const [searchParams] = useSearchParams();
+  const language = useLexStore((s) => s.language);
   const invitationToken = searchParams.get('invitation');
   const [view, setView] = useState(invitationToken ? 'signup' : 'login'); // 'login', 'signup', 'forgot_password', 'mfa_challenge'
   const [signupStep, setSignupStep] = useState(invitationToken ? 2 : 1);
@@ -293,6 +295,7 @@ const AuthScreen = () => {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <NetworkStatusBanner language={language} />
             {isWarmingUp && (
               <div
                 role="status"
