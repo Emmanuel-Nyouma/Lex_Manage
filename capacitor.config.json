@@ -1,0 +1,6 @@
+{
+  "appId": "com.lexmanage.app",
+  "appName": "LexManage",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
