@@ -124,6 +124,7 @@ const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen
         onClick={onToggleMobileSidebar}
         className="md:hidden p-3.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
         aria-label={t.open_menu}
+        title={t.open_menu}
       >
         <Menu size={24} aria-hidden="true" />
       </button>
@@ -158,7 +159,7 @@ const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen
           />
           {isFetching && <Loader2 size={14} className="animate-spin text-amber-500 flex-shrink-0" />}
           {query ? (
-            <button onClick={() => { setQuery(''); setSuggestions(null); searchInputRef.current?.focus(); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex-shrink-0">
+            <button onClick={() => { setQuery(''); setSuggestions(null); searchInputRef.current?.focus(); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex-shrink-0" aria-label="Clear search" title="Clear search">
               <X size={14} />
             </button>
           ) : (
@@ -215,6 +216,7 @@ const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen
             onClick={() => setShowNotifications(!showNotifications)}
             className={`relative p-3.5 rounded-lg transition-colors ${showNotifications ? 'bg-slate-100 dark:bg-slate-800 text-amber-500' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
             aria-label={t.notifications}
+            title={t.notifications}
           >
             <Bell size={24} aria-hidden="true" />
             {unreadCount > 0 && (

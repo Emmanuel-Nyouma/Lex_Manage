@@ -59,6 +59,7 @@ export class AiController {
     await this.n8nRag.ingestDocument({
       tenantId,
       userId,
+      documentId: doc.id,
       filename: doc.file_name,
       buffer,
       caseId: doc.case_id,

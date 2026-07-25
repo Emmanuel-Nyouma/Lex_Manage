@@ -11,9 +11,15 @@ interface N8nChatParams {
 interface N8nIngestParams {
   tenantId: string;
   userId: string;
+  documentId: string;
   filename: string;
   buffer: Buffer;
   caseId?: string | null;
+}
+
+interface N8nDeleteParams {
+  tenantId: string;
+  documentId: string;
 }
 
 /**
@@ -25,6 +31,7 @@ export class N8nRagService {
   private readonly logger = new Logger(N8nRagService.name);
   private readonly chatUrl = process.env.N8N_RAG_CHAT_URL || '';
   private readonly ingestUrl = process.env.N8N_RAG_INGEST_URL || '';
+  private readonly deleteUrl = process.env.N8N_RAG_DELETE_URL || '';
 
   /** Ask the n8n Legal RAG workflow a question, scoped to the caller's firm. */
   async chat(params: N8nChatParams): Promise<{ text: string; sources: any[]; confidence: number }> {
@@ -80,6 +87,7 @@ export class N8nRagService {
         body: JSON.stringify({
           tenantId: params.tenantId,
           userId: params.userId,
+          documentId: params.documentId,
           filename: params.filename,
           fileData: params.buffer.toString('base64'),
           caseId: params.caseId || null,
@@ -93,6 +101,40 @@ export class N8nRagService {
       );
     } catch (err) {
       this.logger.error(`n8n RAG ingestion failed for '${params.filename}'`, err as Error);
+    }
+  }
+
+  /**
+   * Remove a document's vectors from the firm's n8n RAG knowledge base.
+   * Fire-and-forget: failures are logged but never block the deletion.
+   * Targets only the given documentId within the tenant namespace, so other
+   * documents for the firm are untouched.
+   */
+  async deleteDocumentVectors(params: N8nDeleteParams): Promise<void> {
+    if (!this.deleteUrl) {
+      this.logger.warn('N8N_RAG_DELETE_URL not set — skipping RAG vector cleanup.');
+      return;
+    }
+    try {
+      const res = await fetch(this.deleteUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId: params.tenantId,
+          documentId: params.documentId,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error(`n8n delete webhook returned HTTP ${res.status}`);
+      }
+      this.logger.log(
+        `Vectors for document '${params.documentId}' queued for RAG cleanup (tenant ${params.tenantId}).`,
+      );
+    } catch (err) {
+      this.logger.error(
+        `n8n RAG vector cleanup failed for document '${params.documentId}'`,
+        err as Error,
+      );
     }
   }
 }

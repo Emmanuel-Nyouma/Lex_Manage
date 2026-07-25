@@ -9,8 +9,14 @@ import './index.css';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      retry: 1,
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 30,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+      retry: (failureCount, error) => {
+        const status = error?.response?.status;
+        return status >= 500 || !status ? failureCount < 2 : false;
+      },
     },
   },
 });
@@ -26,5 +32,4 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </GlobalErrorBoundary>
   </React.StrictMode>
 );
-
 

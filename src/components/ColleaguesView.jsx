@@ -6,6 +6,7 @@ import {
 import useTranslation from '../hooks/useTranslation';
 import { useColleagues } from '../hooks/useCases';
 import useLexStore from '../store/useLexStore';
+import { PageSkeleton } from './ui';
 
 /* ─── Role config ─────────────────────────────────────────────────────────── */
 const ROLES = {
@@ -287,8 +288,7 @@ const ColleaguesView = () => {
       {/* States */}
       {isLoading && (
         <div className="flex flex-col items-center justify-center py-24 gap-4">
-          <Loader2 className="animate-spin text-blue-500" size={32} />
-          <p className="text-sm font-bold text-slate-400">Loading colleagues…</p>
+          <PageSkeleton variant="table" className="w-full" />
         </div>
       )}
 

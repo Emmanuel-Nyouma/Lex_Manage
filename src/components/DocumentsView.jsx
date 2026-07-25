@@ -327,6 +327,7 @@ const DocumentsView = () => {
                           <button
                             onClick={() => handleView(doc.id)}
                             aria-label="Voir document"
+                            title="View document"
                             className="p-3 text-slate-500 dark:text-slate-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl transition-all"
                           >
                             <Eye size={20} />
@@ -342,6 +343,7 @@ const DocumentsView = () => {
                             <button
                               onClick={() => handleDelete(doc)}
                               aria-label="Supprimer document"
+                              title="Delete document"
                               className="p-3 text-slate-500 dark:text-slate-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all"
                             >
                               <Trash2 size={20} />

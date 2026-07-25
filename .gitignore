@@ -36,3 +36,12 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Local agent and MCP configuration
+.claude/
+.codex/
+.mcp.json
+
+# Draw.io temporary lock/backup files
+diagrams/.$*.dtmp
+diagrams/.$*.bkp

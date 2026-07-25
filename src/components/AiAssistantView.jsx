@@ -8,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import useLexStore from '../store/useLexStore';
 import { useConversations, chatApi } from '../hooks/useChat';
 import useTranslation from '../hooks/useTranslation';
+import { Skeleton, PageSkeleton } from './ui';
 
 const greeting = (t) => {
   const h = new Date().getHours();
@@ -124,7 +125,7 @@ const HistorySidebar = ({ conversations, loading, activeId, onSelect, onNew, onD
       <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-3 py-2">{t.history}</p>
         {loading ? (
-          <div className="flex justify-center py-8"><Loader2 className="animate-spin text-amber-500" size={20} /></div>
+          <div className="space-y-2 px-2 py-3"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-5/6" /><Skeleton className="h-10 w-full" /></div>
         ) : conversations.length === 0 ? (
           <div className="text-center py-10 px-4">
             <MessageSquare className="mx-auto mb-2 text-slate-300 dark:text-slate-700" size={28} />
@@ -316,9 +317,7 @@ const AiAssistantView = () => {
         {/* Messages / empty state */}
         <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 dark:bg-slate-950/40">
           {loadingConv ? (
-            <div className="h-full flex items-center justify-center">
-              <Loader2 className="animate-spin text-amber-500" size={28} />
-            </div>
+            <PageSkeleton variant="assistant" className="h-full p-4" />
           ) : isEmpty ? (
             <div className="min-h-full flex flex-col items-center justify-center px-4 sm:px-6 py-8 max-w-2xl mx-auto text-center">
               <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-xl shadow-amber-500/20 mb-5 sm:mb-6 animate-in zoom-in duration-500">

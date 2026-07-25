@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AlertCircle, X, ChevronDown, ChevronUp, Bug } from 'lucide-react';
 import useLexStore from '../store/useLexStore';
+import { getErrorPresentation } from '../utils/errorMessages';
 
 const ErrorHandler = ({ error }) => {
   const { setError } = useLexStore();
@@ -8,9 +9,9 @@ const ErrorHandler = ({ error }) => {
 
   if (!error) return null;
 
-  // Extract stack or details if error is an object
-  const errorTitle = typeof error === 'string' ? 'System Error' : (error.name || 'System Error');
-  const errorMessage = typeof error === 'string' ? error : (error.message || 'An unexpected error occurred');
+  const presentation = getErrorPresentation(error, 'An unexpected error occurred. Please try again.');
+  const errorTitle = presentation.title;
+  const errorMessage = presentation.message;
   const errorStack = error.stack || null;
 
   return (
@@ -35,6 +36,7 @@ const ErrorHandler = ({ error }) => {
             <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
               {errorMessage}
             </p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-2">{presentation.category}</p>
             
             {(errorStack || typeof error === 'object') && (
               <button 

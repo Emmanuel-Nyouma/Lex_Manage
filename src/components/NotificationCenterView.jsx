@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import apiClient from '../lib/api';
-import { Card, Badge, Button } from './ui';
+import { Card, Badge, Button, PageSkeleton } from './ui';
 import { MOTIF_OPTIONS, LEVEL_MAP, MOTIF_LEVEL_CONSTRAINTS, ROLE_OPTIONS } from '../lib/schemas/notification.schema';
 import { useCases } from '../hooks/useCases';
 import useLexStore from '../store/useLexStore';
@@ -98,7 +98,7 @@ const HistoryTab = () => {
 
   if (isLoading) return (
     <div className="flex items-center justify-center py-20">
-      <Loader2 className="animate-spin text-amber-500" size={28} />
+      <PageSkeleton variant="table" className="w-full max-w-3xl" />
     </div>
   );
 
@@ -228,7 +228,7 @@ const TemplatesTab = ({ onUseTemplate }) => {
 
       {/* Grid */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="animate-spin text-amber-500" size={28} /></div>
+        <PageSkeleton variant="table" className="py-2" />
       ) : templates.length === 0 ? (
         <Empty icon={BookTemplate} text="No templates yet. Create one to speed up your notifications." />
       ) : (
@@ -443,7 +443,7 @@ const ScheduledTab = () => {
       )}
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-20"><Loader2 className="animate-spin text-amber-500" size={28} /></div>
+          <PageSkeleton variant="table" className="py-2" />
       ) : scheduled.length === 0 ? (
         <Empty icon={CalendarClock} text="No scheduled notifications. Schedule one to send automatically at a future date." />
       ) : (

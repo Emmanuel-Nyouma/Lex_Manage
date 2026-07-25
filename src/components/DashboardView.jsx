@@ -255,6 +255,7 @@ const DashboardView = () => {
             disabled={isFetching}
             className="p-2 rounded-xl text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all"
             title="Refresh"
+            aria-label="Refresh dashboard"
           >
             <RefreshCw size={16} className={isFetching ? 'animate-spin' : ''} />
           </button>

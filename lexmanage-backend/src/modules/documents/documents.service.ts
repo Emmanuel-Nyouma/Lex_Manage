@@ -214,6 +214,7 @@ export class DocumentsService {
       void this.n8nRag.ingestDocument({
         tenantId,
         userId: uploaderId,
+        documentId: document.id,
         filename: file.originalname,
         buffer: file.buffer,
         caseId: options.pending ? null : options.caseId,
@@ -281,6 +282,10 @@ async remove(id: string, tenantId: string, userId: string) {
   const original = await this.findOne(id, tenantId);
   await this.prisma.document.delete({ where: { id } });
   await this.minio.deleteFile(tenantId, original.file_url).catch(() => undefined);
+
+  // Purge this document's vectors from the RAG knowledge base so deleted
+  // documents stop surfacing in LexAssist AI answers (fire-and-forget).
+  void this.n8nRag.deleteDocumentVectors({ tenantId, documentId: id });
 
   await this.cacheManager.del(`document:${id}`);
   await this.invalidateDocumentCache(tenantId, original.case_id);

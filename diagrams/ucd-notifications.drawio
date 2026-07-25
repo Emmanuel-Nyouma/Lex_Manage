@@ -1,0 +1,117 @@
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+    <mxCell id="title" value="Use Case Diagram — Notifications" style="text;html=1;align=center;strokeColor=none;fillColor=none;fontSize=13;fontStyle=1;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="300" y="4" width="570" height="20" as="geometry"/>
+    </mxCell>
+    <mxCell id="boundary" value="LexManage: Notification System" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8F9FA;strokeColor=#2c3e50;verticalAlign=top;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="115" y="25" width="870" height="790" as="geometry"/>
+    </mxCell>
+    <mxCell id="a1" value="Cabinet Admin" style="shape=mxgraph.uml.actor;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalLabelPosition=bottom;verticalAlign=top;labelPosition=center;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="28" y="80" width="40" height="70" as="geometry"/>
+    </mxCell>
+    <mxCell id="a2" value="Lawyer / Staff" style="shape=mxgraph.uml.actor;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalLabelPosition=bottom;verticalAlign=top;labelPosition=center;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="28" y="420" width="40" height="70" as="geometry"/>
+    </mxCell>
+    <mxCell id="a3" value="BullMQ System" style="shape=mxgraph.uml.actor;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;verticalLabelPosition=bottom;verticalAlign=top;labelPosition=center;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="1045" y="100" width="40" height="70" as="geometry"/>
+    </mxCell>
+    <mxCell id="a4" value="Resend API" style="shape=mxgraph.uml.actor;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalLabelPosition=bottom;verticalAlign=top;labelPosition=center;fontSize=9;" vertex="1" parent="1">
+      <mxGeometry x="1045" y="380" width="40" height="70" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc1" value="Create Notification" style="ellipse;whiteSpace=wrap;html=1;fontSize=9;fillColor=#ffffff;strokeColor=#2c3e50;" vertex="1" parent="1">
+      <mxGeometry x="155" y="82" width="230" height="48" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc2" value="Create Notification Template" style="ellipse;whiteSpace=wrap;html=1;fontSize=9;fillColor=#ffffff;strokeColor=#2c3e50;" vertex="1" parent="1">
+      <mxGeometry x="155" y="152" width="230" height="48" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc3" value="Schedule Notification" style="ellipse;whiteSpace=wrap;html=1;fontSize=9;fillColor=#ffffff;strokeColor=#2c3e50;" vertex="1" parent="1">
+      <mxGeometry x="155" y="222" width="230" height="48" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc4" value="Cancel Scheduled Notification" style="ellipse;whiteSpace=wrap;html=1;fontSize=9;fillColor=#ffffff;strokeColor=#2c3e50;" vertex="1" parent="1">
+      <mxGeometry x="155" y="292" width="230" height="48" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc5" value="View Notification History" style="ellipse;whiteSpace=wrap;html=1;fontSize=9;fillColor=#ffffff;strokeColor=#2c3e50;" vertex="1" parent="1">
+      <mxGeometry x="155" y="362" width="230" height="48" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc6" value="Receive Notification (In-App)" style="ellipse;whiteSpace=wrap;html=1;fontSize=9;fillColor=#ffffff;strokeColor=#2c3e50;" vertex="1" parent="1">
+      <mxGeometry x="155" y="432" width="230" height="48" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc7" value="Mark Notification as Read" style="ellipse;whiteSpace=wrap;html=1;fontSize=9;fillColor=#ffffff;strokeColor=#2c3e50;" vertex="1" parent="1">
+      <mxGeometry x="155" y="502" width="230" height="48" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc8" value="Send Notification Job" style="ellipse;whiteSpace=wrap;html=1;fontSize=9;fillColor=#f5f5f5;strokeColor=#888888;" vertex="1" parent="1">
+      <mxGeometry x="640" y="82" width="225" height="48" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc9" value="Send Urgent Email Alert" style="ellipse;whiteSpace=wrap;html=1;fontSize=9;fillColor=#ffffff;strokeColor=#2c3e50;" vertex="1" parent="1">
+      <mxGeometry x="640" y="152" width="225" height="48" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc10" value="Dispatch Email via Resend" style="ellipse;whiteSpace=wrap;html=1;fontSize=9;fillColor=#f5f5f5;strokeColor=#888888;" vertex="1" parent="1">
+      <mxGeometry x="640" y="222" width="225" height="48" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc11" value="Apply Notification Template" style="ellipse;whiteSpace=wrap;html=1;fontSize=9;fillColor=#f5f5f5;strokeColor=#888888;" vertex="1" parent="1">
+      <mxGeometry x="640" y="292" width="225" height="48" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc12" value="Broadcast to Recipients" style="ellipse;whiteSpace=wrap;html=1;fontSize=9;fillColor=#f5f5f5;strokeColor=#888888;" vertex="1" parent="1">
+      <mxGeometry x="640" y="362" width="225" height="48" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc13" value="Retry Failed Jobs" style="ellipse;whiteSpace=wrap;html=1;fontSize=9;fillColor=#f5f5f5;strokeColor=#888888;" vertex="1" parent="1">
+      <mxGeometry x="640" y="432" width="225" height="48" as="geometry"/>
+    </mxCell>
+    <mxCell id="inc1" value="«include»" style="dashed=1;endArrow=open;endFill=0;startArrow=none;html=1;strokeColor=#666666;fontSize=8;" edge="1" source="uc3" target="uc8" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="inc2" value="«include»" style="dashed=1;endArrow=open;endFill=0;startArrow=none;html=1;strokeColor=#666666;fontSize=8;" edge="1" source="uc9" target="uc10" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="inc3" value="«include»" style="dashed=1;endArrow=open;endFill=0;startArrow=none;html=1;strokeColor=#666666;fontSize=8;" edge="1" source="uc8" target="uc12" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ext1" value="«extend»" style="dashed=1;endArrow=open;endFill=0;startArrow=none;html=1;strokeColor=#9c27b0;fontSize=8;" edge="1" source="uc1" target="uc11" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ext2" value="«extend»" style="dashed=1;endArrow=open;endFill=0;startArrow=none;html=1;strokeColor=#9c27b0;fontSize=8;" edge="1" source="uc9" target="uc1" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="inc4" value="«include»" style="dashed=1;endArrow=open;endFill=0;startArrow=none;html=1;strokeColor=#666666;fontSize=8;" edge="1" source="uc8" target="uc13" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e1" value="" style="endArrow=none;html=1;strokeColor=#555555;" edge="1" source="a1" target="uc1" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e2" value="" style="endArrow=none;html=1;strokeColor=#555555;" edge="1" source="a1" target="uc2" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e3" value="" style="endArrow=none;html=1;strokeColor=#555555;" edge="1" source="a1" target="uc3" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e4" value="" style="endArrow=none;html=1;strokeColor=#555555;" edge="1" source="a1" target="uc4" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e5" value="" style="endArrow=none;html=1;strokeColor=#555555;" edge="1" source="a1" target="uc5" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e6" value="" style="endArrow=none;html=1;strokeColor=#555555;" edge="1" source="a1" target="uc9" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e7" value="" style="endArrow=none;html=1;strokeColor=#555555;" edge="1" source="a2" target="uc6" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e8" value="" style="endArrow=none;html=1;strokeColor=#555555;" edge="1" source="a2" target="uc7" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e9" value="" style="endArrow=none;html=1;strokeColor=#555555;" edge="1" source="a2" target="uc5" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e10" value="" style="endArrow=none;html=1;strokeColor=#555555;" edge="1" source="a3" target="uc8" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e11" value="" style="endArrow=none;html=1;strokeColor=#555555;" edge="1" source="a3" target="uc13" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e12" value="" style="endArrow=none;html=1;strokeColor=#555555;" edge="1" source="a4" target="uc10" parent="1">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+  </root>
+</mxGraphModel>

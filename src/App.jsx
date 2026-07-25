@@ -7,7 +7,7 @@ import { Lock, ShieldCheck, AlertTriangle, X as CloseIcon, Loader2 } from 'lucid
 import AuthScreen from './components/AuthScreen';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
-import { Breadcrumbs } from './components/ui';
+import { Breadcrumbs, PageSkeleton } from './components/ui';
 
 // Route views — lazy-loaded (code-split per route for faster mobile first paint)
 const DashboardView        = lazy(() => import('./components/DashboardView'));
@@ -24,11 +24,7 @@ const AiAssistantView      = lazy(() => import('./components/AiAssistantView'));
 const ColleaguesView       = lazy(() => import('./components/ColleaguesView'));
 
 // Fallback shown while a route chunk loads
-const RouteFallback = () => (
-  <div className="flex items-center justify-center h-full min-h-[60vh]">
-    <Loader2 className="animate-spin text-amber-500" size={32} />
-  </div>
-);
+const RouteFallback = () => <PageSkeleton variant="content" className="min-h-[60vh]" />;
 
 // Store & Lib
 import useLexStore from './store/useLexStore';

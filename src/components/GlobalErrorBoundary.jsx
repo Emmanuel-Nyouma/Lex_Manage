@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, RefreshCcw, X, Bug, ChevronDown, ChevronUp } from 'lucide-react';
+import { getErrorPresentation } from '../utils/errorMessages';
 
 class GlobalErrorBoundary extends React.Component {
   constructor(props) {
@@ -21,6 +22,7 @@ class GlobalErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
+      const presentation = getErrorPresentation(this.state.error, 'The interface encountered an unexpected problem.');
       return (
         <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 p-6 text-center">
           <div className="relative mb-8">
@@ -34,11 +36,11 @@ class GlobalErrorBoundary extends React.Component {
           
           <div className="max-w-md space-y-4">
             <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-              Interface Error
+              {presentation.title}
             </h1>
             
             <p className="text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
-              We encountered a critical problem rendering this view. Your legal data is safe, but the interface needs a fresh start.
+              {presentation.message} Your legal data is safe.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
@@ -47,7 +49,7 @@ class GlobalErrorBoundary extends React.Component {
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 bg-slate-900 dark:bg-amber-600 text-white rounded-2xl font-bold shadow-xl hover:scale-105 transition-all active:scale-95"
               >
                 <RefreshCcw size={18} />
-                Restart Application
+                {presentation.action}
               </button>
               
               <button 

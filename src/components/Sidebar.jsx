@@ -66,6 +66,7 @@ const Sidebar = ({ isMobileOpen, onCloseMobile }) => {
             onClick={onCloseMobile}
             className="md:hidden p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
             aria-label={t.close}
+            title={t.close}
           >
             <X size={22} aria-hidden="true" />
           </button>

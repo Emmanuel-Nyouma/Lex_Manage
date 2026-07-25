@@ -6,7 +6,7 @@ import {
   Loader2, ChevronRight, Briefcase, CalendarClock, ChevronDown, Link2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Card, Button, Input, Badge } from './ui';
+import { Card, Button, Input, Badge, PageSkeleton } from './ui';
 import { useClients, useCreateClient, useDeleteClient } from '../hooks/useClients';
 import { useCases } from '../hooks/useCases';
 import { useGlobalDeadlines } from '../hooks/useCalendar';
@@ -216,8 +216,7 @@ const ClientsDirectoryView = () => {
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Loader2 className="animate-spin text-amber-500" size={40} />
-            <p className="text-slate-500 dark:text-slate-300 font-bold animate-pulse">Accessing directory...</p>
+            <PageSkeleton variant="table" className="py-2" />
           </div>
         ) : filteredClients.length > 0 ? (
           <>

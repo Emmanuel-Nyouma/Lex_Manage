@@ -8,7 +8,7 @@ import {
 import useLexStore from '../store/useLexStore';
 import apiClient from '../lib/api';
 import { toast } from 'sonner';
-import { Card, Badge, Button, Input } from './ui';
+import { Card, Badge, Button, Input, PageSkeleton } from './ui';
 import SendNotificationDialog from './SendNotificationDialog';
 
 /* ─── Role badge colors ──────────────────────────────────────────── */
@@ -469,7 +469,7 @@ const CompanySettingsView = () => {
 
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
-              <Loader2 className="animate-spin text-amber-500" size={28} />
+              <PageSkeleton variant="table" className="w-full" />
             </div>
           ) : members.length === 0 ? (
             <div className="text-center py-16 text-slate-400">No members yet.</div>
@@ -690,7 +690,7 @@ const CompanySettingsView = () => {
 
           {isLoading ? (
             <div className="flex items-center justify-center py-10">
-              <Loader2 className="animate-spin text-amber-500" size={24} />
+              <PageSkeleton variant="table" className="w-full" />
             </div>
           ) : invitations.length > 0 ? (
             <>
