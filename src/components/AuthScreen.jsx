@@ -108,7 +108,10 @@ const AuthScreen = () => {
   const [searchParams] = useSearchParams();
   const language = useLexStore((s) => s.language);
   const invitationToken = searchParams.get('invitation');
-  const [view, setView] = useState(invitationToken ? 'signup' : 'login'); // 'login', 'signup', 'forgot_password', 'mfa_challenge'
+  const requestedMode = searchParams.get('mode');
+  const [view, setView] = useState(
+    invitationToken || requestedMode === 'signup' ? 'signup' : 'login'
+  ); // 'login', 'signup', 'forgot_password', 'mfa_challenge'
   const [signupStep, setSignupStep] = useState(invitationToken ? 2 : 1);
   const [shouldShake, setShouldShake] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);

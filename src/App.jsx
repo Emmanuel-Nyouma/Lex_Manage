@@ -5,6 +5,7 @@ import { Lock, ShieldCheck, AlertTriangle, X as CloseIcon, Loader2 } from 'lucid
 
 // App shell — eager (always needed)
 import AuthScreen from './components/AuthScreen';
+import OnboardingScreen, { ONBOARDING_STORAGE_KEY } from './components/OnboardingScreen';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import { Breadcrumbs, PageSkeleton } from './components/ui';
@@ -25,6 +26,15 @@ const ColleaguesView       = lazy(() => import('./components/ColleaguesView'));
 
 // Fallback shown while a route chunk loads
 const RouteFallback = () => <PageSkeleton variant="content" className="min-h-[60vh]" />;
+
+const InitialRoute = ({ isAuthenticated }) => {
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  const hasCompletedOnboarding = localStorage.getItem(ONBOARDING_STORAGE_KEY) === 'true';
+  return <Navigate to={hasCompletedOnboarding ? '/login' : '/welcome'} replace />;
+};
 
 // Store & Lib
 import useLexStore from './store/useLexStore';
@@ -199,6 +209,9 @@ export default function LexManageApp() {
     <>
       <Toaster position="bottom-right" richColors closeButton />
       <Routes>
+        <Route path="/welcome" element={
+          isAuthenticated ? <Navigate to="/dashboard" replace /> : <OnboardingScreen />
+        } />
         <Route path="/login" element={
           isAuthenticated ? <Navigate to="/dashboard" replace /> : <AuthScreen />
         } />
@@ -224,8 +237,8 @@ export default function LexManageApp() {
         <Route path="/profile" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><ProfileView /></MainLayout></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><SettingsView /></MainLayout></ProtectedRoute>} />
         
-        <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
-        <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
+        <Route path="/" element={<InitialRoute isAuthenticated={isAuthenticated} />} />
+        <Route path="*" element={<InitialRoute isAuthenticated={isAuthenticated} />} />
       </Routes>
     </>
   );
