@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { sendMock, signedUrlMock } = vi.hoisted(() => ({
+const { sendMock, signedUrlMock, clientOptions } = vi.hoisted(() => ({
   sendMock: vi.fn(),
   signedUrlMock: vi.fn(),
+  clientOptions: [] as Record<string, unknown>[],
 }));
 
 vi.mock('@aws-sdk/client-s3', async (importOriginal) => {
@@ -10,6 +11,9 @@ vi.mock('@aws-sdk/client-s3', async (importOriginal) => {
   return {
     ...actual,
     S3Client: class MockS3Client {
+      constructor(options: Record<string, unknown>) {
+        clientOptions.push(options);
+      }
       send = sendMock;
     },
   };
@@ -25,6 +29,7 @@ describe('MinioService readiness', () => {
   beforeEach(() => {
     sendMock.mockReset();
     signedUrlMock.mockReset().mockResolvedValue('https://signed.test/object');
+    clientOptions.length = 0;
     process.env.S3_ENDPOINT = 'http://minio:9000';
     process.env.S3_ACCESS_KEY = 'test-access-key';
     process.env.S3_SECRET_KEY = 'test-secret-key';
@@ -58,6 +63,18 @@ describe('MinioService readiness', () => {
     expect(sendMock.mock.calls[0][0].constructor.name).toBe('HeadBucketCommand');
   });
 
+  it('uses safe constructor defaults when optional S3 settings are absent', () => {
+    delete process.env.S3_BUCKET;
+    delete process.env.S3_REGION;
+    delete process.env.S3_ACCESS_KEY;
+    delete process.env.S3_SECRET_KEY;
+    new MinioService();
+    expect(clientOptions.at(-1)).toEqual(expect.objectContaining({
+      region: 'us-east-1',
+      credentials: { accessKeyId: '', secretAccessKey: '' },
+    }));
+  });
+
   it('surfaces an unexpected bucket check failure', async () => {
     sendMock.mockRejectedValueOnce({ name: 'AccessDenied', $metadata: { httpStatusCode: 403 } });
     await expect(new MinioService().checkHealth()).rejects.toMatchObject({
@@ -78,6 +95,27 @@ describe('MinioService readiness', () => {
     await expect(new MinioService().checkHealth()).rejects.toMatchObject({
       message: 'Object storage bucket is not available',
     });
+  });
+
+  it('uses the HTTP status when storage errors have no name', async () => {
+    sendMock.mockRejectedValueOnce({ $metadata: { httpStatusCode: 403 } });
+    await expect(new MinioService().checkHealth()).rejects.toThrow(
+      'Object storage bucket check failed (403)',
+    );
+  });
+
+  it('uses an unknown label when a bucket check error has no metadata', async () => {
+    sendMock.mockRejectedValueOnce({});
+    await expect(new MinioService().checkHealth()).rejects.toThrow(
+      'Object storage bucket check failed (unknown)',
+    );
+  });
+
+  it('handles non-Error bucket creation failures without leaking them', async () => {
+    sendMock.mockRejectedValueOnce({ name: 'NotFound' }).mockRejectedValueOnce('offline');
+    await expect(new MinioService().checkHealth()).rejects.toThrow(
+      'Object storage bucket is not available',
+    );
   });
 
   it('uploads under a lowercase tenant prefix with optional KMS encryption', async () => {
@@ -117,6 +155,17 @@ describe('MinioService readiness', () => {
     expect(input.SSEKMSKeyId).toBeUndefined();
   });
 
+  it('uploads with AES encryption without a KMS key', async () => {
+    process.env.S3_SERVER_SIDE_ENCRYPTION = 'AES256';
+    sendMock.mockResolvedValue({});
+    await new MinioService().uploadFile({
+      originalname: 'note.txt', mimetype: 'text/plain', size: 4, buffer: Buffer.from('note'),
+    } as Express.Multer.File, 'tenant-a');
+    const input = (sendMock.mock.calls[1][0] as any).input;
+    expect(input.ServerSideEncryption).toBe('AES256');
+    expect(input.SSEKMSKeyId).toBeUndefined();
+  });
+
   it('converts an object upload failure into a safe storage error', async () => {
     sendMock.mockResolvedValueOnce({}).mockRejectedValueOnce(new Error('secret provider failure'));
     const service = new MinioService();
@@ -147,6 +196,14 @@ describe('MinioService readiness', () => {
     }));
     expect(signedUrlMock.mock.calls[1][2]).toEqual({ expiresIn: 7 * 24 * 3600 });
     expect((signedUrlMock.mock.calls[1][1] as any).input.Key).toBe('tenant-a/logo.png');
+  });
+
+  it('utilise les expirations par défaut des URL signées', async () => {
+    const service = new MinioService();
+    await service.getPresignedUrl('tenant-a', 'legal.pdf');
+    await service.getAssetUrl('tenant-a', 'logo.png');
+    expect(signedUrlMock.mock.calls[0][2]).toEqual({ expiresIn: 900 });
+    expect(signedUrlMock.mock.calls[1][2]).toEqual({ expiresIn: 7 * 24 * 3600 });
   });
 
   it('downloads an object body as a Buffer', async () => {

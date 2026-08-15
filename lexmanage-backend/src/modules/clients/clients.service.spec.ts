@@ -159,6 +159,30 @@ describe('ClientsService', () => {
     expect(searchTokens).toHaveBeenCalledWith(['Alice', 'old@test', '222', 'Old']);
   });
 
+  it('permet d’effacer explicitement les coordonnées optionnelles', async () => {
+    const encrypt = vi.fn((value) => value);
+    service = new ClientsService(prisma, audit as any, {
+      encrypt, deepDecrypt: (value: unknown) => value, searchTokens: () => [],
+    } as any);
+    prisma.client.findFirst.mockResolvedValue({
+      id: 'client-1', name: 'Alice', email: 'old@test', phone: '111', address: 'Old', cases: [],
+    });
+    prisma.client.update.mockResolvedValue({ id: 'client-1' });
+    await service.update('client-1', { phone: null, address: null } as any, 'tenant-a', 'user-1');
+    expect(prisma.client.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ phone: null, address: null }),
+    }));
+  });
+
+  it('n’ajoute aucun champ sensible lorsqu’une mise à jour est vide', async () => {
+    prisma.client.findFirst.mockResolvedValue({
+      id: 'client-1', name: 'Alice', email: 'old@test', phone: '111', address: 'Old', cases: [],
+    });
+    prisma.client.update.mockResolvedValue({ id: 'client-1' });
+    await service.update('client-1', {} as any, 'tenant-a', 'user-1');
+    expect(prisma.client.update.mock.calls[0][0].data.phone).toBeUndefined();
+  });
+
   it('délie uniquement les dossiers du tenant avant suppression', async () => {
     prisma.client.findFirst.mockResolvedValue({ id: 'client-1', name: 'Alice', cases: [] });
     prisma.client.delete.mockResolvedValue({ id: 'client-1' });

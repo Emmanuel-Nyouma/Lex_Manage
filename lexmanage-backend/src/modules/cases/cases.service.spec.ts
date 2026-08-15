@@ -132,6 +132,13 @@ describe('CasesService', () => {
   });
 
   describe('findOne', () => {
+    it('returns an individually cached case without querying Prisma', async () => {
+      const cached = { id: 'case-1', title: 'Cached' };
+      mockCacheManager.get.mockResolvedValue(cached);
+      await expect(service.findOne('case-1', 'tenant-1')).resolves.toBe(cached);
+      expect(mockPrisma.case.findFirst).not.toHaveBeenCalled();
+    });
+
     it('should throw NotFoundException if case not found', async () => {
       mockCacheManager.get.mockResolvedValue(null);
       mockPrisma.case.findFirst.mockResolvedValue(null);
@@ -261,6 +268,11 @@ describe('CasesService', () => {
         'Old', 'Old description', 'Acme', 'Old court', 'Old number',
       ]);
       expect(mockPrisma.document.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('keeps closedAt untouched when status is omitted', async () => {
+      await service.update('case-1', { title: 'Renamed' } as any, 'tenant-1', 'user-1');
+      expect(mockPrisma.case.update.mock.calls[0][0].data.closedAt).toBeUndefined();
     });
   });
 

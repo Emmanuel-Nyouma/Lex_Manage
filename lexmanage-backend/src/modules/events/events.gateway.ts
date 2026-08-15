@@ -11,9 +11,12 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { tenantContext } from '../../common/context/tenant.context';
 
+export const getAllowedSocketOrigins = (value = process.env.ALLOWED_ORIGINS) =>
+  value?.split(',').map((origin) => origin.trim()) || ['http://localhost:3000'];
+
 @WebSocketGateway({
   cors: {
-    origin: process.env.ALLOWED_ORIGINS?.split(',').map((origin) => origin.trim()) || ['http://localhost:3000'],
+    origin: getAllowedSocketOrigins(),
     credentials: true,
   },
 })

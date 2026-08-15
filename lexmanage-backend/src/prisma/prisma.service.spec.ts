@@ -184,6 +184,19 @@ describe('PrismaService tenant isolation', () => {
     expect(unscopedQuery).toHaveBeenCalledWith({ where: { id: 'case-1' } });
   });
 
+  it.each([
+    'findMany', 'findFirst', 'findUnique', 'findUniqueOrThrow', 'count', 'aggregate',
+    'groupBy', 'create', 'createMany', 'update', 'updateMany', 'upsert', 'delete', 'deleteMany',
+  ])('laisse passer %s sur un modèle global', async (operation) => {
+    const query = vi.fn(async (args) => args);
+    await invoke(operation, 'GlobalSetting', { where: { id: 'global' } }, query);
+    expect(query).toHaveBeenCalledOnce();
+  });
+
+  it('délègue les autres méthodes de classe au client étendu', () => {
+    expect((service as any).constructor).toBe(Object);
+  });
+
   it('délègue les lectures uniques non scopées au client Prisma original', async () => {
     const query = vi.fn(async () => 'original');
 

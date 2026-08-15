@@ -69,6 +69,13 @@ describe('UsersService', () => {
     );
   });
 
+  it('retourne directement un utilisateur déjà présent dans le cache', async () => {
+    const cached = { id: 'user-1', firstName: 'Alice' };
+    cache.get.mockResolvedValue(cached);
+    await expect(service.findOne('user-1', 'tenant-a')).resolves.toBe(cached);
+    expect(prisma.user.findFirst).not.toHaveBeenCalled();
+  });
+
   it('rejette un utilisateur absent du tenant', async () => {
     prisma.user.findFirst.mockResolvedValue(null);
     await expect(service.findOne('foreign', 'tenant-a')).rejects.toThrow(NotFoundException);
@@ -120,6 +127,23 @@ describe('UsersService', () => {
       .rejects.toThrow('The firm must keep at least one active administrator');
   });
 
+  it('autorise la rétrogradation lorsqu’un autre administrateur reste actif', async () => {
+    vi.spyOn(service, 'findOne').mockResolvedValue({ role: UserRole.CABINET_ADMIN } as any);
+    prisma.user.count.mockResolvedValue(2);
+    prisma.user.update.mockResolvedValue({ id: 'admin-2', role: UserRole.LAWYER });
+
+    await expect(service.update(
+      'admin-2', { role: UserRole.LAWYER }, 'tenant-a', 'admin-1',
+    )).resolves.toEqual({ id: 'admin-2', role: UserRole.LAWYER });
+  });
+
+  it('met à jour un administrateur sans recompter si son rôle reste identique', async () => {
+    vi.spyOn(service, 'findOne').mockResolvedValue({ role: UserRole.CABINET_ADMIN } as any);
+    prisma.user.update.mockResolvedValue({ id: 'admin-2', role: UserRole.CABINET_ADMIN });
+    await service.update('admin-2', { firstName: 'Ada' }, 'tenant-a', 'admin-1');
+    expect(prisma.user.count).not.toHaveBeenCalled();
+  });
+
   it('met à jour, invalide les caches et journalise', async () => {
     vi.spyOn(service, 'findOne').mockResolvedValue({ role: UserRole.LAWYER } as any);
     prisma.user.update.mockResolvedValue({ id: 'member-1', role: UserRole.ASSISTANT });
@@ -156,5 +180,17 @@ describe('UsersService', () => {
     vi.spyOn(service, 'findOne').mockResolvedValue({ role: UserRole.LAWYER } as any);
     await expect(service.deactivate('admin-1', 'tenant-a', 'admin-1'))
       .rejects.toThrow('You cannot deactivate your own account');
+  });
+
+  it('protège le dernier administrateur et autorise les autres à être désactivés', async () => {
+    vi.spyOn(service, 'findOne').mockResolvedValue({ role: UserRole.CABINET_ADMIN } as any);
+    prisma.user.count.mockResolvedValueOnce(1);
+    await expect(service.deactivate('admin-2', 'tenant-a', 'admin-1'))
+      .rejects.toThrow('The firm must keep at least one active administrator');
+
+    prisma.user.count.mockResolvedValueOnce(2);
+    prisma.user.update.mockResolvedValue({});
+    await expect(service.deactivate('admin-2', 'tenant-a', 'admin-1'))
+      .resolves.toEqual({ message: 'User deactivated' });
   });
 });

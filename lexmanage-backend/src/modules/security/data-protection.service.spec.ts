@@ -100,4 +100,12 @@ describe('DataProtectionService', () => {
     expect(service.searchTokens(['ab'])).toHaveLength(1);
     expect(new Set(service.searchTokens(['test test'])).size).toBe(service.searchTokens(['test test']).length);
   });
+
+  it('borne les index de recherche à 2000 fragments', () => {
+    const service = new DataProtectionService();
+    const longUniqueWord = Array.from({ length: 2500 }, (_, index) =>
+      index.toString(36).padStart(3, '0'),
+    ).join('x');
+    expect(service.searchTokens([longUniqueWord])).toHaveLength(2000);
+  });
 });

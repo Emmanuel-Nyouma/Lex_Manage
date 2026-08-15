@@ -70,6 +70,17 @@ describe('NotificationsService — contrats étendus', () => {
     expect(prisma.notification.create).not.toHaveBeenCalled();
   });
 
+  it('crée la notification lorsqu’une clé idempotente est encore inconnue', async () => {
+    prisma.notification.findFirst.mockResolvedValue(null);
+    prisma.notification.create.mockResolvedValue({ id: 'n-1', level: 'NORMAL' });
+    await service.create({
+      idempotencyKey: 'new-key', level: 'NORMAL', motif: 'OTHER',
+    }, 'tenant-a', null);
+    expect(prisma.notification.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ idempotencyKey: 'new-key' }),
+    }));
+  });
+
   it('rejette un dossier ou des destinataires extérieurs au tenant', async () => {
     prisma.case.findFirst.mockResolvedValue(null);
     await expect(service.create({ caseId: 'foreign-case' }, 'tenant-a', 'admin-1'))
@@ -123,6 +134,24 @@ describe('NotificationsService — contrats étendus', () => {
     }));
   });
 
+  it('programme une urgence générale pour tous les membres avec un expéditeur système', async () => {
+    const notification = {
+      id: 'n-urgent', level: 'URGENT', motif: 'OTHER', message: '', createdAt: new Date(),
+      tenant: { name: 'Cabinet Lex' }, createdBy: null,
+    };
+    prisma.notification.create.mockResolvedValue(notification);
+    prisma.user.findMany.mockResolvedValue([{ email: 'member@example.com' }]);
+    mailQueue.addBulk.mockResolvedValue([]);
+    await service.create({ level: 'URGENT', motif: 'OTHER' }, 'tenant-a', null);
+    expect(mailQueue.addBulk).toHaveBeenCalledWith([
+      expect.objectContaining({
+        data: expect.objectContaining({
+          data: expect.objectContaining({ senderName: 'Système LexManage' }),
+        }),
+      }),
+    ]);
+  });
+
   it('déchiffre l’historique et protège sa suppression par tenant', async () => {
     prisma.notification.findMany.mockResolvedValue([{ id: 'n-1' }]);
     await service.getHistory('tenant-a');
@@ -162,6 +191,16 @@ describe('NotificationsService — contrats étendus', () => {
     })).rejects.toThrow('Scheduled date must be in the future');
   });
 
+  it('rejette un dossier planifié extérieur au tenant', async () => {
+    prisma.case.findFirst.mockResolvedValue(null);
+    await expect(service.createScheduled('tenant-a', 'admin-1', {
+      level: 'NORMAL' as any,
+      motif: 'OTHER' as any,
+      scheduledAt: new Date(Date.now() + 60_000).toISOString(),
+      caseId: 'foreign-case',
+    })).rejects.toThrow('Case does not belong to this firm');
+  });
+
   it('crée une programmation, persiste le job et déchiffre le résultat', async () => {
     const future = new Date(Date.now() + 3_600_000).toISOString();
     prisma.case.findFirst.mockResolvedValue({ id: 'case-1' });
@@ -170,6 +209,7 @@ describe('NotificationsService — contrats étendus', () => {
     prisma.scheduledNotification.update.mockResolvedValue({ id: 's-1', jobId: 'bull-1' });
     await service.createScheduled('tenant-a', 'admin-1', {
       level: 'IMPORTANT' as any, motif: 'GENERAL' as any, scheduledAt: future, caseId: 'case-1',
+      recipientRoles: ['LAWYER'] as any,
     });
     expect(remindersQueue.add).toHaveBeenCalledWith(
       'send-scheduled-notification', { scheduledNotifId: 's-1', tenantId: 'tenant-a' },
@@ -177,6 +217,9 @@ describe('NotificationsService — contrats étendus', () => {
     );
     expect(prisma.scheduledNotification.update).toHaveBeenCalledWith(expect.objectContaining({
       data: { jobId: 'bull-1' },
+    }));
+    expect(prisma.scheduledNotification.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ recipientRoles: ['LAWYER'] }),
     }));
   });
 
@@ -211,6 +254,18 @@ describe('NotificationsService — contrats étendus', () => {
     await expect(service.cancelScheduled('tenant-a', 's-1')).rejects.toThrow(ServiceUnavailableException);
   });
 
+  it('annule sans job ou avec un identifiant Bull déjà absent', async () => {
+    prisma.scheduledNotification.update.mockResolvedValue({ id: 's-1', status: 'CANCELLED' });
+    prisma.scheduledNotification.findFirst.mockResolvedValueOnce({ id: 's-1', status: 'PENDING', jobId: null });
+    await service.cancelScheduled('tenant-a', 's-1');
+    expect(remindersQueue.getJob).not.toHaveBeenCalled();
+
+    prisma.scheduledNotification.findFirst.mockResolvedValueOnce({ id: 's-2', status: 'PENDING', jobId: 'missing' });
+    remindersQueue.getJob.mockResolvedValue(null);
+    await service.cancelScheduled('tenant-a', 's-2');
+    expect(remindersQueue.getJob).toHaveBeenCalledWith('missing');
+  });
+
   it('supprime définitivement un envoi et son job restant', async () => {
     prisma.scheduledNotification.findFirst.mockResolvedValueOnce(null);
     await expect(service.deleteScheduled('tenant-a', 'missing')).rejects.toThrow(NotFoundException);
@@ -223,5 +278,29 @@ describe('NotificationsService — contrats étendus', () => {
       message: 'Scheduled notification deleted',
     });
     expect(remove).toHaveBeenCalled();
+  });
+
+  it('signale une panne Redis lors de la suppression définitive', async () => {
+    prisma.scheduledNotification.findFirst.mockResolvedValue({
+      id: 's-1', status: 'PENDING', jobId: 'bull-1',
+    });
+    remindersQueue.getJob.mockRejectedValue(new Error('redis offline'));
+    await expect(service.deleteScheduled('tenant-a', 's-1'))
+      .rejects.toThrow(ServiceUnavailableException);
+    expect(prisma.scheduledNotification.delete).not.toHaveBeenCalled();
+  });
+
+  it('supprime un envoi non pending, sans job, ou dont le job a déjà disparu', async () => {
+    prisma.scheduledNotification.delete.mockResolvedValue({});
+    for (const record of [
+      { id: 's-sent', status: 'SENT', jobId: 'old-job' },
+      { id: 's-no-job', status: 'PENDING', jobId: null },
+      { id: 's-missing-job', status: 'PENDING', jobId: 'missing' },
+    ]) {
+      prisma.scheduledNotification.findFirst.mockResolvedValueOnce(record);
+      remindersQueue.getJob.mockResolvedValueOnce(null);
+      await expect(service.deleteScheduled('tenant-a', record.id))
+        .resolves.toEqual({ message: 'Scheduled notification deleted' });
+    }
   });
 });

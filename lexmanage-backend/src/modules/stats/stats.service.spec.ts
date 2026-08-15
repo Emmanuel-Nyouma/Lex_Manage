@@ -68,4 +68,13 @@ describe('StatsService', () => {
       where: { tenantId: 'tenant-a', description: { not: null } },
     });
   });
+
+  it('ancre correctement les huit semaines lorsque le jour courant est dimanche', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-16T12:00:00.000Z'));
+    const result = (service as any).buildWeeklyActivity([], []);
+    expect(result).toHaveLength(8);
+    expect(result.at(-1)).toEqual({ week: 'W', cases: 0, deadlines: 0 });
+    vi.useRealTimers();
+  });
 });

@@ -13,10 +13,15 @@ const redisMocks = vi.hoisted(() => ({
   disconnect: vi.fn(),
   on: vi.fn(),
   status: 'wait',
+  options: undefined as Record<string, unknown> | undefined,
+  errorHandler: undefined as (() => undefined) | undefined,
 }));
 
 vi.mock('ioredis', () => ({
   default: class MockRedis {
+    constructor(options: Record<string, unknown>) {
+      redisMocks.options = options;
+    }
     get status() {
       return redisMocks.status;
     }
@@ -24,7 +29,10 @@ vi.mock('ioredis', () => ({
     ping = redisMocks.ping;
     quit = redisMocks.quit;
     disconnect = redisMocks.disconnect;
-    on = redisMocks.on;
+    on = vi.fn((event: string, handler: () => undefined) => {
+      redisMocks.on(event, handler);
+      if (event === 'error') redisMocks.errorHandler = handler;
+    });
   },
 }));
 
@@ -84,6 +92,14 @@ describe('AuthController security and cookie contracts', () => {
     await expect(controller.login({} as any, request as any, response as any))
       .rejects.toBeInstanceOf(ForbiddenException);
     expect(auth.login).not.toHaveBeenCalled();
+  });
+
+  it('refuse aussi une origine lorsque la liste autorisée est absente', async () => {
+    delete process.env.ALLOWED_ORIGINS;
+    const controller = new AuthController(auth as any);
+    const request = { get: vi.fn(() => 'https://lex.test') };
+    await expect(controller.login({} as any, request as any, response as any))
+      .rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('autorise une requête sans Origin et renouvelle le cookie même sans exp', async () => {
@@ -323,6 +339,22 @@ describe('AppController health checks', () => {
     const controller = new AppController(prisma as any, storage as any);
     await controller.ready();
     expect(redisMocks.connect).not.toHaveBeenCalled();
+  });
+
+  it('configure Redis avec authentification et TLS et absorbe son événement error', () => {
+    process.env.REDIS_HOST = 'redis.internal';
+    process.env.REDIS_PORT = '6380';
+    process.env.REDIS_PASSWORD = 'secret';
+    process.env.REDIS_TLS = 'true';
+    new AppController(prisma as any, storage as any);
+    expect(redisMocks.options).toEqual(expect.objectContaining({
+      host: 'redis.internal', port: 6380, password: 'secret', tls: {}, lazyConnect: true,
+    }));
+    expect(redisMocks.errorHandler?.()).toBeUndefined();
+    delete process.env.REDIS_HOST;
+    delete process.env.REDIS_PORT;
+    delete process.env.REDIS_PASSWORD;
+    delete process.env.REDIS_TLS;
   });
 
   it('retourne le détail des dépendances indisponibles', async () => {

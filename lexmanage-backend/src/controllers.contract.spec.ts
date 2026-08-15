@@ -26,6 +26,8 @@ describe('contrats des contrôleurs', () => {
     expect(service.findAll).toHaveBeenCalledWith('tenant-a', 'cursor-1', 100);
     controller.findAll('tenant-a', undefined, 'invalid');
     expect(service.findAll).toHaveBeenLastCalledWith('tenant-a', undefined, 10);
+    controller.findAll('tenant-a');
+    expect(service.findAll).toHaveBeenLastCalledWith('tenant-a', undefined, 10);
     controller.findOne('case-1', 'tenant-a');
     controller.create({ title: 'Dossier' }, { tenantId: 'tenant-a', id: 'user-1' });
     controller.update('case-1', { title: 'Nouveau' }, 'tenant-a', 'user-1');
@@ -131,6 +133,10 @@ describe('contrats des contrôleurs', () => {
     expect(service.findAll).toHaveBeenCalledWith(
       'tenant-a', 'user-1', 'LAWYER', 'cursor-1', 100, 'LEGAL', 'contrat',
     );
+    controller.findAll('tenant-a', 'user-1', 'LAWYER' as any, undefined, undefined, 'invalid');
+    expect(service.findAll).toHaveBeenLastCalledWith(
+      'tenant-a', 'user-1', 'LAWYER', undefined, 10, undefined, undefined,
+    );
     controller.findOne('doc-1', 'tenant-a', 'user-1', 'LAWYER' as any);
     controller.getDownloadUrl('doc-1', 'tenant-a', 'user-1', 'LAWYER' as any);
     const file = { originalname: 'doc.pdf' } as any;
@@ -146,6 +152,13 @@ describe('contrats des contrôleurs', () => {
       file, undefined, undefined, undefined, undefined, '["INVALID"]',
       undefined, undefined, undefined, undefined, 'tenant-a', 'user-1',
     )).toThrow(BadRequestException);
+    controller.upload(
+      file, undefined, undefined, undefined, undefined, undefined,
+      undefined, undefined, 'case-query', undefined, 'tenant-a', 'user-1',
+    );
+    expect(service.upload).toHaveBeenLastCalledWith(file, 'tenant-a', 'user-1', expect.objectContaining({
+      allowedRoles: undefined, caseId: 'case-query', pending: false,
+    }));
     controller.create({ title: 'Doc' } as any, 'tenant-a', 'user-1');
     controller.update('doc-1', { title: 'Updated' }, 'tenant-a', 'user-1', 'LAWYER' as any);
     controller.linkToCase('doc-1', 'case-1', 'tenant-a', 'user-1');
@@ -179,6 +192,8 @@ describe('contrats des contrôleurs', () => {
     auditController.getLogs('tenant-a', 0, 'cursor-1');
     expect(audit.getLogs).toHaveBeenCalledWith('tenant-a', 1, 'cursor-1');
     auditController.getLogs('tenant-a', Number.NaN);
+    expect(audit.getLogs).toHaveBeenLastCalledWith('tenant-a', 50, undefined);
+    auditController.getLogs('tenant-a');
     expect(audit.getLogs).toHaveBeenLastCalledWith('tenant-a', 50, undefined);
 
     const stats: any = { getDashboardStats: method(), getAiDashboardData: method() };

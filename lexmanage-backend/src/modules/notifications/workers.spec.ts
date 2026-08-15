@@ -88,6 +88,20 @@ describe('workers de notifications', () => {
       }), 'tenant-a', null);
     });
 
+    it('utilise le niveau IMPORTANT pour une échéance non urgente', async () => {
+      prisma.deadline.findUnique.mockResolvedValue({
+        id: 'd-2', title: 'Audience', dueAt: new Date('2026-08-20T00:00:00Z'),
+        isDone: false, priority: 'HIGH', case: { title: 'Dossier Beta', assigneeId: 'user-2' },
+      });
+      notifications.create.mockResolvedValue({});
+      await processor.handleSendReminder({
+        id: 'job-2', data: { deadlineId: 'd-2', tenantId: 'tenant-a' },
+      } as any);
+      expect(notifications.create).toHaveBeenCalledWith(expect.objectContaining({
+        level: 'IMPORTANT', recipientIds: ['user-2'],
+      }), 'tenant-a', null);
+    });
+
     it('ne traite qu’une fois une notification programmée', async () => {
       prisma.scheduledNotification.updateMany.mockResolvedValue({ count: 0 });
       await processor.handleScheduledNotification({
@@ -113,6 +127,22 @@ describe('workers de notifications', () => {
       expect(prisma.scheduledNotification.update).toHaveBeenCalledWith({
         where: { id: 'scheduled-1' }, data: { status: 'SENT' },
       });
+    });
+
+    it('convertit les champs programmés null en valeurs absentes', async () => {
+      prisma.scheduledNotification.updateMany.mockResolvedValue({ count: 1 });
+      prisma.scheduledNotification.findUniqueOrThrow.mockResolvedValue({
+        level: 'NORMAL', motif: 'OTHER', title: null, message: null,
+        recipientRoles: [], caseId: 'case-1', createdById: 'admin-1',
+      });
+      notifications.create.mockResolvedValue({});
+      prisma.scheduledNotification.update.mockResolvedValue({});
+      await processor.handleScheduledNotification({
+        id: 'job-1', data: { scheduledNotifId: 'scheduled-1', tenantId: 'tenant-a' },
+      } as any);
+      expect(notifications.create).toHaveBeenCalledWith(expect.objectContaining({
+        title: undefined, message: undefined, caseId: 'case-1',
+      }), 'tenant-a', 'admin-1');
     });
 
     it('libère la revendication en cas d’échec pour permettre un retry', async () => {

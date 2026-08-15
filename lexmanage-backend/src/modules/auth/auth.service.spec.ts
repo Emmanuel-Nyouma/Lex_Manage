@@ -155,6 +155,63 @@ describe('AuthService security controls', () => {
     expect(updateMany).not.toHaveBeenCalled();
   });
 
+  it('réduit une invitation SUPER_ADMIN au rôle administrateur du cabinet', async () => {
+    const tx = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockImplementation(async ({ data }) => ({
+          id: 'user-1', sessionVersion: 0, ...data,
+        })),
+      },
+      invitation: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'invitation-1', email: 'invitee@example.com', tenantId: 'tenant-1',
+          role: 'SUPER_ADMIN', used: false, expiresAt: new Date(Date.now() + 60_000),
+          tenant: { isActive: true },
+        }),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+    prisma.$transaction.mockImplementation(async (callback) => callback(tx));
+    jwt.signAsync.mockResolvedValueOnce('access').mockResolvedValueOnce('refresh');
+    jwt.decode.mockReturnValue({ exp: 2_000_000_000 });
+    prisma.user.update.mockResolvedValue({});
+    await service.register({
+      email: 'invitee@example.com', password: 'Password1!', firstName: 'Ada', lastName: 'L',
+      invitationToken: 'token',
+    } as any);
+    expect(tx.user.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ role: 'CABINET_ADMIN', tenantId: 'tenant-1' }),
+    }));
+  });
+
+  it('conserve le rôle métier d’une invitation standard', async () => {
+    const tx = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockImplementation(async ({ data }) => ({
+          id: 'user-1', sessionVersion: 0, ...data,
+        })),
+      },
+      invitation: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'invitation-1', email: 'lawyer@example.com', tenantId: 'tenant-1',
+          role: 'LAWYER', used: false, expiresAt: new Date(Date.now() + 60_000),
+          tenant: { isActive: true },
+        }),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+    prisma.$transaction.mockImplementation(async (callback) => callback(tx));
+    jwt.signAsync.mockResolvedValueOnce('access').mockResolvedValueOnce('refresh');
+    jwt.decode.mockReturnValue({ exp: 2_000_000_000 });
+    await service.register({
+      email: 'lawyer@example.com', password: 'Password1!', firstName: 'Ada', lastName: 'L',
+      invitationToken: 'token',
+    } as any);
+    expect(tx.user.create.mock.calls[0][0].data.role).toBe('LAWYER');
+  });
+
   it('crée un cabinet avec un slug normalisé et stocke seulement le hash du refresh token', async () => {
     const tx = {
       user: {
@@ -419,6 +476,23 @@ describe('AuthService security controls', () => {
     }));
     expect(result.user.passwordHash).toBeUndefined();
     expect(result.accessToken).toBe('access');
+  });
+
+  it('respecte les durées JWT explicitement configurées', async () => {
+    process.env.JWT_ACCESS_EXPIRY = '30m';
+    process.env.JWT_REFRESH_EXPIRY = '14d';
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'u1', tenantId: 't1', email: 'a@example.com', passwordHash: 'hash', role: 'LAWYER',
+      sessionVersion: 2, isActive: true, tenant: { isActive: true },
+    });
+    bcryptMocks.compare.mockResolvedValue(true);
+    jwt.signAsync.mockResolvedValueOnce('access').mockResolvedValueOnce('refresh');
+    jwt.decode.mockReturnValue({ exp: 2_000_000_000 });
+    await service.login({ email: 'a@example.com', password: 'correct' });
+    expect(jwt.signAsync).toHaveBeenNthCalledWith(1, expect.any(Object), expect.objectContaining({ expiresIn: '30m' }));
+    expect(jwt.signAsync).toHaveBeenNthCalledWith(2, expect.any(Object), expect.objectContaining({ expiresIn: '14d' }));
+    delete process.env.JWT_ACCESS_EXPIRY;
+    delete process.env.JWT_REFRESH_EXPIRY;
   });
 
   it.each([

@@ -33,6 +33,14 @@ describe('AuditService', () => {
     expect(cleanup).toHaveBeenCalledTimes(1);
   });
 
+  it('exécute aussi le nettoyage récurrent tant que le module est actif', async () => {
+    vi.useFakeTimers();
+    const cleanup = vi.spyOn(service, 'cleanupExpiredLogs').mockResolvedValue(0);
+    service.onModuleInit();
+    await vi.advanceTimersByTimeAsync(24 * 60 * 60 * 1000);
+    expect(cleanup).toHaveBeenCalledTimes(2);
+  });
+
   it('chiffre les détails et propage les erreurs d’écriture', async () => {
     prisma.auditLog.create.mockResolvedValue({ id: 'log-1' });
     await service.log({
@@ -69,6 +77,12 @@ describe('AuditService', () => {
     });
   });
 
+  it('applique la limite de service par défaut lorsqu’elle est omise', async () => {
+    prisma.auditLog.findMany.mockResolvedValue([]);
+    await service.getLogs('tenant-a');
+    expect(prisma.auditLog.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 51 }));
+  });
+
   it('supprime les journaux expirés hors contexte tenant et tolère une panne', async () => {
     process.env.AUDIT_RETENTION_DAYS = '90';
     prisma.auditLog.deleteMany.mockResolvedValue({ count: 3 });
@@ -78,6 +92,12 @@ describe('AuditService', () => {
 
     prisma.auditLog.deleteMany.mockRejectedValue(new Error('offline'));
     await expect(service.cleanupExpiredLogs()).resolves.toBe(0);
+  });
+
+  it('utilise la rétention par défaut et ne journalise pas une suppression vide', async () => {
+    prisma.auditLog.deleteMany.mockResolvedValue({ count: 0 });
+    await expect(service.cleanupExpiredLogs()).resolves.toBe(0);
+    expect(prisma.auditLog.deleteMany).toHaveBeenCalledOnce();
   });
 
   it('journalise une erreur système sans la lancer', () => {

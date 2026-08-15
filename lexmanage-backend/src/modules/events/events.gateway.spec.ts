@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { EventsGateway } from './events.gateway';
+import { EventsGateway, getAllowedSocketOrigins } from './events.gateway';
 
 describe('EventsGateway', () => {
   const jwt = { verify: vi.fn() };
@@ -24,6 +24,15 @@ describe('EventsGateway', () => {
   });
 
   afterEach(() => vi.useRealTimers());
+
+  it('normalise les origines WebSocket et conserve un défaut local', () => {
+    expect(getAllowedSocketOrigins(' https://lex.test,https://mobile.lex.test '))
+      .toEqual(['https://lex.test', 'https://mobile.lex.test']);
+    const previousOrigins = process.env.ALLOWED_ORIGINS;
+    delete process.env.ALLOWED_ORIGINS;
+    expect(getAllowedSocketOrigins(undefined)).toEqual(['http://localhost:3000']);
+    if (previousOrigins !== undefined) process.env.ALLOWED_ORIGINS = previousOrigins;
+  });
 
   it('rejette une connexion sans jeton ou avec charge invalide', async () => {
     const missing = makeClient();
@@ -69,6 +78,9 @@ describe('EventsGateway', () => {
     expect(client.data.auth).toEqual({
       tenantId: 'tenant-a', userId: 'user-1', sessionVersion: 3, expiresAt: exp * 1000,
     });
+    const reauthenticate = vi.spyOn(gateway as any, 'reauthenticate').mockResolvedValue(undefined);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(reauthenticate).toHaveBeenCalledWith(client);
     gateway.handleDisconnect(client);
   });
 

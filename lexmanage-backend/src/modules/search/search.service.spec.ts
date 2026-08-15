@@ -31,6 +31,11 @@ describe('SearchService', () => {
     expect(prisma.case.findMany).not.toHaveBeenCalled();
   });
 
+  it('traite une recherche absente comme une chaîne vide', async () => {
+    await expect(service.globalSearch('tenant-a', 'user-1', 'LAWYER' as any, undefined as any))
+      .resolves.toEqual({ cases: [], documents: [], members: [], clients: [] });
+  });
+
   it('rejette une recherche supérieure à 200 caractères', async () => {
     await expect(service.globalSearch('tenant-a', 'user-1', 'LAWYER' as any, 'x'.repeat(201)))
       .rejects.toThrow(BadRequestException);
