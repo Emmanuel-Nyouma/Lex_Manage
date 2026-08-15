@@ -29,8 +29,9 @@ export class UsersService {
       },
     });
 
-    await this.cacheManager.set(cacheKey, users, 60000); // 1 minute cache
-    return this.protection.deepDecrypt(users);
+    const decrypted = this.protection.deepDecrypt(users);
+    await this.cacheManager.set(cacheKey, decrypted, 60000); // 1 minute cache
+    return decrypted;
   }
 
   async findOne(id: string, tenantId: string) {
@@ -47,8 +48,9 @@ export class UsersService {
     });
     if (!user) throw new NotFoundException('User not found');
 
-    await this.cacheManager.set(cacheKey, user, 300000); // 5 minutes cache
-    return user;
+    const decrypted = this.protection.deepDecrypt(user);
+    await this.cacheManager.set(cacheKey, decrypted, 300000); // 5 minutes cache
+    return decrypted;
   }
 
   async create(dto: CreateUserDto, tenantId: string, userId: string) {
@@ -141,7 +143,7 @@ export class UsersService {
       },
       orderBy: { firstName: 'asc' },
     });
-    return users;
+    return this.protection.deepDecrypt(users);
   }
 
   async deactivate(id: string, tenantId: string, userId: string) {

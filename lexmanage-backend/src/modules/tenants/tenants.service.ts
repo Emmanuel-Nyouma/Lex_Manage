@@ -134,6 +134,11 @@ export class TenantsService {
     const patch: Record<string, any> = {};
     if (data.role      !== undefined) patch.role     = data.role;
     if (data.isActive  !== undefined) patch.isActive = data.isActive;
+    if (data.isActive === false) {
+      patch.refreshToken = null;
+      patch.refreshTokenExpiresAt = null;
+      patch.sessionVersion = { increment: 1 };
+    }
 
     return this.prisma.user.update({
       where: { id },
@@ -175,6 +180,7 @@ export class TenantsService {
         // Invalidate existing refresh token so the session ends immediately
         refreshToken: null,
         refreshTokenExpiresAt: null,
+        sessionVersion: { increment: 1 },
       },
     });
     return { message: 'Member deactivated' };
