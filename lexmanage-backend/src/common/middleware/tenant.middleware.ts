@@ -26,7 +26,7 @@ export class TenantMiddleware implements NestMiddleware {
           if (payload && payload.tenantId) {
             tenantId = payload.tenantId;
           }
-        } catch (error) {
+        } catch {
           // If verification fails (expired, invalid signature, etc.), 
           // we don't set tenantId. Downstream AuthGuard will handle rejection.
         }

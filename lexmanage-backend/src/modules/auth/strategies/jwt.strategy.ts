@@ -1,6 +1,8 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { tenantContext } from '../../../common/context/tenant.context';
 
 export interface JwtPayload {
   sub: string;        // userId
@@ -11,7 +13,7 @@ export interface JwtPayload {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
-  constructor() {
+  constructor(private readonly prisma: PrismaService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -24,11 +26,20 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     if (!payload.sub || !payload.tenantId) {
       throw new UnauthorizedException('Invalid token payload');
     }
-    return {
-      id: payload.sub,
-      email: payload.email,
-      role: payload.role,
-      tenantId: payload.tenantId,
-    };
+    return tenantContext.run(payload.tenantId, async () => {
+      const user = await this.prisma.user.findFirst({
+        where: { id: payload.sub, tenantId: payload.tenantId, isActive: true },
+        include: { tenant: { select: { isActive: true } } },
+      });
+      if (!user || !user.tenant.isActive) {
+        throw new UnauthorizedException('Session is no longer active');
+      }
+      return {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        tenantId: user.tenantId,
+      };
+    });
   }
 }

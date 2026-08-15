@@ -4,7 +4,8 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
-import { TenantsService, UpdateTenantDto } from './tenants.service';
+import { TenantsService } from './tenants.service';
+import { CreateInvitationDto, UpdateMemberDto, UpdateTenantDto } from './dto/tenant.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -55,10 +56,9 @@ export class TenantsController {
   @Roles('CABINET_ADMIN')
   createInvitation(
     @CurrentUser('tenantId') tenantId: string,
-    @Body('email') email: string,
-    @Body('role') role: string,
+    @Body() dto: CreateInvitationDto,
   ) {
-    return this.tenantsService.createInvitation(tenantId, email, role);
+    return this.tenantsService.createInvitation(tenantId, dto);
   }
 
   @Get('invitations')
@@ -80,11 +80,11 @@ export class TenantsController {
   @Roles('CABINET_ADMIN')
   updateMember(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') requesterId: string,
     @Param('id') id: string,
-    @Body('role') role: string,
-    @Body('isActive') isActive: boolean,
+    @Body() dto: UpdateMemberDto,
   ) {
-    return this.tenantsService.updateMember(tenantId, id, { role, isActive });
+    return this.tenantsService.updateMember(tenantId, requesterId, id, dto);
   }
 
   @Delete('members/:id')

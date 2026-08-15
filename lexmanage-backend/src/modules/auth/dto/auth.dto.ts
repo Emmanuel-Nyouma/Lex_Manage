@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class LoginDto {
@@ -9,6 +9,7 @@ export class LoginDto {
   @ApiProperty({ example: 'SecurePass123!' })
   @IsString()
   @MinLength(6)
+  @MaxLength(128)
   password: string;
 }
 
@@ -30,6 +31,9 @@ export class RegisterDto {
   @ApiProperty({ example: 'SecurePass123!' })
   @IsString()
   @MinLength(8)
+  @MaxLength(128)
+  @Matches(/[A-Z]/, { message: 'Password must contain an uppercase letter' })
+  @Matches(/[0-9]/, { message: 'Password must contain a number' })
   password: string;
 
   @ApiProperty({ required: false })
@@ -83,4 +87,38 @@ export class UpdateProfileDto {
   @IsString()
   @MinLength(8)
   phone?: string;
+}
+
+export class ForgotPasswordDto {
+  @IsEmail()
+  @MaxLength(254)
+  email: string;
+}
+
+export class ResetPasswordDto {
+  @IsString()
+  @MinLength(32)
+  @MaxLength(256)
+  token: string;
+
+  @IsString()
+  @MinLength(8)
+  @MaxLength(128)
+  @Matches(/[A-Z]/, { message: 'Password must contain an uppercase letter' })
+  @Matches(/[0-9]/, { message: 'Password must contain a number' })
+  newPassword: string;
+}
+
+export class ChangePasswordDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(128)
+  currentPassword: string;
+
+  @IsString()
+  @MinLength(8)
+  @MaxLength(128)
+  @Matches(/[A-Z]/, { message: 'Password must contain an uppercase letter' })
+  @Matches(/[0-9]/, { message: 'Password must contain a number' })
+  newPassword: string;
 }

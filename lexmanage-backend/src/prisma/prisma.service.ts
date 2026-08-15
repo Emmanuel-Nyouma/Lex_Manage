@@ -14,6 +14,7 @@ const TENANT_BOUND_MODELS = [
   'Notification',
   'NotificationTemplate',
   'ScheduledNotification',
+  'PasswordResetToken',
 ];
 
 function isTenantBound(modelName: string): boolean {
