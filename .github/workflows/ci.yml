@@ -10,6 +10,9 @@ jobs:
   backend-build:
     name: Backend — Type-check & Build
     runs-on: ubuntu-latest
+    env:
+      # Prisma validation only parses this URL; the unit-test job does not connect.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/lexmanage?schema=public
     defaults:
       run:
         working-directory: lexmanage-backend
@@ -20,7 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: lexmanage-backend/package-lock.json
 
@@ -58,7 +61,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
