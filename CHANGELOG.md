@@ -4,6 +4,13 @@ All notable changes to LexManage are documented here. The format follows [Keep a
 
 ## [Unreleased]
 
+### Security
+
+- Added immediate HTTP/WebSocket session revocation, HS256 pinning, atomic password-reset consumption, HTTPS enforcement, and signed n8n requests.
+- Added fail-closed ClamAV scanning and upload throttling before object storage.
+- Added AES-256-GCM field encryption with blind search indexes and S3 server-side encryption for legal records and documents.
+- Added cursor-paginated audit logs, configurable retention cleanup, stricter input bounds, and production secret validation.
+
 ## [0.2.0] - 2026-08-15
 
 ### Added

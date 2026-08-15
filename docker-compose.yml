@@ -48,6 +48,8 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY is required}
       S3_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY is required}
       S3_BUCKET: ${S3_BUCKET:-lexmanage-documents}
+      S3_SERVER_SIDE_ENCRYPTION: ${S3_SERVER_SIDE_ENCRYPTION:-AES256}
+      S3_KMS_KEY_ID: ${S3_KMS_KEY_ID:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
@@ -59,6 +61,12 @@ services:
       N8N_RAG_INGEST_URL: ${N8N_RAG_INGEST_URL:-}
       N8N_RAG_DELETE_URL: ${N8N_RAG_DELETE_URL:-}
       N8N_WEBHOOK_SECRET: ${N8N_WEBHOOK_SECRET:-}
+      AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS:-730}
+      MALWARE_SCAN_MODE: ${MALWARE_SCAN_MODE:-required}
+      CLAMAV_HOST: ${CLAMAV_HOST:-clamav}
+      CLAMAV_PORT: ${CLAMAV_PORT:-3310}
+      CLAMAV_TIMEOUT_MS: ${CLAMAV_TIMEOUT_MS:-30000}
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:$${PORT:-3001}/health/ready >/dev/null || exit 1"]
       interval: 10s
@@ -73,6 +81,8 @@ services:
       redis:
         condition: service_healthy
       minio:
+        condition: service_healthy
+      clamav:
         condition: service_healthy
 
   postgres:
@@ -116,6 +126,7 @@ services:
     environment:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY:?S3_ACCESS_KEY is required}
       MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?S3_SECRET_KEY is required}
+      MINIO_KMS_SECRET_KEY: ${MINIO_KMS_SECRET_KEY:?MINIO_KMS_SECRET_KEY is required}
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -127,7 +138,25 @@ services:
       timeout: 5s
       retries: 5
 
+  clamav:
+    image: clamav/clamav:1.4
+    container_name: lex-manage-clamav
+    restart: always
+    environment:
+      CLAMD_CONF_MaxScanSize: 50M
+      CLAMD_CONF_MaxFileSize: 50M
+      CLAMD_CONF_StreamMaxLength: 50M
+    volumes:
+      - clamav_data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD", "clamdscan", "--ping=1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+
 volumes:
   postgres_data:
   redis_data:
   minio_data:
+  clamav_data:

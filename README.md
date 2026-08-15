@@ -176,6 +176,9 @@ npm run dev                   # runs on :5173
 
 ## ✅ Quality checks
 
+Production security configuration and encrypted-data migration are documented in
+[Security operations](docs/SECURITY_OPERATIONS.md).
+
 Run the same checks locally that GitHub Actions runs on every push and pull request:
 
 ```bash
