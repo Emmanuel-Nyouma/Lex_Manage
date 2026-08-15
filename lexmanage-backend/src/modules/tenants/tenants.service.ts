@@ -225,8 +225,7 @@ export class TenantsService {
 
   async uploadLogo(tenantId: string, file?: Express.Multer.File) {
     if (!file) throw new BadRequestException('Logo file is required');
-    const { fileTypeFromBuffer } = await (eval('import("file-type")') as Promise<any>);
-    const detected = await fileTypeFromBuffer(file.buffer);
+    const detected = await this.detectFileType(file.buffer);
     const allowed = ['image/png', 'image/jpeg', 'image/webp'];
     if (!detected || !allowed.includes(detected.mime)) {
       throw new BadRequestException('Logo must be a valid PNG, JPEG or WebP image');
@@ -248,5 +247,10 @@ export class TenantsService {
       ...updated,
       logoUrl: await this.minioService.getAssetUrl(tenantId, objectName).catch(() => null),
     };
+  }
+
+  private async detectFileType(buffer: Buffer) {
+    const { fileTypeFromBuffer } = await (eval('import("file-type")') as Promise<any>);
+    return fileTypeFromBuffer(buffer);
   }
 }

@@ -158,4 +158,89 @@ describe('TenantsService', () => {
       where: { id: 'tenant-a' }, data: { name: 'Nouveau' },
     }));
   });
+
+  it('rejette un membre extérieur et applique une mise à jour partielle', async () => {
+    prisma.user.findFirst.mockResolvedValueOnce(null);
+    await expect(service.updateMember('tenant-a', 'admin-1', 'foreign', { role: 'LAWYER' as any }))
+      .rejects.toThrow(NotFoundException);
+
+    prisma.user.findFirst.mockResolvedValueOnce({ id: 'member-1', role: 'LAWYER', isActive: true });
+    prisma.user.update.mockResolvedValue({ id: 'member-1', role: 'ASSISTANT', isActive: true });
+    await expect(service.updateMember('tenant-a', 'admin-1', 'member-1', { role: 'ASSISTANT' as any }))
+      .resolves.toEqual({ id: 'member-1', role: 'ASSISTANT', isActive: true });
+    expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: { role: 'ASSISTANT' },
+    }));
+  });
+
+  it('autorise le retrait d’un administrateur lorsqu’un autre reste actif', async () => {
+    prisma.user.findFirst.mockResolvedValue({ id: 'admin-2', role: 'CABINET_ADMIN', isActive: true });
+    prisma.user.count.mockResolvedValue(2);
+    prisma.user.update.mockResolvedValue({ id: 'admin-2', role: 'LAWYER' });
+    await service.updateMember('tenant-a', 'admin-1', 'admin-2', { role: 'LAWYER' as any });
+    expect(prisma.user.count).toHaveBeenCalled();
+    expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({ data: { role: 'LAWYER' } }));
+  });
+
+  it('protège la désactivation administrative et les membres absents', async () => {
+    prisma.user.findFirst.mockResolvedValueOnce(null);
+    await expect(service.deactivateMember('tenant-a', 'missing')).rejects.toThrow(NotFoundException);
+
+    prisma.user.findFirst.mockResolvedValueOnce({ id: 'admin-1', role: 'CABINET_ADMIN', isActive: true });
+    prisma.user.count.mockResolvedValueOnce(1);
+    await expect(service.deactivateMember('tenant-a', 'admin-1')).rejects.toThrow('at least one active administrator');
+
+    prisma.user.findFirst.mockResolvedValueOnce({ id: 'admin-2', role: 'CABINET_ADMIN', isActive: true });
+    prisma.user.count.mockResolvedValueOnce(2);
+    prisma.user.update.mockResolvedValue({});
+    await expect(service.deactivateMember('tenant-a', 'admin-2')).resolves.toEqual({ message: 'Member deactivated' });
+  });
+
+  it('rejette un tenant absent et met à jour tous les champs configurables', async () => {
+    prisma.tenant.findUnique.mockResolvedValueOnce(null);
+    await expect(service.updateTenant('missing', { name: 'X' })).rejects.toThrow(NotFoundException);
+
+    prisma.tenant.findUnique.mockResolvedValueOnce({ id: 'tenant-a' });
+    const dto = {
+      name: 'Atlas', city: 'Yaoundé', country: 'Cameroun', address: 'Centre', phone: '600',
+      fax: '601', website: 'https://atlas.test', siret: 'S1', barNumber: 'B1',
+    };
+    prisma.tenant.update.mockResolvedValue({ id: 'tenant-a', ...dto, logoUrl: 'logos/logo.png' });
+    minio.getAssetUrl.mockRejectedValue(new Error('storage offline'));
+    await expect(service.updateTenant('tenant-a', dto)).resolves.toEqual(expect.objectContaining({
+      ...dto, logoUrl: 'logos/logo.png',
+    }));
+    expect(prisma.tenant.update).toHaveBeenCalledWith(expect.objectContaining({ data: dto }));
+  });
+
+  it('valide la présence, le type réel et la taille du logo', async () => {
+    await expect(service.uploadLogo('tenant-a')).rejects.toThrow('Logo file is required');
+    const detect = vi.spyOn(service as any, 'detectFileType');
+    detect.mockResolvedValueOnce(undefined);
+    const invalid = { buffer: Buffer.from('not an image'), size: 12 } as Express.Multer.File;
+    await expect(service.uploadLogo('tenant-a', invalid)).rejects.toThrow('valid PNG, JPEG or WebP');
+
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
+    detect.mockResolvedValueOnce({ mime: 'image/png' });
+    const oversized = { buffer: png, size: 2 * 1024 * 1024 + 1 } as Express.Multer.File;
+    await expect(service.uploadLogo('tenant-a', oversized)).rejects.toThrow('under 2 MB');
+  });
+
+  it('stocke la clé du logo et retourne son URL signée ou null', async () => {
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
+    const file = { buffer: png, size: png.length, originalname: 'logo.png', mimetype: 'image/png' } as Express.Multer.File;
+    vi.spyOn(service as any, 'detectFileType').mockResolvedValue({ mime: 'image/png' });
+    minio.uploadFile.mockResolvedValue({ objectName: 'logos/object.png' });
+    prisma.tenant.update.mockResolvedValue({ id: 'tenant-a', logoUrl: 'logos/object.png' });
+    minio.getAssetUrl.mockResolvedValueOnce('https://signed/logo.png');
+    await expect(service.uploadLogo('tenant-a', file)).resolves.toEqual({
+      id: 'tenant-a', logoUrl: 'https://signed/logo.png',
+    });
+    expect(prisma.tenant.update).toHaveBeenCalledWith({
+      where: { id: 'tenant-a' }, data: { logoUrl: 'logos/object.png' }, select: { id: true, logoUrl: true },
+    });
+
+    minio.getAssetUrl.mockRejectedValueOnce(new Error('offline'));
+    await expect(service.uploadLogo('tenant-a', file)).resolves.toEqual({ id: 'tenant-a', logoUrl: null });
+  });
 });

@@ -203,4 +203,116 @@ describe('DocumentsService', () => {
     });
     expect(audit.log).not.toHaveBeenCalled();
   });
+
+  it('retourne une page non mise en cache aux administrateurs', async () => {
+    prisma.document.findMany.mockResolvedValue([{ id: 'doc-1' }]);
+    await expect(service.findAll('tenant-a', 'admin-1', Role.CABINET_ADMIN, undefined, 10, 'ALL'))
+      .resolves.toEqual({ data: [{ id: 'doc-1' }], meta: { limit: 10, nextCursor: null, hasMore: false } });
+    expect(prisma.document.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { tenantId: 'tenant-a', deletedAt: null }, take: 11,
+    }));
+  });
+
+  it('neutralise une recherche chiffrée sans jeton', async () => {
+    protection.enabled = true;
+    protection.searchTokens.mockReturnValue([]);
+    prisma.document.findMany.mockResolvedValue([]);
+    await service.findAll('tenant-a', 'user-1', Role.LAWYER, undefined, 10, undefined, 'x');
+    expect(prisma.document.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ id: '__no_matching_search_token__' }),
+    }));
+    protection.enabled = false;
+  });
+
+  it('scope, met en cache et relit les documents d’un dossier', async () => {
+    prisma.case.findFirst.mockResolvedValue({ id: 'case-1' });
+    prisma.document.findMany.mockResolvedValue([{ id: 'doc-1' }]);
+    await expect(service.findByCase('case-1', 'tenant-a', 'user-1', Role.LAWYER))
+      .resolves.toEqual([{ id: 'doc-1' }]);
+    expect(cache.set).toHaveBeenCalledWith(expect.stringContaining(':case:case-1'), [{ id: 'doc-1' }], 30000);
+    cache.get.mockReset().mockResolvedValueOnce(1).mockResolvedValueOnce([{ id: 'cached' }]);
+    await expect(service.findByCase('case-1', 'tenant-a', 'user-1', Role.LAWYER))
+      .resolves.toEqual([{ id: 'cached' }]);
+  });
+
+  it('rejette un dossier absent et un document inaccessible', async () => {
+    prisma.case.findFirst.mockResolvedValue(null);
+    await expect(service.findByCase('case-x', 'tenant-a', 'user-1', Role.LAWYER)).rejects.toThrow('Case not found');
+    prisma.document.findFirst.mockResolvedValue(null);
+    await expect(service.findOne('doc-x', 'tenant-a', 'user-1', Role.LAWYER)).rejects.toThrow('Document not found');
+  });
+
+  it('lit un document depuis la base puis depuis le cache et signe son URL', async () => {
+    prisma.document.findFirst.mockResolvedValue({ id: 'doc-1', file_url: 'object-key' });
+    minio.getPresignedUrl.mockResolvedValue('https://signed/doc');
+    await expect(service.getSignedUrl('doc-1', 'tenant-a', 'user-1', Role.LAWYER))
+      .resolves.toEqual({ url: 'https://signed/doc' });
+    expect(cache.set).toHaveBeenCalledWith(expect.stringContaining('document:tenant-a'), expect.anything(), 60000);
+    cache.get.mockReset().mockResolvedValueOnce(1).mockResolvedValueOnce({ id: 'cached', file_url: 'cached-key' });
+    await expect(service.findOne('cached', 'tenant-a', 'user-1', Role.LAWYER)).resolves.toEqual({ id: 'cached', file_url: 'cached-key' });
+  });
+
+  it.each([
+    [undefined, {}, 'File is required'],
+    [{ originalname: 'x.pdf', mimetype: 'application/pdf', buffer: Buffer.from('x'), size: 51 * 1024 * 1024 }, {}, 'File too large'],
+    [{ originalname: `${'x'.repeat(256)}.pdf`, mimetype: 'application/pdf', buffer: Buffer.from('x'), size: 1 }, {}, 'File name is too long'],
+    [{ originalname: 'x.txt', mimetype: 'text/plain', buffer: Buffer.from('x'), size: 1 }, { name: 'x'.repeat(201) }, 'name must not exceed 200'],
+    [{ originalname: 'x.txt', mimetype: 'text/plain', buffer: Buffer.from('x'), size: 1 }, { category: 'x'.repeat(101) }, 'category must not exceed 100'],
+  ])('valide les limites d’upload', async (file, options, message) => {
+    await expect(service.upload(file as any, 'tenant-a', 'user-1', options as any)).rejects.toThrow(message);
+    expect(minio.uploadFile).not.toHaveBeenCalled();
+  });
+
+  it('rejette un type détecté non autorisé', async () => {
+    const file = { originalname: 'evil.exe', mimetype: 'application/octet-stream', buffer: Buffer.from('MZ'), size: 2 } as Express.Multer.File;
+    vi.spyOn(service as any, 'detectFileType').mockResolvedValue({ mime: 'application/x-msdownload' });
+    await expect(service.upload(file, 'tenant-a', 'user-1', {})).rejects.toThrow('Invalid file type');
+  });
+
+  it('compense le stockage lorsque la création en base échoue', async () => {
+    const file = { originalname: 'safe.txt', mimetype: 'text/plain', buffer: Buffer.from('safe'), size: 4 } as Express.Multer.File;
+    vi.spyOn(service as any, 'detectFileType').mockResolvedValue(undefined);
+    minio.uploadFile.mockResolvedValue({ objectName: 'documents/safe.txt' });
+    prisma.document.create.mockRejectedValue(new Error('database offline'));
+    minio.deleteFile.mockRejectedValue(new Error('cleanup offline'));
+    await expect(service.upload(file, 'tenant-a', 'user-1', {})).rejects.toThrow('database offline');
+    expect(minio.deleteFile).toHaveBeenCalledWith('tenant-a', 'documents/safe.txt');
+  });
+
+  it('marque le document en erreur si l’ingestion RAG échoue', async () => {
+    const file = { originalname: 'safe.txt', mimetype: 'text/plain', buffer: Buffer.from('safe'), size: 4 } as Express.Multer.File;
+    vi.spyOn(service as any, 'detectFileType').mockResolvedValue(undefined);
+    minio.uploadFile.mockResolvedValue({ objectName: 'documents/safe.txt' });
+    minio.getPresignedUrl.mockResolvedValue('https://signed/doc');
+    prisma.document.create.mockResolvedValue({ id: 'doc-1', file_url: 'documents/safe.txt' });
+    prisma.document.update.mockResolvedValue({});
+    n8n.ingestDocument.mockRejectedValue(new Error('rag offline'));
+    await expect(service.upload(file, 'tenant-a', 'user-1', { pending: true }))
+      .resolves.toEqual(expect.objectContaining({ id: 'doc-1', url: 'https://signed/doc' }));
+    await vi.waitFor(() => expect(prisma.document.update).toHaveBeenCalledWith({
+      where: { id: 'doc-1' }, data: { status: 'ERROR' },
+    }));
+  });
+
+  it('met à jour, lie et supprime un document avec audit', async () => {
+    prisma.document.findFirst.mockResolvedValue({
+      id: 'doc-1', title: 'Old', file_name: 'old.pdf', category: 'OLD', file_url: 'object-key', case_id: 'case-1',
+    });
+    prisma.document.update.mockResolvedValue({ id: 'doc-1', title: 'New', case_id: 'case-1' });
+    await service.update('doc-1', { title: 'New', category: 'CONTRACT' } as any, 'tenant-a', 'user-1', Role.CABINET_ADMIN);
+    expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'UPDATE' }));
+
+    prisma.case.findFirst.mockResolvedValue({ id: 'case-2' });
+    prisma.document.findFirst.mockResolvedValue({ id: 'doc-1' });
+    await expect(service.linkDocumentToCase('doc-1', 'case-2', 'tenant-a', 'user-1'))
+      .resolves.toEqual(expect.objectContaining({ id: 'doc-1' }));
+
+    cache.get.mockResolvedValue(null);
+    prisma.document.findFirst.mockResolvedValue({ id: 'doc-1', file_url: 'object-key', case_id: 'case-2' });
+    n8n.deleteDocumentVectors.mockResolvedValue(undefined);
+    minio.deleteFile.mockResolvedValue(undefined);
+    await expect(service.remove('doc-1', 'tenant-a', 'user-1', Role.CABINET_ADMIN))
+      .resolves.toEqual({ message: 'Document deleted' });
+    expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'DELETE' }));
+  });
 });
