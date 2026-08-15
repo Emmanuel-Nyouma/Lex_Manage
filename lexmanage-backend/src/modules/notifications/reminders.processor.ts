@@ -5,6 +5,7 @@ import { NotificationsService } from './notifications.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationLevel, NotificationMotif } from '@prisma/client';
 import { tenantContext } from '../../common/context/tenant.context';
+import { DataProtectionService } from '../security/data-protection.service';
 
 @Processor('reminders')
 export class RemindersProcessor {
@@ -13,6 +14,7 @@ export class RemindersProcessor {
   constructor(
     private readonly notificationsService: NotificationsService,
     private readonly prisma: PrismaService,
+    private readonly protection: DataProtectionService,
   ) {}
 
   @Process('send-reminder')
@@ -30,7 +32,7 @@ export class RemindersProcessor {
       if (targetUserId) {
         await this.notificationsService.create({
           title: '⏳ Échéance imminente',
-          message: `Le délai "${deadline.title}" pour le dossier "${deadline.case?.title}" arrive à échéance le ${deadline.dueAt.toLocaleDateString('fr-FR')}.`,
+          message: `Le délai "${deadline.title}" pour le dossier "${this.protection.decrypt(deadline.case?.title)}" arrive à échéance le ${deadline.dueAt.toLocaleDateString('fr-FR')}.`,
           level: deadline.priority === 'URGENT' ? NotificationLevel.URGENT : NotificationLevel.IMPORTANT,
           motif: NotificationMotif.DEADLINE,
           recipientIds: [targetUserId],

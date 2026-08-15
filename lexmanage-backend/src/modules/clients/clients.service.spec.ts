@@ -25,7 +25,11 @@ describe('ClientsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prisma.$transaction.mockImplementation((callback: (tx: any) => unknown) => callback(prisma));
-    service = new ClientsService(prisma, audit as any);
+    service = new ClientsService(prisma, audit as any, {
+      encrypt: (value: unknown) => value,
+      deepDecrypt: (value: unknown) => value,
+      searchTokens: () => [],
+    } as any);
   });
 
   it('scope toujours la liste au tenant courant', async () => {
@@ -34,7 +38,7 @@ describe('ClientsService', () => {
     await expect(service.findAll('tenant-a')).resolves.toEqual([{ id: 'client-1' }]);
     expect(prisma.client.findMany).toHaveBeenCalledWith({
       where: { tenantId: 'tenant-a' },
-      orderBy: { name: 'asc' },
+      orderBy: { createdAt: 'desc' },
     });
   });
 

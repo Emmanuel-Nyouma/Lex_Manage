@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotificationsService } from './notifications.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
+import { DataProtectionService } from '../security/data-protection.service';
 import { getQueueToken } from '@nestjs/bull';
 import { NotFoundException } from '@nestjs/common';
 
@@ -42,6 +43,10 @@ describe('NotificationsService', () => {
         NotificationsService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: EventsGateway, useValue: mockEventsGateway },
+        {
+          provide: DataProtectionService,
+          useValue: { deepDecrypt: (value: unknown) => value },
+        },
         { provide: getQueueToken('mail'), useValue: mockMailQueue },
         { provide: getQueueToken('reminders'), useValue: mockRemindersQueue },
       ],

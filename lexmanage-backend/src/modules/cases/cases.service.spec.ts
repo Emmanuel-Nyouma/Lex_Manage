@@ -6,6 +6,7 @@ import { AuditService } from '../audit/audit.service';
 import { getQueueToken } from '@nestjs/bull';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { NotFoundException } from '@nestjs/common';
+import { DataProtectionService } from '../security/data-protection.service';
 
 describe('CasesService', () => {
   let service: CasesService;
@@ -42,6 +43,14 @@ describe('CasesService', () => {
         { provide: AuditService, useValue: { log: jest.fn() } },
         { provide: getQueueToken('reminders'), useValue: { add: jest.fn() } },
         { provide: CACHE_MANAGER, useValue: mockCacheManager },
+        {
+          provide: DataProtectionService,
+          useValue: {
+            encrypt: (value: unknown) => value,
+            deepDecrypt: (value: unknown) => value,
+            searchTokens: () => [],
+          },
+        },
       ],
     }).compile();
 

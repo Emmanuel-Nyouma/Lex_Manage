@@ -8,6 +8,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Role } from '@prisma/client';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('documents')
 @ApiBearerAuth()
@@ -64,8 +65,9 @@ export class DocumentsController {
   }
 
   @Post('upload')
+  @Throttle({ short: { limit: 5, ttl: 60000 }, long: { limit: 100, ttl: 3600000 } })
   @Roles('CABINET_ADMIN', 'SUPER_ADMIN', 'LAWYER')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { files: 1, fileSize: 50 * 1024 * 1024 } }))
   @ApiOperation({ summary: 'Upload a new document' })
   upload(
     @UploadedFile() file: Express.Multer.File,

@@ -2,20 +2,23 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { N8nRagService } from '../ai/n8n-rag.service';
 import { Prisma } from '@prisma/client';
+import { DataProtectionService } from '../security/data-protection.service';
 
 @Injectable()
 export class ChatService {
   constructor(
     private prisma: PrismaService,
     private n8nRag: N8nRagService,
+    private protection: DataProtectionService,
   ) {}
 
   async getConversations(tenantId: string, userId: string) {
-    return this.prisma.chatConversation.findMany({
+    const conversations = await this.prisma.chatConversation.findMany({
       where: { tenantId, userId },
       orderBy: { updatedAt: 'desc' },
       include: { _count: { select: { messages: true } } },
     });
+    return this.protection.deepDecrypt(conversations);
   }
 
   async getConversation(id: string, tenantId: string, userId: string) {
@@ -24,13 +27,18 @@ export class ChatService {
       include: { messages: { orderBy: { createdAt: 'asc' } } },
     });
     if (!conv) throw new NotFoundException('Conversation not found');
-    return conv;
+    return this.protection.deepDecrypt(conv);
   }
 
   async createConversation(tenantId: string, userId: string, title?: string) {
-    return this.prisma.chatConversation.create({
-      data: { tenantId, userId, title: title || 'Nouvelle conversation' },
+    const conversation = await this.prisma.chatConversation.create({
+      data: {
+        tenantId,
+        userId,
+        title: this.protection.encrypt(title || 'Nouvelle conversation') as string,
+      },
     });
+    return this.protection.deepDecrypt(conversation);
   }
 
   async sendMessage(
@@ -51,7 +59,7 @@ export class ChatService {
         where: { conversationId, requestId, role: 'assistant' },
       });
       if (existing) {
-        return { message: existing.content, messageId: existing.id };
+        return { message: this.protection.decrypt(existing.content), messageId: existing.id };
       }
     }
 
@@ -66,21 +74,30 @@ export class ChatService {
     try {
       const saved = await this.prisma.$transaction(async (tx) => {
         await tx.chatMessage.create({
-          data: { conversationId, role: 'user', content: message, requestId },
+            data: {
+              conversationId,
+              role: 'user',
+              content: this.protection.encrypt(message) as string,
+              requestId,
+            },
         });
         const assistant = await tx.chatMessage.create({
           data: {
             conversationId,
             role: 'assistant',
-            content: aiResponse,
-            sources: sources as any,
+            content: this.protection.encrypt(aiResponse) as string,
+            sources: this.protection.encryptJson(sources) as any,
             requestId,
           },
         });
         await tx.chatConversation.update({
           where: { id: conversationId },
           data: {
-            title: conv.title === 'Nouvelle conversation' ? message.slice(0, 60) : conv.title,
+            title: this.protection.encrypt(
+              this.protection.decrypt(conv.title) === 'Nouvelle conversation'
+                ? message.slice(0, 60)
+                : this.protection.decrypt(conv.title),
+            ) as string,
           },
         });
         return assistant;
@@ -92,7 +109,9 @@ export class ChatService {
         const existing = await this.prisma.chatMessage.findFirst({
           where: { conversationId, requestId, role: 'assistant' },
         });
-        if (existing) return { message: existing.content, messageId: existing.id };
+        if (existing) {
+          return { message: this.protection.decrypt(existing.content), messageId: existing.id };
+        }
       }
       throw error;
     }

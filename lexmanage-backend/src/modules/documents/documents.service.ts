@@ -8,6 +8,8 @@ import { CreateDocumentDto, UpdateDocumentDto } from './dto/document.dto';
 import { MinioService } from './minio.service';
 import { AuditService } from '../audit/audit.service';
 import { N8nRagService } from '../ai/n8n-rag.service';
+import { MalwareScannerService } from './malware-scanner.service';
+import { DataProtectionService } from '../security/data-protection.service';
 
 @Injectable()
 export class DocumentsService {
@@ -18,6 +20,8 @@ export class DocumentsService {
     private auditService: AuditService,
     private n8nRag: N8nRagService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private malwareScanner: MalwareScannerService,
+    private protection: DataProtectionService,
   ) {}
 
   async findAll(
@@ -40,20 +44,31 @@ export class DocumentsService {
       where.category = category;
     }
     if (normalizedQuery) {
+      const queryTokens = this.protection.searchTokens([normalizedQuery]);
+      if (this.protection.enabled && queryTokens.length === 0) {
+        where.id = '__no_matching_search_token__';
+      }
       where.AND = [
         {
-          OR: [
-            { title: { contains: normalizedQuery, mode: 'insensitive' } },
-            { file_name: { contains: normalizedQuery, mode: 'insensitive' } },
-            { category: { contains: normalizedQuery, mode: 'insensitive' } },
-          ],
+          OR: this.protection.enabled
+            ? [
+                { searchTokens: { hasEvery: queryTokens } },
+                { title: { contains: normalizedQuery, mode: 'insensitive' } },
+                { file_name: { contains: normalizedQuery, mode: 'insensitive' } },
+                { category: { contains: normalizedQuery, mode: 'insensitive' } },
+              ]
+            : [
+                { title: { contains: normalizedQuery, mode: 'insensitive' } },
+                { file_name: { contains: normalizedQuery, mode: 'insensitive' } },
+                { category: { contains: normalizedQuery, mode: 'insensitive' } },
+              ],
         },
       ];
     }
 
     // Fetch limit + 1 to detect whether more items exist beyond this page.
     // Prisma's native cursor + skip:1 continues correctly under the compound orderBy.
-    const data = await this.prisma.document.findMany({
+    const rawData = await this.prisma.document.findMany({
       where,
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       include: {
@@ -63,6 +78,7 @@ export class DocumentsService {
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
 
+    const data = this.protection.deepDecrypt(rawData);
     const hasMore = data.length > limit;
     const pageItems = hasMore ? data.slice(0, limit) : data;
     const result = {
@@ -90,7 +106,7 @@ export class DocumentsService {
     const cached = (await this.cacheManager.get(cacheKey)) as any;
     if (cached) return cached;
 
-    const docs = await this.prisma.document.findMany({
+    const rawDocs = await this.prisma.document.findMany({
       where: {
         ...this.accessWhere(tenantId, userId, role),
         case_id: caseId,
@@ -98,6 +114,7 @@ export class DocumentsService {
       orderBy: { createdAt: 'desc' },
     });
 
+    const docs = this.protection.deepDecrypt(rawDocs);
     await this.cacheManager.set(cacheKey, docs, 30000);
     return docs;
   }
@@ -108,13 +125,14 @@ export class DocumentsService {
     const cached = (await this.cacheManager.get(cacheKey)) as any;
     if (cached) return cached;
 
-    const doc = await this.prisma.document.findFirst({
+    const rawDoc = await this.prisma.document.findFirst({
       where: { id, ...this.accessWhere(tenantId, userId, role) },
       include: {
         cases: true
       }
     });
-    if (!doc) throw new NotFoundException('Document not found');
+    if (!rawDoc) throw new NotFoundException('Document not found');
+    const doc = this.protection.deepDecrypt(rawDoc);
 
     await this.cacheManager.set(cacheKey, doc, 60000); // 1 minute cache
     return doc;
@@ -154,10 +172,10 @@ export class DocumentsService {
     const { caseId, ...data } = dto;
     await this.assertCaseOwnership(caseId, tenantId);
     
-    const doc = await this.prisma.document.create({
+    const rawDoc = await this.prisma.document.create({
       data: {
-        title: data.title || 'Sans titre',
-        file_name: data.fileName || 'unknown',
+        title: this.protection.encrypt(data.title || 'Sans titre') as string,
+        file_name: this.protection.encrypt(data.fileName || 'unknown') as string,
         file_url: data.fileUrl || '',
         file_type: data.fileType || 'application/octet-stream',
         file_size: data.fileSize || 0,
@@ -165,8 +183,10 @@ export class DocumentsService {
         tenantId,
         uploaderId,
         case_id: caseId,
+        searchTokens: this.protection.searchTokens([data.title, data.fileName, data.category]),
       },
     });
+    const doc = this.protection.deepDecrypt(rawDoc);
 
     await this.invalidateDocumentCache(tenantId, caseId);
 
@@ -190,10 +210,11 @@ export class DocumentsService {
   ) {
     if (!file) throw new BadRequestException('File is required');
     if (file.size > 50 * 1024 * 1024) throw new BadRequestException('File too large (max 50MB)');
+    if (file.originalname.length > 255) throw new BadRequestException('File name is too long');
+    this.assertUploadTextLengths(options);
 
     // Magic byte validation
-    const { fileTypeFromBuffer } = await (eval('import("file-type")') as Promise<any>);
-    const type = await fileTypeFromBuffer(file.buffer);
+    const type = await this.detectFileType(file.buffer);
     const allowedMimes = [
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -209,6 +230,7 @@ export class DocumentsService {
     if (!isPlainText && (!type || !allowedMimes.includes(type.mime))) {
       throw new BadRequestException(`Invalid file type: ${type?.mime || file.mimetype || 'unknown'}`);
     }
+    await this.malwareScanner.assertClean(file.buffer);
     await this.assertCaseOwnership(options.pending ? undefined : options.caseId, tenantId);
 
     // New path structure: documents/{year}/{month}/{cuid()}/{original-filename}
@@ -223,12 +245,12 @@ export class DocumentsService {
     
     let document;
     try {
-      document = await this.prisma.document.create({
+      const rawDocument = await this.prisma.document.create({
         data: {
           tenantId,
           uploaderId,
-          title: options.name || file.originalname,
-          file_name: file.originalname,
+          title: this.protection.encrypt(options.name || file.originalname) as string,
+          file_name: this.protection.encrypt(file.originalname) as string,
           file_url: objectName,
           file_type: type?.mime || file.mimetype,
           file_size: file.size,
@@ -237,8 +259,14 @@ export class DocumentsService {
           allowedRoles: options.allowedRoles || [],
           case_id: options.pending ? null : options.caseId,
           isPending: !!options.pending,
+          searchTokens: this.protection.searchTokens([
+            options.name || file.originalname,
+            file.originalname,
+            options.category || options.documentType,
+          ]),
         },
       });
+      document = this.protection.deepDecrypt(rawDocument);
     } catch (error) {
       await this.minio.deleteFile(tenantId, objectName).catch((cleanupError) => {
         this.logger.error(`Could not compensate failed upload ${objectName}`, cleanupError as Error);
@@ -285,6 +313,30 @@ export class DocumentsService {
     return { ...document, url: signedUrl };
   }
 
+  private assertUploadTextLengths(options: {
+    name?: string;
+    category?: string;
+    subCategory?: string;
+    courtCaseRef?: string;
+  }) {
+    const limits: Array<[string, string | undefined, number]> = [
+      ['name', options.name, 200],
+      ['category', options.category, 100],
+      ['subCategory', options.subCategory, 100],
+      ['courtCaseRef', options.courtCaseRef, 100],
+    ];
+    for (const [field, value, max] of limits) {
+      if (value && value.length > max) {
+        throw new BadRequestException(`${field} must not exceed ${max} characters`);
+      }
+    }
+  }
+
+  private async detectFileType(buffer: Buffer) {
+    const { fileTypeFromBuffer } = await (eval('import("file-type")') as Promise<any>);
+    return fileTypeFromBuffer(buffer);
+  }
+
   async getSignedUrl(id: string, tenantId: string, userId: string, role: Role) {
     const doc = await this.findOne(id, tenantId, userId, role);
     return { url: await this.minio.getPresignedUrl(tenantId, doc.file_url) };
@@ -292,15 +344,21 @@ export class DocumentsService {
 
   async update(id: string, dto: UpdateDocumentDto, tenantId: string, userId: string, role: Role) {
     const original = await this.findOne(id, tenantId, userId, role);
-    const updated = await this.prisma.document.update({
+    const rawUpdated = await this.prisma.document.update({
       where: { id },
       data: {
-        title: dto.title,
+        title: dto.title === undefined ? undefined : this.protection.encrypt(dto.title),
         category: dto.category,
         type: dto.type,
         status: dto.status,
+        searchTokens: this.protection.searchTokens([
+          dto.title ?? original.title,
+          original.file_name,
+          dto.category ?? original.category,
+        ]),
       },
     });
+    const updated = this.protection.deepDecrypt(rawUpdated);
 
     await this.invalidateDocumentCache(tenantId, original.case_id);
 
@@ -339,7 +397,7 @@ async linkDocumentToCase(documentId: string, caseId: string, tenantId: string, u
     details: { action: 'LINK_TO_CASE', caseId },
   });
 
-  return doc;
+  return this.protection.deepDecrypt(doc);
 }
 
 async remove(id: string, tenantId: string, userId: string, role: Role) {

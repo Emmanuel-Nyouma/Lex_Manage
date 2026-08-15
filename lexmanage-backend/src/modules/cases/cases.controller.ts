@@ -23,7 +23,9 @@ export class CasesController {
     @Query('cursor') cursor?: string,
     @Query('limit') limit: string = '10',
   ) {
-    return this.casesService.findAll(tenantId, cursor, parseInt(limit));
+    const parsed = Number.parseInt(limit, 10);
+    const safeLimit = Number.isFinite(parsed) ? Math.min(100, Math.max(1, parsed)) : 10;
+    return this.casesService.findAll(tenantId, cursor, safeLimit);
   }
 
   @Get(':id')

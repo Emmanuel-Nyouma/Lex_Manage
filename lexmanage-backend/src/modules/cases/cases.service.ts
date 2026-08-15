@@ -5,6 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCaseDto, UpdateCaseDto } from './dto/case.dto';
 import { EventsGateway } from '../events/events.gateway';
 import { AuditService } from '../audit/audit.service';
+import { DataProtectionService } from '../security/data-protection.service';
 
 @Injectable()
 export class CasesService {
@@ -13,6 +14,7 @@ export class CasesService {
     private eventsGateway: EventsGateway,
     private auditService: AuditService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private protection: DataProtectionService,
   ) {}
 
   async findAll(tenantId: string, cursor?: string, limit: number = 10) {
@@ -22,7 +24,7 @@ export class CasesService {
 
     // Fetch limit + 1 to detect whether more items exist beyond this page.
     // Prisma's native cursor + skip:1 continues correctly under the compound orderBy.
-    const data = await this.prisma.case.findMany({
+    const rawData = await this.prisma.case.findMany({
       where: { tenantId },
       include: {
         assignee: { select: { id: true, firstName: true, lastName: true } },
@@ -34,6 +36,7 @@ export class CasesService {
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
 
+    const data = this.protection.deepDecrypt(rawData);
     const hasMore = data.length > limit;
     const pageItems = hasMore ? data.slice(0, limit) : data;
     const result = {
@@ -54,7 +57,7 @@ export class CasesService {
     const cached = await this.cacheManager.get(cacheKey);
     if (cached) return cached;
 
-    const c = await this.prisma.case.findFirst({
+    const rawCase = await this.prisma.case.findFirst({
       where: { id, tenantId },
       include: {
         assignee: { select: { id: true, firstName: true, lastName: true, email: true } },
@@ -66,7 +69,8 @@ export class CasesService {
         },
       },
     });
-    if (!c) throw new NotFoundException('Case not found');
+    if (!rawCase) throw new NotFoundException('Case not found');
+    const c = this.protection.deepDecrypt(rawCase);
 
     await this.cacheManager.set(cacheKey, c, 60000); // 1 minute cache
     return c;
@@ -87,9 +91,24 @@ export class CasesService {
     const { documentIds, ...data } = dto;
     await this.assertReferences(tenantId, dto.clientId, dto.assigneeId || userId);
 
-    const newCase = await this.prisma.$transaction(async (tx) => {
+    const protectedData = {
+      ...data,
+      title: this.protection.encrypt(data.title),
+      description: this.protection.encrypt(data.description),
+      clientName: this.protection.encrypt(data.clientName),
+      courtName: this.protection.encrypt(data.courtName),
+      caseNumber: this.protection.encrypt(data.caseNumber),
+      searchTokens: this.protection.searchTokens([
+        data.title,
+        data.description,
+        data.clientName,
+        data.courtName,
+        data.caseNumber,
+      ]),
+    };
+    const rawCase = await this.prisma.$transaction(async (tx) => {
       const newCase = await tx.case.create({
-        data: { ...data, tenantId, assigneeId: dto.assigneeId || userId },
+        data: { ...protectedData, tenantId, assigneeId: dto.assigneeId || userId },
       });
 
       if (documentIds && documentIds.length > 0) {
@@ -102,6 +121,7 @@ export class CasesService {
       return newCase;
     });
 
+    const newCase = this.protection.deepDecrypt(rawCase);
     await this.invalidateTenantCases(tenantId);
     await this.auditService.log({
       tenantId,
@@ -116,13 +136,32 @@ export class CasesService {
   }
 
   async update(id: string, dto: UpdateCaseDto, tenantId: string, userId: string) {
-    const originalCase = await this.findOne(id, tenantId); // Ownership check
+    const originalCase: any = await this.findOne(id, tenantId); // Ownership check
     const { documentIds, ...data } = dto;
     await this.assertReferences(tenantId, dto.clientId, dto.assigneeId);
-    const updateData: any = { ...data };
+    const updateData: any = {
+      ...data,
+      ...(data.title !== undefined ? { title: this.protection.encrypt(data.title) } : {}),
+      ...(data.description !== undefined
+        ? { description: this.protection.encrypt(data.description) }
+        : {}),
+      ...(data.courtName !== undefined
+        ? { courtName: this.protection.encrypt(data.courtName) }
+        : {}),
+      ...(data.caseNumber !== undefined
+        ? { caseNumber: this.protection.encrypt(data.caseNumber) }
+        : {}),
+      searchTokens: this.protection.searchTokens([
+        data.title ?? originalCase.title,
+        data.description ?? originalCase.description,
+        originalCase.clientName,
+        data.courtName ?? originalCase.courtName,
+        data.caseNumber ?? originalCase.caseNumber,
+      ]),
+    };
     if (dto.status) updateData.closedAt = dto.status === 'CLOSED' ? new Date() : null;
 
-    const updatedCase = await this.prisma.$transaction(async (tx) => {
+    const rawUpdatedCase = await this.prisma.$transaction(async (tx) => {
       const updatedCase = await tx.case.update({
         where: { id },
         data: updateData,
@@ -138,6 +177,7 @@ export class CasesService {
       return updatedCase;
     });
 
+    const updatedCase = this.protection.deepDecrypt(rawUpdatedCase);
     await this.cacheManager.del(`case:${tenantId}:${id}`);
     await this.invalidateTenantCases(tenantId);
     await this.auditService.log({

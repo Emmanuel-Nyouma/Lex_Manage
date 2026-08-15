@@ -109,6 +109,16 @@ export class MinioService {
           Body: file.buffer,
           ContentType: file.mimetype,
           ContentLength: file.size,
+          ...(process.env.S3_SERVER_SIDE_ENCRYPTION
+            ? {
+                ServerSideEncryption: process.env.S3_SERVER_SIDE_ENCRYPTION as
+                  | 'AES256'
+                  | 'aws:kms',
+                ...(process.env.S3_KMS_KEY_ID
+                  ? { SSEKMSKeyId: process.env.S3_KMS_KEY_ID }
+                  : {}),
+              }
+            : {}),
         }),
       );
       return { objectName };
@@ -131,7 +141,11 @@ export class MinioService {
   async getPresignedUrl(tenantId: string, objectName: string, expiry = 900): Promise<string> {
     return getSignedUrl(
       this.client,
-      new GetObjectCommand({ Bucket: this.bucket, Key: this.keyFor(tenantId, objectName) }),
+    new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: this.keyFor(tenantId, objectName),
+      ResponseCacheControl: 'private, no-store, max-age=0',
+    }),
       { expiresIn: Math.min(expiry, 900) },
     );
   }

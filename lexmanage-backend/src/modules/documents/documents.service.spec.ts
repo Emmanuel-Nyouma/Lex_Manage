@@ -16,6 +16,7 @@ describe('DocumentsService', () => {
   const minio = {
     getPresignedUrl: vi.fn(),
     deleteFile: vi.fn(),
+    uploadFile: vi.fn(),
   };
   const audit = { log: vi.fn() };
   const n8n = {
@@ -23,6 +24,13 @@ describe('DocumentsService', () => {
     deleteDocumentVectors: vi.fn(),
   };
   const cache = { get: vi.fn(), set: vi.fn() };
+  const malwareScanner = { assertClean: vi.fn() };
+  const protection = {
+    enabled: false,
+    encrypt: vi.fn((value) => value),
+    deepDecrypt: vi.fn((value) => value),
+    searchTokens: vi.fn(() => []),
+  };
   let service: DocumentsService;
 
   beforeEach(() => {
@@ -34,6 +42,8 @@ describe('DocumentsService', () => {
       audit as any,
       n8n as any,
       cache as any,
+      malwareScanner as any,
+      protection as any,
     );
   });
 
@@ -101,6 +111,31 @@ describe('DocumentsService', () => {
       'user-1',
     )).rejects.toThrow(BadRequestException);
     expect(prisma.document.create).not.toHaveBeenCalled();
+  });
+
+  it('analyse un upload avant de l’envoyer au stockage', async () => {
+    minio.uploadFile.mockResolvedValue({ objectName: 'documents/safe.txt' });
+    minio.getPresignedUrl.mockResolvedValue('https://storage.example/signed');
+    prisma.document.create.mockResolvedValue({
+      id: 'doc-upload',
+      file_url: 'documents/safe.txt',
+      file_name: 'safe.txt',
+    });
+    n8n.ingestDocument.mockResolvedValue(undefined);
+    const file = {
+      originalname: 'safe.txt',
+      mimetype: 'text/plain',
+      buffer: Buffer.from('safe legal note'),
+      size: 15,
+    } as Express.Multer.File;
+    vi.spyOn(service as any, 'detectFileType').mockResolvedValue(undefined);
+
+    await service.upload(file, 'tenant-a', 'user-1', { pending: true });
+
+    expect(malwareScanner.assertClean).toHaveBeenCalledWith(file.buffer);
+    expect(malwareScanner.assertClean.mock.invocationCallOrder[0]).toBeLessThan(
+      minio.uploadFile.mock.invocationCallOrder[0],
+    );
   });
 
   it('crée, invalide le cache et journalise un document autorisé', async () => {

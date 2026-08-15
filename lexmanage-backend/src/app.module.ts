@@ -26,6 +26,7 @@ import { CalendarModule } from './modules/calendar/calendar.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { AppController } from './app.controller';
+import { SecurityModule } from './modules/security/security.module';
 
 @Module({
   controllers: [AppController],
@@ -60,9 +61,54 @@ import { AppController } from './app.controller';
           if (config['REDIS_HOST'] === 'localhost') {
             throw new Error('REDIS_HOST must not be localhost in production');
           }
+          if (!['AES256', 'aws:kms'].includes(config['S3_SERVER_SIDE_ENCRYPTION'])) {
+            throw new Error('S3_SERVER_SIDE_ENCRYPTION must be AES256 or aws:kms in production');
+          }
+          if (
+            config['S3_SERVER_SIDE_ENCRYPTION'] === 'aws:kms' &&
+            !config['S3_KMS_KEY_ID']
+          ) {
+            throw new Error('S3_KMS_KEY_ID is required when using aws:kms encryption');
+          }
         }
         if (String(config['JWT_SECRET']).length < 32) {
           throw new Error('JWT_SECRET must contain at least 32 characters');
+        }
+        if (
+          config['NODE_ENV'] === 'production' &&
+          /change[_-]?me|replace[_-]?me/i.test(String(config['JWT_SECRET']))
+        ) {
+          throw new Error('JWT_SECRET still contains a placeholder value');
+        }
+        if (config['N8N_WEBHOOK_SECRET'] && String(config['N8N_WEBHOOK_SECRET']).length < 32) {
+          throw new Error('N8N_WEBHOOK_SECRET must contain at least 32 characters');
+        }
+        if (config['NODE_ENV'] === 'production' && !config['DATA_ENCRYPTION_KEY']) {
+          throw new Error('DATA_ENCRYPTION_KEY is required in production');
+        }
+        const retentionDays = Number(config['AUDIT_RETENTION_DAYS'] || 730);
+        if (!Number.isInteger(retentionDays) || retentionDays < 90 || retentionDays > 3650) {
+          throw new Error('AUDIT_RETENTION_DAYS must be an integer between 90 and 3650');
+        }
+        const malwareMode = String(
+          config['MALWARE_SCAN_MODE'] ||
+            (config['NODE_ENV'] === 'production' ? 'required' : 'disabled'),
+        ).toLowerCase();
+        if (!['required', 'optional', 'disabled'].includes(malwareMode)) {
+          throw new Error('MALWARE_SCAN_MODE must be required, optional or disabled');
+        }
+        if (config['NODE_ENV'] === 'production' && malwareMode !== 'required') {
+          throw new Error('MALWARE_SCAN_MODE must be required in production');
+        }
+        if (malwareMode === 'required' && !config['CLAMAV_HOST']) {
+          throw new Error('CLAMAV_HOST is required when malware scanning is required');
+        }
+        if (
+          config['NODE_ENV'] === 'production' &&
+          config['PUBLIC_API_URL'] &&
+          !String(config['PUBLIC_API_URL']).startsWith('https://')
+        ) {
+          throw new Error('PUBLIC_API_URL must use HTTPS in production');
         }
         if (
           (config['N8N_RAG_CHAT_URL'] ||
@@ -112,6 +158,7 @@ import { AppController } from './app.controller';
       }),
     }),
     PrismaModule,
+    SecurityModule,
     AuthModule,
     UsersModule,
     TenantsModule,

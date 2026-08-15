@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { DataProtectionService } from '../security/data-protection.service';
 
 @Injectable()
 export class StatsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private protection: DataProtectionService,
+  ) {}
 
   async getDashboardStats(tenantId: string) {
     const now   = new Date();
@@ -128,10 +132,10 @@ export class StatsService {
         totalDocuments:   totalDocumentsCount - totalDocumentsPrev,
         totalClients:     totalClientsCount - totalClientsPrev,
       },
-      recentActivity,
+      recentActivity: this.protection.deepDecrypt(recentActivity),
       byStatus,
       byLawyer,
-      upcomingDeadlines,
+      upcomingDeadlines: this.protection.deepDecrypt(upcomingDeadlines),
       weeklyActivity,
     };
   }
@@ -182,6 +186,11 @@ export class StatsService {
       this.prisma.case.groupBy({ by: ['status'], where: { tenantId }, _count: { id: true } }),
     ]);
 
-    return { metrics: { summariesGenerated, urgentCases: 0, docsAnalyzed }, casesWithSummary, casesByStatus, insights: [] };
+    return {
+      metrics: { summariesGenerated, urgentCases: 0, docsAnalyzed },
+      casesWithSummary: this.protection.deepDecrypt(casesWithSummary),
+      casesByStatus,
+      insights: [],
+    };
   }
 }
