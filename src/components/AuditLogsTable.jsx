@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Badge } from './ui';
-import { History, Filter } from 'lucide-react';
+import { History } from 'lucide-react';
 
 export const AuditLogsTable = ({ logs = [] }) => {
   return (
@@ -10,9 +10,6 @@ export const AuditLogsTable = ({ logs = [] }) => {
           <History size={20} className="text-slate-500 dark:text-slate-300" />
           <h3 className="font-bold text-slate-900 dark:text-white">Recent Activity Logs</h3>
         </div>
-        <button className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-amber-600">
-          <Filter size={14} /> Filter
-        </button>
       </div>
 
       {/* Mobile: log cards (< md) */}

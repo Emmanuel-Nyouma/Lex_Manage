@@ -1,14 +1,14 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from './lib/router';
 import { Toaster, toast } from 'sonner';
-import { Lock, ShieldCheck, AlertTriangle, X as CloseIcon, Loader2 } from 'lucide-react';
+import { ShieldCheck, X as CloseIcon } from 'lucide-react';
 
 // App shell — eager (always needed)
 import AuthScreen from './components/AuthScreen';
 import OnboardingScreen, { ONBOARDING_STORAGE_KEY } from './components/OnboardingScreen';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
-import { Breadcrumbs, PageSkeleton } from './components/ui';
+import { Breadcrumbs, FocusTrap, PageSkeleton } from './components/ui';
 
 // Route views — lazy-loaded (code-split per route for faster mobile first paint)
 const DashboardView        = lazy(() => import('./components/DashboardView'));
@@ -40,7 +40,6 @@ const InitialRoute = ({ isAuthenticated }) => {
 import useLexStore from './store/useLexStore';
 import { useIdleTimeout } from './hooks/useIdleTimeout';
 import { useNotifications } from './hooks/useNotifications';
-import { useSocket } from './hooks/useSocket';
 import { useQueryClient } from '@tanstack/react-query';
 
 // SECURITY FIX #4: Protected route wrapper
@@ -50,43 +49,44 @@ const ProtectedRoute = ({ children, session }) => {
 };
 
 const AdminRoute = ({ children, session, currentUser }) => {
-  console.log("AdminRoute checking access:", { session: !!session, role: currentUser?.role });
-  
-  if (!session) {
-    console.log("AdminRoute: No session, redirecting to login");
-    return <Navigate to="/login" replace />;
-  }
-  
-  if (currentUser && currentUser.role !== 'CABINET_ADMIN' && currentUser.role !== 'SUPER_ADMIN') {
-    console.log("AdminRoute: User is not admin, redirecting to dashboard. Role:", currentUser.role);
+  if (!session || !currentUser) return <Navigate to="/login" replace />;
+  if (currentUser.role !== 'CABINET_ADMIN' && currentUser.role !== 'SUPER_ADMIN') {
     return <Navigate to="/dashboard" replace />;
   }
-  
-  console.log("AdminRoute: Access granted or user loading...");
   return children;
 };
 
-const MainLayout = ({ children, isMobileSidebarOpen, setIsMobileSidebarOpen, isSearchOpen, setIsSearchOpen }) => {
+const MainLayout = ({
+  children,
+  isMobileSidebarOpen,
+  setIsMobileSidebarOpen,
+  isSearchOpen,
+  setIsSearchOpen,
+  notificationsApi,
+}) => {
   const navigate = useNavigate();
-  const { urgentNotification, clearUrgent } = useNotifications();
+  const { urgentNotification, clearUrgent } = notificationsApi;
 
   return (
     <div className="relative flex h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 overflow-hidden">
       {/* Pop-up Urgent (Étape 2/3) */}
       {urgentNotification && (
         <div 
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="urgent-title"
           className="fixed inset-0 z-[110] bg-red-950/20 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300"
         >
-          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border-2 border-red-500 overflow-hidden animate-in zoom-in-95 duration-300">
+          <FocusTrap isActive onClose={clearUrgent}>
+          <div role="alertdialog" aria-modal="true" aria-labelledby="urgent-title" className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border-2 border-red-500 overflow-hidden animate-in zoom-in-95 duration-300">
             <div className="bg-red-500 p-4 flex items-center justify-between text-white">
               <div className="flex items-center gap-2">
                 <ShieldCheck size={24} />
                 <h2 id="urgent-title" className="font-bold text-lg">ALERTE URGENTE</h2>
               </div>
-              <button onClick={clearUrgent} className="hover:rotate-90 transition-transform">
+              <button
+                onClick={clearUrgent}
+                aria-label="Fermer l’alerte urgente"
+                title="Fermer"
+                className="hover:rotate-90 transition-transform"
+              >
                 <CloseIcon size={20} />
               </button>
             </div>
@@ -103,6 +103,7 @@ const MainLayout = ({ children, isMobileSidebarOpen, setIsMobileSidebarOpen, isS
               </button>
             </div>
           </div>
+          </FocusTrap>
         </div>
       )}
 
@@ -116,6 +117,7 @@ const MainLayout = ({ children, isMobileSidebarOpen, setIsMobileSidebarOpen, isS
           onToggleMobileSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
           isSearchOpen={isSearchOpen}
           setIsSearchOpen={setIsSearchOpen}
+          notificationsApi={notificationsApi}
         />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 dark:bg-slate-950 focus:outline-none" tabIndex="-1">
           <Breadcrumbs />
@@ -131,7 +133,8 @@ const MainLayout = ({ children, isMobileSidebarOpen, setIsMobileSidebarOpen, isS
 export default function LexManageApp() {
   const { accessToken, initAuth, isLoading, currentUser, logout } = useLexStore();
   const queryClient = useQueryClient();
-  const socket = useSocket();
+  const notificationsApi = useNotifications();
+  const socket = notificationsApi.socket;
   const { isIdle } = useIdleTimeout(15 * 60 * 1000); // 15 minutes
   const isAuthenticated = !!accessToken;
 
@@ -147,15 +150,9 @@ export default function LexManageApp() {
     // SYNC: Multi-tab session synchronization
     const handleStorageChange = (e) => {
       const currentToken = useLexStore.getState().accessToken;
-      if (e.key === 'accessToken' && !e.newValue && currentToken) {
-        // Token was removed in another tab (logout)
-        console.log("Session terminated in another tab, logging out...");
-        logout();
-      }
-      if (e.key === 'wasLoggedIn' && e.newValue === 'true' && !currentToken) {
-        // User logged in in another tab, refresh to get session
-        console.log("Session detected in another tab, initializing...");
-        initAuth();
+      if (e.key === 'wasLoggedIn') {
+        if (!e.newValue && currentToken) logout();
+        if (e.newValue === 'true' && !currentToken) initAuth();
       }
     };
 
@@ -178,10 +175,12 @@ export default function LexManageApp() {
 
   useEffect(() => {
     if (socket) {
-      socket.on('case.created', (newCase) => {
+      const handleCaseCreated = (newCase) => {
         toast.success(`Nouveau dossier créé: ${newCase.title}`);
         queryClient.invalidateQueries({ queryKey: ['cases'] });
-      });
+      };
+      socket.on('case.created', handleCaseCreated);
+      return () => socket.off('case.created', handleCaseCreated);
     }
   }, [socket, queryClient]);
 
@@ -203,7 +202,13 @@ export default function LexManageApp() {
     );
   }
 
-  const layoutProps = { isMobileSidebarOpen, setIsMobileSidebarOpen, isSearchOpen, setIsSearchOpen };
+  const layoutProps = {
+    isMobileSidebarOpen,
+    setIsMobileSidebarOpen,
+    isSearchOpen,
+    setIsSearchOpen,
+    notificationsApi,
+  };
 
   return (
     <>
@@ -218,6 +223,7 @@ export default function LexManageApp() {
         
         <Route path="/dashboard" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><DashboardView /></MainLayout></ProtectedRoute>} />
         <Route path="/cases" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><CaseManagementView /></MainLayout></ProtectedRoute>} />
+        <Route path="/cases/:id" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><CaseManagementView /></MainLayout></ProtectedRoute>} />
         <Route path="/calendar" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><CalendarView /></MainLayout></ProtectedRoute>} />
         <Route path="/documents" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><DocumentsView /></MainLayout></ProtectedRoute>} />
         <Route path="/clients" element={<ProtectedRoute session={accessToken}><MainLayout {...layoutProps}><ClientsDirectoryView /></MainLayout></ProtectedRoute>} />

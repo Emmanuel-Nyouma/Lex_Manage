@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Bell, Bot, Check, CheckCheck, Clock, Menu, AlertCircle, AlertTriangle, Info, X, Briefcase, FileText, Users, UserCheck, Loader2, ArrowRight } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useNotifications } from '../hooks/useNotifications';
+import { Link, useNavigate } from '../lib/router';
 import useLexStore from '../store/useLexStore';
 import { SearchPalette } from './search/SearchPalette';
 import useTranslation from '../hooks/useTranslation';
@@ -40,14 +39,27 @@ const SUGGESTION_COLORS = {
   client: 'text-emerald-500',
 };
 
-const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen }) => {
+const Header = ({
+  onOpenAi,
+  onToggleMobileSidebar,
+  isSearchOpen,
+  setIsSearchOpen,
+  notificationsApi,
+}) => {
   const { currentUser } = useLexStore();
   const { t, language } = useTranslation();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [selectedNotif, setSelectedNotif] = useState(null);
   const notificationRef = useRef(null);
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    error: notificationsError,
+    retry: retryNotifications,
+  } = notificationsApi;
 
   // ── Inline search suggestions ────────────────────────────────
   const [query, setQuery] = useState('');
@@ -257,7 +269,15 @@ const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen
               </div>
 
               <div className="flex-1 overflow-y-auto">
-                {notifications.length > 0 ? (
+                {notificationsError ? (
+                  <div role="alert" className="p-6 text-center">
+                    <AlertCircle size={24} className="mx-auto mb-2 text-rose-500" />
+                    <p className="text-sm text-slate-600 dark:text-slate-300">{notificationsError}</p>
+                    <button type="button" onClick={retryNotifications} className="mt-3 text-xs font-bold text-amber-600">
+                      Réessayer
+                    </button>
+                  </div>
+                ) : notifications.length > 0 ? (
                   notifications.map((notif) => {
                     const ui = levelUi(notif.level);
                     const LevelIcon = ui.icon;
@@ -280,6 +300,8 @@ const Header = ({ onOpenAi, onToggleMobileSidebar, isSearchOpen, setIsSearchOpen
                               {!notif.isRead && (
                                 <button
                                   onClick={(e) => handleNotificationRead(e, notif.id)}
+                                  aria-label={`Marquer comme lue : ${notif.title || 'notification'}`}
+                                  title="Marquer comme lue"
                                   className="p-2 text-slate-500 hover:text-emerald-500 transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100 flex-shrink-0"
                                 >
                                   <Check size={14} aria-hidden="true" />

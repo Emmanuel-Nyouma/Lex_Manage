@@ -18,8 +18,9 @@ import {
 import { Button, Badge, Input, Skeleton, Card } from './ui';
 import NewCaseDialog from './NewCaseDialog';
 import CaseDrawer from './CaseDrawer';
-import { useCases } from '../hooks/useCases';
+import { useCase, useCases } from '../hooks/useCases';
 import useLexStore from '../store/useLexStore';
+import { useNavigate, useParams } from '../lib/router';
 
 const SortIcon = ({ column, sortConfig }) => {
   if (sortConfig.key !== column) return null;
@@ -27,6 +28,8 @@ const SortIcon = ({ column, sortConfig }) => {
 };
 
 const CaseManagementView = () => {
+  const { id: routeCaseId } = useParams();
+  const navigate = useNavigate();
   const [isNewCaseOpen, setIsNewCaseOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,6 +43,11 @@ const CaseManagementView = () => {
     hasNextPage,
     isFetchingNextPage,
   } = useCases(10);
+  const {
+    data: routeCase,
+    isLoading: isRouteCaseLoading,
+    error: routeCaseError,
+  } = useCase(routeCaseId);
 
   const cases = useMemo(() => data?.cases || [], [data]);
   const { callGemini } = useLexStore();
@@ -375,9 +383,32 @@ const CaseManagementView = () => {
 
       <NewCaseDialog isOpen={isNewCaseOpen} onClose={() => setIsNewCaseOpen(false)} />
       
+      {routeCaseId && isRouteCaseLoading && (
+        <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/20 backdrop-blur-sm" role="status">
+          <Loader2 className="animate-spin text-amber-500" size={36} aria-hidden="true" />
+          <span className="sr-only">Chargement du dossier</span>
+        </div>
+      )}
+
+      {routeCaseId && routeCaseError && (
+        <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/30 p-4" role="alert">
+          <Card className="max-w-md space-y-4 p-6 text-center">
+            <AlertCircle className="mx-auto text-red-500" size={32} aria-hidden="true" />
+            <h2 className="text-lg font-bold">Dossier inaccessible</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Ce dossier n’existe pas ou vous n’avez pas l’autorisation de le consulter.
+            </p>
+            <Button onClick={() => navigate('/cases', { replace: true })}>Retour aux dossiers</Button>
+          </Card>
+        </div>
+      )}
+
       <CaseDrawer 
-        activeCase={selectedCase} 
-        onClose={() => setSelectedCase(null)} 
+        activeCase={routeCase || selectedCase}
+        onClose={() => {
+          setSelectedCase(null);
+          if (routeCaseId) navigate('/cases', { replace: true });
+        }}
         onCallGemini={callGemini}
       />
     </div>

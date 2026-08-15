@@ -9,6 +9,7 @@ import useLexStore from '../store/useLexStore';
 import { useKeyboardNavigation } from '../hooks/useKeyboardNavigation';
 import { toast } from 'sonner';
 import { sanitize } from '../lib/sanitizer';
+import { formatLegalDate } from '../utils/dateOnly';
 
 import { useDeadlines, useCreateDeadline, useMarkDeadlineDone, useCases } from '../hooks/useCases';
 
@@ -45,7 +46,7 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
     } finally {
       setIsUploading(false);
     }
-  }, [activeCase?.id, currentUser, refetchCases]);
+  }, [activeCase, currentUser, refetchCases]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -213,7 +214,7 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
                           className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border-4 border-white dark:border-slate-900 shadow-sm transition-all ${deadline.isDone ? 'bg-emerald-500' : 'bg-amber-500 ring-4 ring-amber-500/20 hover:scale-125'}`}
                         ></button>
                         <p className={`text-sm font-bold leading-tight ${deadline.isDone ? 'line-through text-slate-600 dark:text-slate-300' : 'text-slate-900 dark:text-white'}`}>{deadline.title}</p>
-                        <p className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-300 dark:text-slate-600 uppercase tracking-widest mt-0.5">{new Date(deadline.dueAt).toLocaleDateString()}</p>
+                        <p className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-300 dark:text-slate-600 uppercase tracking-widest mt-0.5">{formatLegalDate(deadline.dueAt)}</p>
                      </div>
                    ))
                  ) : (

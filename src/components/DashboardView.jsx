@@ -8,9 +8,10 @@ import {
   Sparkles, AlertTriangle, Scale, Activity, ChevronRight,
   Zap, ShieldAlert, CalendarClock, Loader2, RefreshCw,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '../lib/router';
 import useLexStore from '../store/useLexStore';
 import { useDashboardStats } from '../hooks/useDashboardStats';
+import { parseLegalDate } from '../utils/dateOnly';
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
 const greeting = () => {
@@ -31,11 +32,15 @@ const timeAgo = (dateStr) => {
 };
 
 const daysUntil = (dateStr) => {
-  const d = Math.ceil((new Date(dateStr) - Date.now()) / 86400000);
+  const d = Math.ceil((parseLegalDate(dateStr) - Date.now()) / 86400000);
   if (d === 0) return 'Today';
   if (d === 1) return 'Tomorrow';
   return `In ${d} days`;
 };
+
+const DashboardSkeleton = ({ className }) => (
+  <div className={`bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse ${className}`} />
+);
 
 const ACTION_LABEL = {
   CREATE:     'created',
@@ -138,7 +143,7 @@ const deriveInsights = (stats) => {
 
   // Urgent upcoming deadlines
   const urgentCount = upcomingDeadlines?.filter((d) => {
-    const days = Math.ceil((new Date(d.dueAt) - Date.now()) / 86400000);
+    const days = Math.ceil((parseLegalDate(d.dueAt) - Date.now()) / 86400000);
     return days <= 7;
   }).length ?? 0;
   if (urgentCount > 0) {
@@ -191,24 +196,19 @@ const DashboardView = () => {
   const insights   = useMemo(() => deriveInsights(stats), [stats]);
   const totalCases = useMemo(() => stats?.byStatus?.reduce((a, b) => a + b.value, 0) ?? 0, [stats]);
 
-  /* ── skeleton helper ── */
-  const Skeleton = ({ className }) => (
-    <div className={`bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse ${className}`} />
-  );
-
   if (isLoading) {
     return (
       <div className="space-y-8 pb-12">
         <div className="flex items-end justify-between">
-          <div className="space-y-2"><Skeleton className="h-6 w-32" /><Skeleton className="h-10 w-56" /><Skeleton className="h-4 w-64" /></div>
-          <Skeleton className="h-10 w-48" />
+          <div className="space-y-2"><DashboardSkeleton className="h-6 w-32" /><DashboardSkeleton className="h-10 w-56" /><DashboardSkeleton className="h-4 w-64" /></div>
+          <DashboardSkeleton className="h-10 w-48" />
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 rounded-3xl" />)}
+          {[...Array(4)].map((_, i) => <DashboardSkeleton key={i} className="h-40 rounded-3xl" />)}
         </div>
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <Skeleton className="h-80 xl:col-span-2 rounded-3xl" />
-          <Skeleton className="h-80 rounded-3xl" />
+          <DashboardSkeleton className="h-80 xl:col-span-2 rounded-3xl" />
+          <DashboardSkeleton className="h-80 rounded-3xl" />
         </div>
       </div>
     );

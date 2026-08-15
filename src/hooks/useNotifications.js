@@ -11,6 +11,8 @@ export const useNotificationStore = create((set, get) => ({
   unreadCount: 0,
   urgentNotification: null, // Pour le pop-up "Home Page"
   hasInitialToastsBeenShown: false,
+  initialToastsShownForUserId: null,
+  error: null,
   
   setNotifications: (notifications, userId) => {
     const enriched = notifications.map(n => ({
@@ -35,7 +37,19 @@ export const useNotificationStore = create((set, get) => ({
   }),
 
   clearUrgent: () => set({ urgentNotification: null }),
-  setInitialToastsShown: (val) => set({ hasInitialToastsBeenShown: val }),
+  setInitialToastsShown: (val, userId = null) => set({
+    hasInitialToastsBeenShown: val,
+    initialToastsShownForUserId: val ? userId : null,
+  }),
+  setError: (error) => set({ error }),
+  reset: () => set({
+    notifications: [],
+    unreadCount: 0,
+    urgentNotification: null,
+    hasInitialToastsBeenShown: false,
+    initialToastsShownForUserId: null,
+    error: null,
+  }),
   
   markAsRead: async (id, _userId) => {
     try {
@@ -47,8 +61,8 @@ export const useNotificationStore = create((set, get) => ({
           unreadCount: updated.filter(n => !n.isRead).length
         };
       });
-    } catch (err) {
-      console.error("Failed to mark notification as read", err);
+    } catch {
+      toast.error("Impossible de marquer la notification comme lue.");
     }
   },
 
@@ -61,10 +75,10 @@ export const useNotificationStore = create((set, get) => ({
     }));
     try {
       await apiClient.patch('/notifications/read-all');
-    } catch (err) {
-      console.error("Failed to mark all notifications as read", err);
+    } catch {
       // Roll back on failure
       set({ notifications: previous, unreadCount: previous.filter(n => !n.isRead).length });
+      toast.error("Impossible de marquer toutes les notifications comme lues.");
     }
   }
 }));
@@ -83,6 +97,10 @@ export const useNotifications = () => {
     markAsRead,
     markAllAsRead,
     setInitialToastsShown
+    ,initialToastsShownForUserId,
+    setError,
+    reset,
+    error
   } = useNotificationStore();
 
   const fetchNotifications = useCallback(async () => {
@@ -90,15 +108,22 @@ export const useNotifications = () => {
     try {
       const { data } = await apiClient.get('/notifications');
       setNotifications(data, currentUser.id);
-    } catch (err) {
-      console.error("Error fetching notifications:", err);
+      setError(null);
+    } catch {
+      setError("Les notifications sont temporairement indisponibles.");
     }
-  }, [currentUser, setNotifications]);
+  }, [currentUser, setNotifications, setError]);
 
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      reset();
+      return;
+    }
+    if (initialToastsShownForUserId !== currentUser.id) {
+      setInitialToastsShown(false);
+    }
     fetchNotifications();
-  }, [currentUser, fetchNotifications]);
+  }, [currentUser, fetchNotifications, initialToastsShownForUserId, reset, setInitialToastsShown]);
 
   // Level 2 (IMPORTANT) Persistence: Show toasts on load
   useEffect(() => {
@@ -121,7 +146,7 @@ export const useNotifications = () => {
       if (importantUnread.length > 0) {
         sessionStorage.setItem(sessionKey, JSON.stringify(shownIds));
       }
-      setInitialToastsShown(true);
+      setInitialToastsShown(true, currentUser?.id);
     }
   }, [notifications, hasInitialToastsBeenShown, currentUser, setInitialToastsShown]);
 
@@ -155,10 +180,10 @@ export const useNotifications = () => {
       }
     };
 
-    socket.on('notification', handleNotification);
+    socket.on('notification.new', handleNotification);
 
     return () => {
-      socket.off('notification', handleNotification);
+      socket.off('notification.new', handleNotification);
     };
   }, [socket, addNotification, currentUser]);
 
@@ -168,6 +193,9 @@ export const useNotifications = () => {
     urgentNotification,
     clearUrgent,
     markAsRead: (id) => markAsRead(id, currentUser?.id),
-    markAllAsRead
+    markAllAsRead,
+    error,
+    retry: fetchNotifications,
+    socket,
   };
 };

@@ -41,6 +41,15 @@ export const useCases = (limit = 10) => {
   });
 };
 
+export const useCase = (caseId) => useQuery({
+  queryKey: [...QUERY_KEYS.cases, caseId],
+  queryFn: async () => {
+    const { data } = await apiClient.get(`/cases/${caseId}`);
+    return data;
+  },
+  enabled: Boolean(caseId),
+});
+
 // Hook pour créer un nouveau dossier
 export const useCreateCase = () => {
   const queryClient = useQueryClient();
@@ -98,6 +107,7 @@ export const useCreateDeadline = (caseId) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.cases, caseId, 'deadlines'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.calendar });
       toast.success("Échéance ajoutée");
     },
     onError: (err) => handleMutationError(err, "Erreur lors de l'ajout de l'échéance"),
@@ -114,6 +124,7 @@ export const useMarkDeadlineDone = (caseId) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.cases, caseId, 'deadlines'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.calendar });
       toast.success("Échéance complétée");
     },
     onError: (err) => handleMutationError(err, "Erreur lors de la mise à jour de l'échéance"),
@@ -132,7 +143,7 @@ export const useDeleteDeadline = (caseId = 'none') => {
     },
     onSuccess: (_data, _variables, _context) => {
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.cases, caseId, 'deadlines'] });
-      queryClient.invalidateQueries({ queryKey: ['calendar-deadlines'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.calendar });
       toast.success("Échéance supprimée");
     },
     onError: (err) => handleMutationError(err, "Erreur lors de la suppression"),

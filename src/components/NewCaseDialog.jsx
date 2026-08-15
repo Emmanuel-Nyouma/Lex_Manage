@@ -94,15 +94,21 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
       const newCase = await createCase.mutateAsync(payload);
 
       if (files.length > 0) {
+        let uploaded = 0;
+        const failedFiles = [];
         for (const file of files) {
           try {
             await uploadLegalDocument(file, currentUser, 'Pièces', newCase.id);
+            uploaded += 1;
           } catch (uploadErr) {
             console.error(`Failed to upload ${file.name}:`, uploadErr);
-            toast.error(`Could not upload ${file.name}`);
+            failedFiles.push(file);
           }
         }
-        toast.success(`${files.length} document(s) associated with case`);
+        if (uploaded > 0) toast.success(`${uploaded} document(s) associé(s) au dossier`);
+        if (failedFiles.length > 0) {
+          toast.error(`${failedFiles.length} document(s) non importé(s). Vous pourrez réessayer depuis le dossier.`);
+        }
       }
 
       setFiles([]);
@@ -114,7 +120,7 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
       // Handle array error messages from Zod/class-validator
       const errorDetail = Array.isArray(msg) ? msg.join(', ') : (typeof msg === 'object' ? JSON.stringify(msg) : msg);
       setBackendError(errorDetail);
-      toast.error("Form submission failed");
+      toast.error("Le formulaire n’a pas pu être envoyé");
     } finally {
       setIsUploading(false);
     }
@@ -146,14 +152,15 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                 <FileText size={22} aria-hidden="true" />
               </div>
               <div>
-                <h2 id={titleId} className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Open New Case</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Create a new legal file in the secure repository.</p>
+                <h2 id={titleId} className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Ouvrir un nouveau dossier</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Créez un dossier juridique dans l’espace sécurisé.</p>
               </div>
             </div>
             <button 
               onClick={onClose} 
               className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full"
-              aria-label="Close dialog"
+              aria-label="Fermer la fenêtre"
+              title="Fermer"
             >
               <X size={20} aria-hidden="true" />
             </button>
@@ -168,7 +175,7 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                 <div className="p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded-xl flex gap-3 animate-in slide-in-from-top-2 duration-300">
                   <AlertTriangle className="text-rose-600 dark:text-rose-400 shrink-0" size={20} />
                   <div>
-                    <h3 className="text-sm font-bold text-rose-900 dark:text-rose-200 mb-1">Incomplete Information</h3>
+                    <h3 className="text-sm font-bold text-rose-900 dark:text-rose-200 mb-1">Informations incomplètes</h3>
                     <ul className="list-disc list-inside space-y-0.5">
                       {errorList.map((err, idx) => (
                         <li key={idx} className="text-xs text-rose-700 dark:text-rose-300 font-medium">{err.message}</li>
@@ -183,7 +190,7 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                 <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl flex gap-3 animate-in shake duration-500">
                    <X className="text-red-600 shrink-0" size={20} />
                    <div>
-                     <h3 className="text-sm font-bold text-red-900 dark:text-red-300 mb-1">Server rejected the request</h3>
+                     <h3 className="text-sm font-bold text-red-900 dark:text-red-300 mb-1">Le serveur a refusé la demande</h3>
                      <p className="text-xs text-red-700 dark:text-red-400 font-medium">{backendError}</p>
                    </div>
                 </div>
@@ -195,8 +202,8 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                 <div className="md:col-span-2">
                   <Input 
                     {...register("title")}
-                    label="Subject / Case Title"
-                    placeholder="ex: Commercial Dispute - Smith Corp"
+                    label="Objet / titre du dossier"
+                    placeholder="Ex. : Litige commercial – Société Dupont"
                     icon={FileText}
                     error={errors.title?.message}
                     required
@@ -206,7 +213,7 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                 {/* Client selection from CRM */}
                 <div className="md:col-span-1 relative">
                   <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 ml-1">
-                    Client <span className="text-slate-400 dark:text-slate-500 font-normal normal-case tracking-normal ml-1 text-[10px]">(optional)</span>
+                    Client <span className="text-slate-400 dark:text-slate-500 font-normal normal-case tracking-normal ml-1 text-[10px]">(facultatif)</span>
                   </label>
                   
                   <div className="relative group">
@@ -217,7 +224,7 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                       <div className="flex items-center gap-2 truncate">
                         <User size={16} className={selectedClientId ? "text-amber-500" : "text-slate-400"} />
                         <span className={`truncate ${selectedClientName ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-400'}`}>
-                          {selectedClientName || "Select a client (optional)"}
+                          {selectedClientName || "Sélectionner un client (facultatif)"}
                         </span>
                       </div>
                       {selectedClientName ? (
@@ -225,7 +232,8 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                           type="button"
                           onClick={(e) => { e.stopPropagation(); setValue("clientId", null); setValue("clientName", ""); }}
                           className="p-0.5 text-slate-400 hover:text-rose-500 transition-colors rounded"
-                          aria-label="Clear client"
+                          aria-label="Retirer le client"
+                          title="Retirer le client"
                         >
                           <X size={14} />
                         </button>
@@ -244,7 +252,7 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                               type="text"
                               value={clientSearch}
                               onChange={(e) => setClientSearch(e.target.value)}
-                              placeholder="Search client..."
+                              placeholder="Rechercher un client…"
                               className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border-none rounded-lg text-xs outline-none focus:ring-1 focus:ring-amber-500/30"
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter' && clientSearch && filteredClients.length === 0) {
@@ -271,12 +279,12 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                                 className="w-full px-4 py-3 flex flex-col items-start gap-0.5 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors border-b border-slate-50 dark:border-slate-800 last:border-0"
                               >
                                 <span className="text-sm font-bold text-slate-900 dark:text-white">{client.name}</span>
-                                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-medium">{client.type_client} • {client.email || 'No email'}</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-medium">{client.type_client} • {client.email || 'Aucun email'}</span>
                               </button>
                             ))
                           ) : (
                             <div className="p-4 text-center">
-                              <p className="text-xs text-slate-500 mb-2">No existing client found.</p>
+                              <p className="text-xs text-slate-500 mb-2">Aucun client existant trouvé.</p>
                               <button
                                 type="button"
                                 onClick={() => {
@@ -286,7 +294,7 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                                 }}
                                 className="text-xs font-bold text-amber-600 hover:text-amber-700 flex items-center justify-center gap-1 mx-auto"
                               >
-                                <UserPlus size={12} /> Use "{clientSearch}" anyway
+                                <UserPlus size={12} /> Utiliser quand même « {clientSearch} »
                               </button>
                             </div>
                           )}
@@ -301,8 +309,8 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                 <div>
                   <Input
                     {...register("caseNumber")}
-                    label="Case Number / Reference (Optional)"
-                    placeholder="ex: LEX-2026-001"
+                    label="Numéro / référence du dossier (facultatif)"
+                    placeholder="Ex. : LEX-2026-001"
                     icon={Hash}
                     error={errors.caseNumber?.message}
                   />
@@ -312,8 +320,8 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                 <div>
                   <Input
                     {...register("courtName")}
-                    label="Jurisdiction / Court (Optional)"
-                    placeholder="ex: Supreme Court of Justice"
+                    label="Juridiction / tribunal (facultatif)"
+                    placeholder="Ex. : Cour suprême"
                     icon={Gavel}
                     error={errors.courtName?.message}
                   />
@@ -322,16 +330,16 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                 {/* Status */}
                 <div>
                   <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 ml-1">
-                    Initial Status <span className="text-rose-500 ml-0.5">*</span>
+                    Statut initial <span className="text-rose-500 ml-0.5">*</span>
                   </label>
                   <div className="relative group">
                     <select 
                       {...register("status")}
                       className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:text-white appearance-none cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50"
                     >
-                      <option value="OPEN">Open</option>
-                      <option value="IN_PROGRESS">In Progress</option>
-                      <option value="PENDING">Pending</option>
+                      <option value="OPEN">Ouvert</option>
+                      <option value="IN_PROGRESS">En cours</option>
+                      <option value="PENDING">En attente</option>
                     </select>
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-amber-500">
                         <ChevronDown size={14} aria-hidden="true" />
@@ -343,8 +351,8 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                 <div className="md:col-span-2">
                   <Textarea
                     {...register("description")}
-                    label="Description / Strategic Notes (Optional)"
-                    placeholder="Confidential details about the dispute..."
+                    label="Description / notes stratégiques (facultatif)"
+                    placeholder="Informations confidentielles concernant le litige…"
                     rows={3}
                     error={errors.description?.message}
                   />
@@ -353,7 +361,7 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                 {/* Document Upload */}
                 <div className="md:col-span-2 space-y-3">
                   <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">
-                    Attach Documents (Optional)
+                    Joindre des documents (facultatif)
                   </label>
                   
                   <div 
@@ -368,9 +376,9 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                         <Upload size={24} />
                       </div>
                       <p className="text-sm text-slate-600 dark:text-slate-300">
-                        Drag files here or <span className="text-amber-600 font-bold">browse</span>
+                        Déposez les fichiers ici ou <span className="text-amber-600 font-bold">parcourez</span>
                       </p>
-                      <p className="text-[10px] text-slate-400 uppercase tracking-tight font-bold">PDF, DOCX supported</p>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-tight font-bold">Formats PDF et DOCX acceptés</p>
                     </div>
                   </div>
 
@@ -385,6 +393,8 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
                           <button 
                             type="button" 
                             onClick={() => removeFile(idx)}
+                            aria-label={`Retirer ${file.name}`}
+                            title="Retirer le fichier"
                             className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400 hover:text-rose-500"
                           >
                             <X size={12} />
@@ -401,7 +411,7 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
           {/* Footer - Pinned */}
           <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3 bg-slate-50 dark:bg-slate-900/80 shrink-0">
             <Button type="button" variant="secondary" onClick={onClose} className="font-bold">
-              Cancel
+              Annuler
             </Button>
             <Button 
               form="new-case-form"
@@ -410,7 +420,7 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
               icon={Check}
               className="px-8 bg-slate-900 dark:bg-amber-600 text-white font-black"
             >
-              Create Case File
+              Créer le dossier
             </Button>
           </div>
         </div>

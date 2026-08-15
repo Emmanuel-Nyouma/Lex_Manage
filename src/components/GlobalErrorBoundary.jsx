@@ -40,7 +40,7 @@ class GlobalErrorBoundary extends React.Component {
             </h1>
             
             <p className="text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
-              {presentation.message} Your legal data is safe.
+              {presentation.message}
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
@@ -52,16 +52,16 @@ class GlobalErrorBoundary extends React.Component {
                 {presentation.action}
               </button>
               
-              <button 
+              {import.meta.env.DEV && <button
                 onClick={() => this.setState({ showDetails: !this.state.showDetails })}
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
               >
                 <Bug size={18} />
                 {this.state.showDetails ? 'Hide Details' : 'View Details'}
-              </button>
+              </button>}
             </div>
 
-            {this.state.showDetails && (
+            {import.meta.env.DEV && this.state.showDetails && (
               <div className="mt-8 animate-in slide-in-from-top-4 duration-300">
                 <div className="bg-slate-900 rounded-2xl p-5 text-left border border-slate-800 shadow-2xl">
                   <div className="flex items-center justify-between mb-3">

@@ -37,9 +37,11 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config || {};
     const isRefreshRequest = originalRequest.url?.includes('/auth/refresh');
+    const method = (originalRequest.method || 'get').toLowerCase();
+    const isIdempotentRead = ['get', 'head', 'options'].includes(method);
 
     // Retry transient network errors (no response received) during cold starts.
-    if (!error.response && !isRefreshRequest) {
+    if (!error.response && !isRefreshRequest && isIdempotentRead) {
       originalRequest._netRetry = originalRequest._netRetry || 0;
       if (originalRequest._netRetry < MAX_NETWORK_RETRIES) {
         originalRequest._netRetry += 1;

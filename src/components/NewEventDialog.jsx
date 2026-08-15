@@ -34,7 +34,7 @@ const NewEventDialog = ({ isOpen, onClose }) => {
       
       await apiClient.post(`/cases/${targetCaseId}/deadlines`, {
         title,
-        dueAt: new Date(date).toISOString(),
+        dueAt: date,
         priority
       });
 
@@ -58,13 +58,18 @@ const NewEventDialog = ({ isOpen, onClose }) => {
       <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose} />
       
       <FocusTrap isActive={isOpen} onClose={onClose}>
-        <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 relative z-10 border border-slate-200 dark:border-slate-800">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="new-deadline-title"
+          className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 relative z-10 border border-slate-200 dark:border-slate-800"
+        >
           <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/50">
             <div className="flex items-center gap-2">
               <Calendar className="text-amber-500" size={20} />
-              <h2 className="font-bold text-slate-900 dark:text-white uppercase tracking-tight">Nouvelle Échéance</h2>
+              <h2 id="new-deadline-title" className="font-bold text-slate-900 dark:text-white uppercase tracking-tight">Nouvelle échéance</h2>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors">
+            <button type="button" onClick={onClose} aria-label="Fermer" title="Fermer" className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors">
               <X size={20} />
             </button>
           </div>
@@ -118,13 +123,13 @@ const NewEventDialog = ({ isOpen, onClose }) => {
             </div>
 
             <div className="pt-4 flex gap-3">
-              <Button type="button" variant="ghost" className="flex-1" onClick={onClose}>Cancel</Button>
+              <Button type="button" variant="ghost" className="flex-1" onClick={onClose}>Annuler</Button>
               <Button 
                 type="submit" 
                 className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold"
                 isLoading={isSubmitting}
               >
-                Create Event
+                Créer l’échéance
               </Button>
             </div>
           </form>

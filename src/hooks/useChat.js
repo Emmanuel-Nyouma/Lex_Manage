@@ -12,7 +12,7 @@ export const useConversations = () =>
 export const chatApi = {
   create: () => apiClient.post('/chat/conversations').then((r) => r.data),
   get: (id) => apiClient.get(`/chat/conversations/${id}`).then((r) => r.data),
-  send: (id, message) =>
-    apiClient.post(`/chat/conversations/${id}/messages`, { message }).then((r) => r.data),
+  send: (id, message, requestId = crypto.randomUUID()) =>
+    apiClient.post(`/chat/conversations/${id}/messages`, { message, requestId }).then((r) => r.data),
   remove: (id) => apiClient.delete(`/chat/conversations/${id}`).then((r) => r.data),
 };

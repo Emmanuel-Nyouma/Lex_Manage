@@ -41,7 +41,7 @@ export const getErrorPresentation = (error, fallback = 'Something went wrong. Pl
   if (status >= 500) {
     return {
       title: 'Service temporarily unavailable',
-      message: 'LexManage is having trouble completing this request. Your data was not changed; try again shortly.',
+      message: 'Impossible de confirmer cette opération. Actualisez les données avant de réessayer.',
       action: 'Try again',
       category: 'server',
     };

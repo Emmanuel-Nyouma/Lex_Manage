@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from './lib/router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import LexManageApp from './App';
 import GlobalErrorBoundary from './components/GlobalErrorBoundary';
@@ -32,4 +32,3 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </GlobalErrorBoundary>
   </React.StrictMode>
 );
-

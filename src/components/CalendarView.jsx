@@ -13,12 +13,13 @@ import {
   X,
   AlertCircle
 } from 'lucide-react';
-import { Card, Badge, Button, Input } from './ui';
+import { Card, Badge, Button, Input, FocusTrap } from './ui';
 import { useGlobalDeadlines } from '../hooks/useCalendar';
 import { useDeleteDeadline } from '../hooks/useCases';
 import NewEventDialog from './NewEventDialog';
 import useLexStore from '../store/useLexStore';
 import ConfirmDialog from './ConfirmDialog';
+import { parseLegalDate } from '../utils/dateOnly';
 
 const DAYS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 const DAYS_FULL = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
@@ -28,7 +29,7 @@ const MONTHS = [
 ];
 
 const fmtEventDate = (iso) => {
-  const d = new Date(iso);
+  const d = parseLegalDate(iso);
   return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 };
 
@@ -42,7 +43,7 @@ const CalendarView = () => {
   const [selectedDayEvents, setSelectedDayEvents] = useState(null);
   const [eventToDelete, setEventToDelete] = useState(null);
 
-  const { data: deadlines, isLoading, refetch } = useGlobalDeadlines();
+  const { data: deadlines, isLoading, isError, error, refetch } = useGlobalDeadlines();
   const deleteDeadline = useDeleteDeadline();
 
   const isAdmin = currentUser?.role === 'CABINET_ADMIN' || currentUser?.role === 'SUPER_ADMIN';
@@ -75,14 +76,14 @@ const CalendarView = () => {
     return deadlines
       .filter(d => d.title.toLowerCase().includes(q) ||
                    (d.case?.title || '').toLowerCase().includes(q))
-      .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt));
+      .sort((a, b) => parseLegalDate(a.dueAt) - parseLegalDate(b.dueAt));
   }, [deadlines, searchQuery]);
 
   // Grid always shows every event so it stays a stable navigation target
   const getDeadlinesForDay = (day) => {
     if (!deadlines) return [];
     return deadlines.filter(d => {
-      const date = new Date(d.dueAt);
+      const date = parseLegalDate(d.dueAt);
       return date.getDate() === day &&
              date.getMonth() === currentMonth &&
              date.getFullYear() === currentYear;
@@ -92,7 +93,7 @@ const CalendarView = () => {
   const eventsOnDate = (year, month, day) => {
     if (!deadlines) return [];
     return deadlines.filter(d => {
-      const date = new Date(d.dueAt);
+      const date = parseLegalDate(d.dueAt);
       return date.getDate() === day &&
              date.getMonth() === month &&
              date.getFullYear() === year;
@@ -101,7 +102,7 @@ const CalendarView = () => {
 
   // Jump from a text-search result to its place on the calendar
   const goToEvent = (deadline) => {
-    const date = new Date(deadline.dueAt);
+    const date = parseLegalDate(deadline.dueAt);
     setViewDate(new Date(date.getFullYear(), date.getMonth(), 1));
     setSelectedDayEvents({
       day: date.getDate(),
@@ -127,14 +128,14 @@ const CalendarView = () => {
     if (!deadlines) return [];
     const inMonth = deadlines
       .filter(d => {
-        const dt = new Date(d.dueAt);
+        const dt = parseLegalDate(d.dueAt);
         return dt.getMonth() === currentMonth && dt.getFullYear() === currentYear;
       })
-      .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt));
+      .sort((a, b) => parseLegalDate(a.dueAt) - parseLegalDate(b.dueAt));
 
     const map = new Map();
     for (const e of inMonth) {
-      const day = new Date(e.dueAt).getDate();
+      const day = parseLegalDate(e.dueAt).getDate();
       if (!map.has(day)) map.set(day, []);
       map.get(day).push(e);
     }
@@ -215,6 +216,21 @@ const CalendarView = () => {
     }
     return cells;
   };
+
+  if (isError) {
+    return (
+      <div role="alert" className="min-h-[50vh] flex items-center justify-center">
+        <Card className="max-w-lg p-8 text-center">
+          <AlertCircle size={36} className="mx-auto mb-4 text-rose-500" />
+          <h1 className="text-xl font-black text-slate-900 dark:text-white">Calendrier indisponible</h1>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            {error?.response?.data?.message || "Impossible de charger les échéances pour le moment."}
+          </p>
+          <Button className="mt-5" onClick={() => refetch()}>Réessayer</Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col p-4 sm:p-6 animate-in fade-in duration-500 bg-slate-50/50 dark:bg-slate-900/50 pb-20">
@@ -336,9 +352,9 @@ const CalendarView = () => {
           </Button>
 
           <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex-1 sm:flex-none justify-between sm:justify-start">
-            <Button variant="ghost" size="sm" onClick={prevMonth} className="h-8 w-8 p-0"><ChevronLeft size={16} /></Button>
+            <Button aria-label="Mois précédent" title="Mois précédent" variant="ghost" size="sm" onClick={prevMonth} className="h-8 w-8 p-0"><ChevronLeft size={16} /></Button>
             <div className="px-2 min-w-[140px] text-center"><span className="text-xs font-bold text-slate-900 dark:text-white">{MONTHS[currentMonth]} {currentYear}</span></div>
-            <Button variant="ghost" size="sm" onClick={nextMonth} className="h-8 w-8 p-0"><ChevronRight size={16} /></Button>
+            <Button aria-label="Mois suivant" title="Mois suivant" variant="ghost" size="sm" onClick={nextMonth} className="h-8 w-8 p-0"><ChevronRight size={16} /></Button>
           </div>
         </div>
       </div>
@@ -432,20 +448,21 @@ const CalendarView = () => {
       {selectedDayEvents && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setSelectedDayEvents(null)} />
-          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 relative z-10 border border-slate-200 dark:border-slate-800 flex flex-col max-h-[80vh]">
+          <FocusTrap isActive onClose={() => setSelectedDayEvents(null)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="day-details-title" className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 relative z-10 border border-slate-200 dark:border-slate-800 flex flex-col max-h-[80vh]">
             <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/50">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-900 flex items-center justify-center font-black">
                   {selectedDayEvents.day}
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                  <h3 id="day-details-title" className="font-black text-slate-900 dark:text-white uppercase tracking-tight">
                     {DAYS_FULL[new Date(currentYear, currentMonth, selectedDayEvents.day).getDay()]}
                   </h3>
                   <p className="text-[10px] font-bold text-slate-500">{MONTHS[currentMonth]} {currentYear}</p>
                 </div>
               </div>
-              <button onClick={() => setSelectedDayEvents(null)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors">
+              <button onClick={() => setSelectedDayEvents(null)} aria-label="Fermer" title="Fermer" className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors">
                 <X size={20} />
               </button>
             </div>
@@ -473,6 +490,8 @@ const CalendarView = () => {
                     {isAdmin && (
                       <button 
                         onClick={(e) => { e.stopPropagation(); setEventToDelete(event); }}
+                        aria-label={`Supprimer ${event.title}`}
+                        title="Supprimer"
                         className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
                       >
                         <Trash2 size={16} />
@@ -488,6 +507,7 @@ const CalendarView = () => {
               )}
             </div>
           </div>
+          </FocusTrap>
         </div>
       )}
 

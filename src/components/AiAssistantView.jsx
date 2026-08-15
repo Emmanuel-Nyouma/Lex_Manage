@@ -136,9 +136,9 @@ const HistorySidebar = ({ conversations, loading, activeId, onSelect, onNew, onD
             const count = c._count?.messages ?? 0;
             const label = count > 1 ? t.messages_count_pl : t.messages_count;
             return (
-              <button
+              <div
                 key={c.id}
-                onClick={() => onSelect(c.id)}
+                role="group"
                 className={`w-full group flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all ${
                   activeId === c.id
                     ? 'bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700'
@@ -146,20 +146,27 @@ const HistorySidebar = ({ conversations, loading, activeId, onSelect, onNew, onD
                 }`}
               >
                 <MessageSquare size={15} className={activeId === c.id ? 'text-amber-500' : 'text-slate-400'} />
-                <div className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => onSelect(c.id)}
+                  className="min-w-0 flex-1 text-left"
+                  aria-label={`${t.history}: ${c.title}`}
+                >
                   <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{c.title}</p>
                   <p className="text-[10px] text-slate-400">
                     {count} {label} · {shortDate(c.updatedAt, language)}
                   </p>
-                </div>
-                <span
+                </button>
+                <button
+                  type="button"
                   onClick={(e) => onDelete(e, c.id)}
                   className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
                   title={t.delete}
+                  aria-label={`${t.delete}: ${c.title}`}
                 >
                   <Trash2 size={13} />
-                </span>
-              </button>
+                </button>
+              </div>
             );
           })
         )}

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Bell, Send, X, Info, AlertTriangle, AlertOctagon, ChevronLeft, ChevronRight, Check, Users, Briefcase, BookTemplate, Loader2 } from 'lucide-react';
-import { Card, Button, Input } from './ui';
+import { Card, Button, Input, FocusTrap } from './ui';
 import { toast } from 'sonner';
 import apiClient from '../lib/api';
 import { CreateNotificationSchema, MOTIF_OPTIONS, MOTIF_LEVEL_CONSTRAINTS, LEVEL_MAP, ROLE_OPTIONS } from '../lib/schemas/notification.schema';
@@ -115,13 +115,19 @@ const SendNotificationDialog = ({ isOpen, onClose, preloadTemplate = null }) => 
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-      <Card className="w-full max-w-lg p-6 shadow-2xl border-slate-200 dark:border-slate-800">
+      <FocusTrap isActive={isOpen} onClose={onClose}>
+      <Card
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="send-notification-title"
+        className="w-full max-w-lg p-6 shadow-2xl border-slate-200 dark:border-slate-800"
+      >
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-amber-100 dark:bg-amber-900/20 rounded-lg text-amber-600">
               <Bell size={20} />
             </div>
-            <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight">Notification — Étape {step}/4</h3>
+            <h3 id="send-notification-title" className="font-black text-slate-900 dark:text-white uppercase tracking-tight">Notification — Étape {step}/4</h3>
           </div>
           <div className="flex items-center gap-2">
             {/* Template picker trigger */}
@@ -133,7 +139,7 @@ const SendNotificationDialog = ({ isOpen, onClose, preloadTemplate = null }) => 
               {loadingTemplates ? <Loader2 size={13} className="animate-spin" /> : <BookTemplate size={13} />}
               Templates
             </button>
-            <button onClick={onClose} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"><X size={18} /></button>
+            <button type="button" onClick={onClose} aria-label="Fermer" title="Fermer" className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"><X size={18} /></button>
           </div>
         </div>
 
@@ -285,6 +291,7 @@ const SendNotificationDialog = ({ isOpen, onClose, preloadTemplate = null }) => 
           </form>
         )}
       </Card>
+      </FocusTrap>
     </div>
   );
 };

@@ -6,6 +6,9 @@ export const useIngestToLexAssist = () => {
   return useMutation({
     mutationFn: async (documentId) => {
       const { data } = await apiClient.post('/ai/ingest-document', { documentId });
+      if (!data?.success) {
+        throw new Error(data?.message || "L'ingestion a échoué");
+      }
       return data;
     },
     onSuccess: (data) => {
