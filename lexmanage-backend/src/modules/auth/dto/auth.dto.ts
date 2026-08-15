@@ -4,6 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class LoginDto {
   @ApiProperty({ example: 'admin@cabinet.com' })
   @IsEmail()
+  @MaxLength(254)
   email: string;
 
   @ApiProperty({ example: 'SecurePass123!' })
@@ -17,15 +18,18 @@ export class RegisterDto {
   @ApiProperty()
   @IsString()
   @MinLength(2)
+  @MaxLength(100)
   firstName: string;
 
   @ApiProperty()
   @IsString()
   @MinLength(2)
+  @MaxLength(100)
   lastName: string;
 
   @ApiProperty({ example: 'admin@cabinet.com' })
   @IsEmail()
+  @MaxLength(254)
   email: string;
 
   @ApiProperty({ example: 'SecurePass123!' })
@@ -40,27 +44,32 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   @MinLength(8)
+  @MaxLength(40)
   phone?: string;
 
   @ApiProperty({ example: 'Cabinet Kamdem & Associés', required: false })
   @IsOptional()
   @IsString()
   @MinLength(2)
+  @MaxLength(160)
   tenantName?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
+  @MaxLength(120)
   country?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
+  @MaxLength(120)
   city?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
+  @MaxLength(256)
   invitationToken?: string;
 }
 
@@ -74,18 +83,21 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   @MinLength(2)
+  @MaxLength(100)
   firstName?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
   @MinLength(2)
+  @MaxLength(100)
   lastName?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
   @MinLength(8)
+  @MaxLength(40)
   phone?: string;
 }
 

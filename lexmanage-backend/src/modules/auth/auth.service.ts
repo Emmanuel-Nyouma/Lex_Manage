@@ -113,7 +113,13 @@ export class AuthService {
           });
         });
 
-        const tokens = await this.generateTokens(user.id, user.email, user.role, user.tenantId);
+        const tokens = await this.generateTokens(
+          user.id,
+          user.email,
+          user.role,
+          user.tenantId,
+          user.sessionVersion,
+        );
         await this.storeRefreshToken(user.id, tokens.refreshToken);
 
         return {
@@ -160,14 +166,11 @@ export class AuthService {
         const token = randomBytes(32).toString('hex');
         const tokenHash = this.hashRefreshToken(token);
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-        await this.prisma.$transaction([
-          this.prisma.passwordResetToken.deleteMany({
-            where: { userId: user.id, usedAt: null },
-          }),
-          this.prisma.passwordResetToken.create({
-            data: { tenantId: user.tenantId, userId: user.id, tokenHash, expiresAt },
-          }),
-        ]);
+        await this.prisma.passwordResetToken.upsert({
+          where: { userId: user.id },
+          update: { tokenHash, expiresAt, usedAt: null, tenantId: user.tenantId },
+          create: { tenantId: user.tenantId, userId: user.id, tokenHash, expiresAt },
+        });
 
         const frontendUrl = (
           process.env.FRONTEND_URL ||
@@ -207,16 +210,24 @@ export class AuthService {
       }
 
       const passwordHash = await bcrypt.hash(dto.newPassword, 12);
-      await this.prisma.$transaction([
-        this.prisma.passwordResetToken.update({
-          where: { id: record.id },
+      await this.prisma.$transaction(async (tx) => {
+        const consumed = await tx.passwordResetToken.updateMany({
+          where: { id: record.id, usedAt: null, expiresAt: { gt: new Date() } },
           data: { usedAt: new Date() },
-        }),
-        this.prisma.user.update({
+        });
+        if (consumed.count !== 1) {
+          throw new UnauthorizedException('Invalid or expired reset token');
+        }
+        await tx.user.update({
           where: { id: record.userId },
-          data: { passwordHash, refreshToken: null, refreshTokenExpiresAt: null },
-        }),
-      ]);
+          data: {
+            passwordHash,
+            refreshToken: null,
+            refreshTokenExpiresAt: null,
+            sessionVersion: { increment: 1 },
+          },
+        });
+      });
       return { message: 'Password updated successfully' };
     });
   }
@@ -232,7 +243,12 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.newPassword, 12);
     await this.prisma.user.update({
       where: { id: userId },
-      data: { passwordHash, refreshToken: null, refreshTokenExpiresAt: null },
+      data: {
+        passwordHash,
+        refreshToken: null,
+        refreshTokenExpiresAt: null,
+        sessionVersion: { increment: 1 },
+      },
     });
     return { message: 'Password changed successfully' };
   }
@@ -251,7 +267,13 @@ export class AuthService {
       const passwordValid = await bcrypt.compare(dto.password, user.passwordHash);
       if (!passwordValid) throw new UnauthorizedException('Invalid credentials');
 
-      const tokens = await this.generateTokens(user.id, user.email, user.role, user.tenantId);
+      const tokens = await this.generateTokens(
+        user.id,
+        user.email,
+        user.role,
+        user.tenantId,
+        user.sessionVersion,
+      );
       await this.storeRefreshToken(user.id, tokens.refreshToken);
 
       return {
@@ -284,6 +306,7 @@ export class AuthService {
           id: payload.sub,
           tenantId: payload.tenantId,
           refreshToken: this.hashRefreshToken(token),
+          sessionVersion: payload.sessionVersion,
         },
         include: { tenant: { select: { isActive: true } } },
       });
@@ -296,7 +319,13 @@ export class AuthService {
         throw new UnauthorizedException('Account has been deactivated');
       }
 
-      const tokens = await this.generateTokens(user.id, user.email, user.role, user.tenantId);
+      const tokens = await this.generateTokens(
+        user.id,
+        user.email,
+        user.role,
+        user.tenantId,
+        user.sessionVersion,
+      );
       await this.storeRefreshToken(user.id, tokens.refreshToken);
       return tokens;
     });
@@ -306,21 +335,33 @@ export class AuthService {
   async logout(userId: string) {
     await this.prisma.user.update({
       where: { id: userId },
-      data: { refreshToken: null, refreshTokenExpiresAt: null },
+      data: {
+        refreshToken: null,
+        refreshTokenExpiresAt: null,
+        sessionVersion: { increment: 1 },
+      },
     });
     return { message: 'Logged out successfully' };
   }
 
   // ── HELPERS ───────────────────────────────────────────────────────────────
-  private async generateTokens(userId: string, email: string, role: string, tenantId: string) {
-    const payload = { sub: userId, email, role, tenantId };
+  private async generateTokens(
+    userId: string,
+    email: string,
+    role: string,
+    tenantId: string,
+    sessionVersion: number,
+  ) {
+    const payload = { sub: userId, email, role, tenantId, sessionVersion };
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         secret: process.env.JWT_SECRET,
+        algorithm: 'HS256',
         expiresIn: (process.env.JWT_ACCESS_EXPIRY || '15m') as any,
       }),
       this.jwtService.signAsync(payload, {
         secret: process.env.JWT_SECRET,
+        algorithm: 'HS256',
         expiresIn: (process.env.JWT_REFRESH_EXPIRY || '7d') as any,
       }),
     ]);

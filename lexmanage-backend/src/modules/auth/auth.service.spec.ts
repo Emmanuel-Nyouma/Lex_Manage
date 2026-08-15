@@ -7,7 +7,12 @@ describe('AuthService security controls', () => {
     $transaction: jest.fn(),
     user: {
       findFirst: jest.fn(),
+      findUnique: jest.fn(),
       update: jest.fn(),
+    },
+    passwordResetToken: {
+      findUnique: jest.fn(),
+      upsert: jest.fn(),
     },
   };
   const jwt = {
@@ -32,7 +37,7 @@ describe('AuthService security controls', () => {
   it('vérifie le JWT et compare uniquement son empreinte avec le bon utilisateur et tenant', async () => {
     const token = 'signed-refresh-token';
     const hash = createHash('sha256').update(token).digest('hex');
-    jwt.verifyAsync.mockResolvedValue({ sub: 'user-1', tenantId: 'tenant-1' });
+    jwt.verifyAsync.mockResolvedValue({ sub: 'user-1', tenantId: 'tenant-1', sessionVersion: 3 });
     jwt.signAsync
       .mockResolvedValueOnce('new-access')
       .mockResolvedValueOnce('new-refresh');
@@ -45,6 +50,7 @@ describe('AuthService security controls', () => {
       isActive: true,
       refreshToken: hash,
       refreshTokenExpiresAt: new Date(Date.now() + 60_000),
+      sessionVersion: 3,
       tenant: { isActive: true },
     });
     prisma.user.update.mockResolvedValue({});
@@ -54,8 +60,57 @@ describe('AuthService security controls', () => {
       refreshToken: 'new-refresh',
     });
     expect(prisma.user.findFirst).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: 'user-1', tenantId: 'tenant-1', refreshToken: hash },
+      where: { id: 'user-1', tenantId: 'tenant-1', refreshToken: hash, sessionVersion: 3 },
     }));
+    expect(jwt.verifyAsync).toHaveBeenCalledWith(token, {
+      secret: 'test-secret',
+      algorithms: ['HS256'],
+    });
+    expect(jwt.signAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ sessionVersion: 3 }),
+      expect.objectContaining({ algorithm: 'HS256' }),
+    );
+  });
+
+  it('révoque immédiatement tous les jetons lors du logout', async () => {
+    prisma.user.update.mockResolvedValue({});
+    await service.logout('user-1');
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      data: {
+        refreshToken: null,
+        refreshTokenExpiresAt: null,
+        sessionVersion: { increment: 1 },
+      },
+    });
+  });
+
+  it('consomme le reset token avec une mise à jour conditionnelle atomique', async () => {
+    prisma.passwordResetToken.findUnique.mockResolvedValue({
+      id: 'reset-1',
+      userId: 'user-1',
+      usedAt: null,
+      expiresAt: new Date(Date.now() + 60_000),
+      user: { isActive: true, tenant: { isActive: true } },
+    });
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const update = jest.fn().mockResolvedValue({});
+    prisma.$transaction.mockImplementation(async (callback) =>
+      callback({ passwordResetToken: { updateMany }, user: { update } }),
+    );
+
+    await expect(
+      service.resetPassword({ token: 'x'.repeat(64), newPassword: 'Password2' }),
+    ).resolves.toEqual({ message: 'Password updated successfully' });
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: 'reset-1', usedAt: null, expiresAt: { gt: expect.any(Date) } },
+      data: { usedAt: expect.any(Date) },
+    });
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ sessionVersion: { increment: 1 } }),
+      }),
+    );
   });
 
   it('ne consomme pas une invitation destinée à une autre adresse email', async () => {

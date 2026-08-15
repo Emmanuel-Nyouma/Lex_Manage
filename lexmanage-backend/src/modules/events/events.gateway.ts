@@ -43,11 +43,15 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       
       const tenantId = payload.tenantId;
       const userId = payload.sub;
+      if (!tenantId || !userId || !Number.isInteger(payload.sessionVersion) || !payload.exp) {
+        client.disconnect();
+        return;
+      }
 
       // Verify user exists and is active
       const user = await tenantContext.run(tenantId, () =>
         this.prisma.user.findFirst({
-          where: { id: userId, tenantId },
+          where: { id: userId, tenantId, sessionVersion: payload.sessionVersion },
           select: {
             isActive: true,
             tenantId: true,
@@ -67,6 +71,20 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Join room based on user for private notifications
       client.join(`user_${userId}`);
 
+      client.data.auth = {
+        tenantId,
+        userId,
+        sessionVersion: payload.sessionVersion,
+        expiresAt: payload.exp * 1000,
+      };
+      const remainingMs = Math.max(0, payload.exp * 1000 - Date.now());
+      client.data.expiryTimer = setTimeout(() => client.disconnect(true), remainingMs);
+      client.data.expiryTimer.unref?.();
+      client.data.reauthTimer = setInterval(() => {
+        void this.reauthenticate(client);
+      }, 60_000);
+      client.data.reauthTimer.unref?.();
+
       this.logger.log(`Client connected: ${client.id} (User: ${userId}, Tenant: ${tenantId})`);
     } catch (e) {
       this.logger.error(`Connection error: ${e.message}`);
@@ -75,6 +93,8 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(client: Socket) {
+    clearTimeout(client.data.expiryTimer);
+    clearInterval(client.data.reauthTimer);
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
@@ -112,7 +132,34 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('ping')
-  handlePing(client: Socket, data: any) {
+  async handlePing(client: Socket, data: any) {
+    if (!(await this.reauthenticate(client))) return;
     return { event: 'pong', data };
+  }
+
+  private async reauthenticate(client: Socket): Promise<boolean> {
+    const auth = client.data.auth as
+      | { tenantId: string; userId: string; sessionVersion: number; expiresAt: number }
+      | undefined;
+    if (!auth || auth.expiresAt <= Date.now()) {
+      client.disconnect(true);
+      return false;
+    }
+    const user = await tenantContext.run(auth.tenantId, () =>
+      this.prisma.user.findFirst({
+        where: {
+          id: auth.userId,
+          tenantId: auth.tenantId,
+          isActive: true,
+          sessionVersion: auth.sessionVersion,
+        },
+        select: { id: true, tenant: { select: { isActive: true } } },
+      }),
+    );
+    if (!user || !user.tenant.isActive) {
+      client.disconnect(true);
+      return false;
+    }
+    return true;
   }
 }

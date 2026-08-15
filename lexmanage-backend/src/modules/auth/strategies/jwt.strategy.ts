@@ -9,6 +9,7 @@ export interface JwtPayload {
   email: string;
   role: string;
   tenantId: string;
+  sessionVersion: number;
 }
 
 @Injectable()
@@ -23,12 +24,17 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(payload: JwtPayload) {
-    if (!payload.sub || !payload.tenantId) {
+    if (!payload.sub || !payload.tenantId || !Number.isInteger(payload.sessionVersion)) {
       throw new UnauthorizedException('Invalid token payload');
     }
     return tenantContext.run(payload.tenantId, async () => {
       const user = await this.prisma.user.findFirst({
-        where: { id: payload.sub, tenantId: payload.tenantId, isActive: true },
+        where: {
+          id: payload.sub,
+          tenantId: payload.tenantId,
+          isActive: true,
+          sessionVersion: payload.sessionVersion,
+        },
         include: { tenant: { select: { isActive: true } } },
       });
       if (!user || !user.tenant.isActive) {
