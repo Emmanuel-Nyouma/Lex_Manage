@@ -6,6 +6,18 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting database seeding...');
 
+  const adminEmail = process.env.SEED_ADMIN_EMAIL;
+  const lawyerEmail = process.env.SEED_LAWYER_EMAIL;
+  const seedPassword = process.env.SEED_USER_PASSWORD;
+  if (!adminEmail || !lawyerEmail || !seedPassword) {
+    throw new Error(
+      'SEED_ADMIN_EMAIL, SEED_LAWYER_EMAIL and SEED_USER_PASSWORD are required',
+    );
+  }
+  if (seedPassword.length < 12) {
+    throw new Error('SEED_USER_PASSWORD must contain at least 12 characters');
+  }
+
   // 1. Create a Demo Tenant
   const demoTenant = await prisma.tenant.upsert({
     where: { slug: 'cabinet-demo' },
@@ -21,13 +33,13 @@ async function main() {
   console.log(`🏢 Created Tenant: ${demoTenant.name}`);
 
   // 2. Create Admin User for the Tenant
-  const hashedPassword = await bcrypt.hash('password123', 12);
+  const hashedPassword = await bcrypt.hash(seedPassword, 12);
   
   const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@demo.com' },
+    where: { email: adminEmail },
     update: {},
     create: {
-      email: 'admin@demo.com',
+      email: adminEmail,
       passwordHash: hashedPassword,
       firstName: 'Jean',
       lastName: 'Dupont',
@@ -40,10 +52,10 @@ async function main() {
 
   // 3. Create a Lawyer User
   const lawyerUser = await prisma.user.upsert({
-    where: { email: 'lawyer@demo.com' },
+    where: { email: lawyerEmail },
     update: {},
     create: {
-      email: 'lawyer@demo.com',
+      email: lawyerEmail,
       passwordHash: hashedPassword,
       firstName: 'Marie',
       lastName: 'Curie',

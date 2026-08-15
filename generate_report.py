@@ -1525,15 +1525,15 @@ para("")
 section_heading("Appendix 1", "Environment Configuration (.env)")
 para("The following environment variables must be set in lexmanage-backend/.env:")
 
-env_vars = """DATABASE_URL="postgresql://postgres:password@localhost:5432/lexmanage"
-JWT_SECRET="your-256-bit-secret-key"
+env_vars = """DATABASE_URL=<required-postgresql-connection-string>
+JWT_SECRET=<required-random-secret>
 JWT_ACCESS_EXPIRY="15m"
 JWT_REFRESH_EXPIRY="7d"
 MINIO_ENDPOINT="localhost"
 MINIO_PORT=9000
 MINIO_USE_SSL=false
-MINIO_ACCESS_KEY="minioadmin"
-MINIO_SECRET_KEY="minioadmin"
+MINIO_ACCESS_KEY=<required-access-key>
+MINIO_SECRET_KEY=<required-secret-key>
 REDIS_HOST="localhost"
 REDIS_PORT=6379
 ALLOWED_ORIGINS="http://localhost:5173"
@@ -1542,7 +1542,7 @@ N8N_RAG_INGEST_URL="https://your-n8n-instance.app.n8n.cloud/webhook/legal-rag-in
 MAIL_HOST="smtp.example.com"
 MAIL_PORT=587
 MAIL_USER="your-email@example.com"
-MAIL_PASS="your-email-password"
+MAIL_PASS=<required-mail-password>
 """
 p = doc.add_paragraph()
 r = p.add_run(env_vars)

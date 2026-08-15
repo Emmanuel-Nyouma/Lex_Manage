@@ -1,11 +1,17 @@
 // Capture LexManage UI dialogs to report/figures/*.png via Chrome DevTools Protocol.
-// Logs in once (admin@demo.com), then for each target navigates, opens the dialog,
+// Logs in with credentials supplied through the environment, then navigates,
 // fills sample data and screenshots the viewport.
 const { spawn } = require('child_process');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const WebSocket = require('ws');
+
+const TEST_EMAIL = process.env.LEXMANAGE_TEST_EMAIL;
+const TEST_PASSWORD = process.env.LEXMANAGE_TEST_PASSWORD;
+if (!TEST_EMAIL || !TEST_PASSWORD) {
+  throw new Error('Set LEXMANAGE_TEST_EMAIL and LEXMANAGE_TEST_PASSWORD before capture.');
+}
 
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const BASE = 'http://localhost:5173';
@@ -74,7 +80,7 @@ const TARGETS = [
   // ---- Login ----
   await navigate('/login');
   await waitFor(`!!document.querySelector('input[name=email]')`);
-  await evalJS(`(()=>{const set=(s,v)=>{const el=document.querySelector(s);Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}));};set('input[name=email]','admin@demo.com');set('input[name=password]','password123');})()`);
+  await evalJS(`(()=>{const set=(s,v)=>{const el=document.querySelector(s);Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set.call(el,v);el.dispatchEvent(new Event('input',{bubbles:true}));};set('input[name=email]',${JSON.stringify(TEST_EMAIL)});set('input[name=password]',${JSON.stringify(TEST_PASSWORD)});})()`);
   await sleep(200);
   await evalJS(`(()=>{const b=document.querySelector('button[type=submit]')||[...document.querySelectorAll('button')].find(x=>x.textContent.trim()==='Login');b&&b.click();})()`);
   const logged = await waitFor(`location.pathname!=='/login' && !!document.querySelector('a[href="/dashboard"]')`,60,300);
