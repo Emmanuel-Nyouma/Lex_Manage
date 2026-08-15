@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { DocumentsService } from './documents.service';
@@ -7,6 +7,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Role } from '@prisma/client';
 
 @ApiTags('documents')
 @ApiBearerAuth()
@@ -19,29 +20,47 @@ export class DocumentsController {
   @ApiOperation({ summary: 'Get all documents for the firm with pagination' })
   findAll(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: Role,
     @Query('caseId') caseId?: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
     @Query('category') category?: string,
+    @Query('q') query?: string,
   ) {
-    if (caseId) return this.documentsService.findByCase(caseId, tenantId);
+    const parsedLimit = limit ? Number.parseInt(limit, 10) : 10;
+    const safeLimit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 100) : 10;
+    if (caseId) return this.documentsService.findByCase(caseId, tenantId, userId, role);
     return this.documentsService.findAll(
       tenantId,
+      userId,
+      role,
       cursor,
-      limit ? parseInt(limit) : 10,
-      category
+      safeLimit,
+      category,
+      query,
     );
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string, @CurrentUser('tenantId') tenantId: string) {
-    return this.documentsService.findOne(id, tenantId);
+  findOne(
+    @Param('id') id: string,
+    @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: Role,
+  ) {
+    return this.documentsService.findOne(id, tenantId, userId, role);
   }
 
   @Get(':id/download-url')
   @ApiOperation({ summary: 'Generate a presigned URL for downloading a document' })
-  getDownloadUrl(@Param('id') id: string, @CurrentUser('tenantId') tenantId: string) {
-    return this.documentsService.getSignedUrl(id, tenantId);
+  getDownloadUrl(
+    @Param('id') id: string,
+    @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: Role,
+  ) {
+    return this.documentsService.getSignedUrl(id, tenantId, userId, role);
   }
 
   @Post('upload')
@@ -62,12 +81,25 @@ export class DocumentsController {
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
   ) {
+    let parsedAllowedRoles: Role[] | undefined;
+    if (allowedRoles) {
+      try {
+        const parsed = JSON.parse(allowedRoles);
+        const allowed = Object.values(Role);
+        if (!Array.isArray(parsed) || parsed.some((item) => !allowed.includes(item))) {
+          throw new Error('invalid roles');
+        }
+        parsedAllowedRoles = Array.from(new Set(parsed));
+      } catch {
+        throw new BadRequestException('allowedRoles must be a JSON array of valid roles');
+      }
+    }
     return this.documentsService.upload(file, tenantId, userId, {
       name,
       documentType,
       category,
       subCategory,
-      allowedRoles: allowedRoles ? JSON.parse(allowedRoles) : undefined,
+      allowedRoles: parsedAllowedRoles,
       courtCaseRef,
       caseId: bodyCaseId || queryCaseId,
       pending: pending === 'true',
@@ -91,8 +123,9 @@ export class DocumentsController {
     @Body() dto: UpdateDocumentDto,
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: Role,
   ) {
-    return this.documentsService.update(id, dto, tenantId, userId);
+    return this.documentsService.update(id, dto, tenantId, userId, role);
   }
 
   @Patch(':id/link-to-case')
@@ -113,7 +146,8 @@ export class DocumentsController {
     @Param('id') id: string,
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: Role,
   ) {
-    return this.documentsService.remove(id, tenantId, userId);
+    return this.documentsService.remove(id, tenantId, userId, role);
   }
 }

@@ -8,7 +8,7 @@ import {
   CreateBucketCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 /**
  * S3-compatible object storage service.
@@ -59,16 +59,37 @@ export class MinioService {
     if (this.bucketReady) return;
     try {
       await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
-    } catch {
+    } catch (headError: any) {
+      const status = headError?.$metadata?.httpStatusCode;
+      const missing =
+        status === 404 ||
+        ['NotFound', 'NoSuchBucket'].includes(headError?.name);
+      if (!missing) {
+        throw new InternalServerErrorException(
+          `Object storage bucket check failed (${headError?.name || status || 'unknown'})`,
+        );
+      }
       try {
         await this.client.send(new CreateBucketCommand({ Bucket: this.bucket }));
         this.logger.log(`Created storage bucket "${this.bucket}"`);
       } catch (e: any) {
-        // Bucket likely already exists but HeadBucket isn't permitted (Supabase).
-        this.logger.warn(`ensureBucket: proceeding without create (${e?.name || e})`);
+        const alreadyExists = [
+          'BucketAlreadyExists',
+          'BucketAlreadyOwnedByYou',
+        ].includes(e?.name);
+        if (!alreadyExists) {
+          this.logger.error(`Storage bucket initialization failed: ${e?.message || e}`);
+          throw new InternalServerErrorException(
+            'Object storage bucket is not available',
+          );
+        }
       }
     }
     this.bucketReady = true;
+  }
+
+  async checkHealth(): Promise<void> {
+    await this.ensureBucket();
   }
 
   async uploadFile(
@@ -78,7 +99,7 @@ export class MinioService {
   ): Promise<{ objectName: string }> {
     await this.ensureBucket();
     const ext = file.originalname.split('.').pop();
-    const objectName = `${pathPrefix}${uuidv4()}.${ext}`;
+    const objectName = `${pathPrefix}${randomUUID()}.${ext}`;
 
     try {
       await this.client.send(

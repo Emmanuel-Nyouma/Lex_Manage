@@ -1,8 +1,6 @@
-import { Injectable, NotFoundException, Inject } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bull';
+import { BadRequestException, Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
-import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCaseDto, UpdateCaseDto } from './dto/case.dto';
 import { EventsGateway } from '../events/events.gateway';
@@ -14,7 +12,6 @@ export class CasesService {
     private prisma: PrismaService,
     private eventsGateway: EventsGateway,
     private auditService: AuditService,
-    @InjectQueue('reminders') private reminderQueue: Queue,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
@@ -88,8 +85,9 @@ export class CasesService {
 
   async create(dto: CreateCaseDto, tenantId: string, userId: string) {
     const { documentIds, ...data } = dto;
-    
-    return this.prisma.$transaction(async (tx) => {
+    await this.assertReferences(tenantId, dto.clientId, dto.assigneeId || userId);
+
+    const newCase = await this.prisma.$transaction(async (tx) => {
       const newCase = await tx.case.create({
         data: { ...data, tenantId, assigneeId: dto.assigneeId || userId },
       });
@@ -101,29 +99,30 @@ export class CasesService {
         });
       }
 
-      await this.invalidateTenantCases(tenantId);
-
-      await this.auditService.log({
-        tenantId,
-        userId,
-        action: 'CREATE',
-        entity: 'Case',
-        entityId: newCase.id,
-        details: { after: newCase },
-      });
-      
-      this.eventsGateway.sendToTenant(tenantId, 'case.created', newCase);
       return newCase;
     });
+
+    await this.invalidateTenantCases(tenantId);
+    await this.auditService.log({
+      tenantId,
+      userId,
+      action: 'CREATE',
+      entity: 'Case',
+      entityId: newCase.id,
+      details: { after: newCase },
+    });
+    this.eventsGateway.sendToTenant(tenantId, 'case.created', newCase);
+    return newCase;
   }
 
   async update(id: string, dto: UpdateCaseDto, tenantId: string, userId: string) {
     const originalCase = await this.findOne(id, tenantId); // Ownership check
     const { documentIds, ...data } = dto;
+    await this.assertReferences(tenantId, dto.clientId, dto.assigneeId);
     const updateData: any = { ...data };
-    if (dto.status === 'CLOSED') updateData.closedAt = new Date();
+    if (dto.status) updateData.closedAt = dto.status === 'CLOSED' ? new Date() : null;
 
-    return this.prisma.$transaction(async (tx) => {
+    const updatedCase = await this.prisma.$transaction(async (tx) => {
       const updatedCase = await tx.case.update({
         where: { id },
         data: updateData,
@@ -136,25 +135,61 @@ export class CasesService {
         });
       }
 
-      await this.cacheManager.del(`case:${tenantId}:${id}`);
-      await this.invalidateTenantCases(tenantId);
-
-      await this.auditService.log({
-        tenantId,
-        userId,
-        action: 'UPDATE',
-        entity: 'Case',
-        entityId: id,
-        details: { before: originalCase, after: updatedCase },
-      });
-
       return updatedCase;
     });
+
+    await this.cacheManager.del(`case:${tenantId}:${id}`);
+    await this.invalidateTenantCases(tenantId);
+    await this.auditService.log({
+      tenantId,
+      userId,
+      action: 'UPDATE',
+      entity: 'Case',
+      entityId: id,
+      details: { before: originalCase, after: updatedCase },
+    });
+    return updatedCase;
+  }
+
+  private async assertReferences(
+    tenantId: string,
+    clientId?: string | null,
+    assigneeId?: string | null,
+  ) {
+    const [client, assignee] = await Promise.all([
+      clientId
+        ? this.prisma.client.findFirst({ where: { id: clientId, tenantId }, select: { id: true } })
+        : null,
+      assigneeId
+        ? this.prisma.user.findFirst({
+            where: { id: assigneeId, tenantId, isActive: true },
+            select: { id: true },
+          })
+        : null,
+    ]);
+    if (clientId && !client) throw new BadRequestException('Client does not belong to this firm');
+    if (assigneeId && !assignee) throw new BadRequestException('Assignee does not belong to this firm');
   }
 
   async remove(id: string, tenantId: string, userId: string) {
     const originalCase = await this.findOne(id, tenantId);
-    await this.prisma.case.delete({ where: { id } });
+    await this.prisma.$transaction(async (tx) => {
+      await Promise.all([
+        tx.document.updateMany({
+          where: { tenantId, case_id: id },
+          data: { case_id: null },
+        }),
+        tx.notification.updateMany({
+          where: { tenantId, caseId: id },
+          data: { caseId: null },
+        }),
+        tx.scheduledNotification.updateMany({
+          where: { tenantId, caseId: id },
+          data: { caseId: null },
+        }),
+      ]);
+      await tx.case.delete({ where: { id } });
+    });
 
     await this.cacheManager.del(`case:${tenantId}:${id}`);
     await this.invalidateTenantCases(tenantId);

@@ -1,15 +1,18 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, Patch } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, UseGuards, Patch, ServiceUnavailableException } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bullmq';
+import { Queue } from 'bull';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { NotFoundException } from '@nestjs/common';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { CreateDeadlineDto } from './dto/deadline.dto';
 
 @ApiTags('deadlines')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('cases/:caseId/deadlines')
 export class DeadlinesController {
   constructor(
@@ -18,11 +21,12 @@ export class DeadlinesController {
   ) {}
 
   @Post()
+  @Roles('CABINET_ADMIN', 'SUPER_ADMIN', 'LAWYER')
   @ApiOperation({ summary: 'Create a new deadline for a case' })
   async create(
     @CurrentUser('tenantId') tenantId: string,
     @Param('caseId') caseId: string,
-    @Body() dto: { title: string; dueAt: string; priority: string },
+    @Body() dto: CreateDeadlineDto,
   ) {
     let finalCaseId = caseId;
     
@@ -54,12 +58,20 @@ export class DeadlinesController {
     reminderDate.setDate(reminderDate.getDate() - 3);
     const delay = Math.max(0, reminderDate.getTime() - Date.now());
 
-    await this.reminderQueue.add('send-reminder', {
-      deadlineId: deadline.id,
-      tenantId,
-    }, {
-      delay,
-    });
+    try {
+      await this.reminderQueue.add('send-reminder', {
+        deadlineId: deadline.id,
+        tenantId,
+      }, {
+        delay,
+        jobId: `deadline-${deadline.id}`,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 2000 },
+      });
+    } catch {
+      await this.prisma.deadline.delete({ where: { id: deadline.id } });
+      throw new ServiceUnavailableException('Reminder service is temporarily unavailable');
+    }
 
     return deadline;
   }
@@ -77,6 +89,7 @@ export class DeadlinesController {
   }
 
   @Patch(':id/done')
+  @Roles('CABINET_ADMIN', 'SUPER_ADMIN', 'LAWYER')
   @ApiOperation({ summary: 'Mark a deadline as done' })
   async markAsDone(
     @CurrentUser('tenantId') tenantId: string,
@@ -95,6 +108,7 @@ export class DeadlinesController {
   }
 
   @Delete(':id')
+  @Roles('CABINET_ADMIN', 'SUPER_ADMIN', 'LAWYER')
   @ApiOperation({ summary: 'Delete a deadline' })
   async remove(
     @CurrentUser('tenantId') tenantId: string,
