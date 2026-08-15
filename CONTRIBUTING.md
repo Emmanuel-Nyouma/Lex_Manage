@@ -4,7 +4,7 @@ Thank you for improving LexManage. Keep each change focused, reviewable, and sup
 
 ## Development setup
 
-Use Node.js 20 and install from the committed lockfiles:
+Use Node.js 22.12 or newer and install from the committed lockfiles:
 
 ```bash
 npm ci
@@ -16,7 +16,7 @@ Copy the provided `.env.example` files and supply your own local credentials. Ne
 
 ## Change workflow
 
-1. Create a branch with a descriptive name.
+1. Create a branch from `main` using `feat/<short-name>`, `fix/<short-name>`, `test/<short-name>`, `refactor/<short-name>`, `docs/<short-name>`, or `chore/<short-name>`.
 2. Keep one feature, fix, or refactor per commit whenever practical.
 3. Add or update tests that fail before the change and pass afterward.
 4. Do not mix formatting-only rewrites with behavior changes.
@@ -46,11 +46,13 @@ npm run build
 npm audit --omit=dev --audit-level=high
 ```
 
-All checks must pass before a pull request is merged.
+All checks must pass before a pull request is merged. The frontend coverage gate is 60% for statements, branches, functions, and lines; do not weaken or bypass it.
 
 ## Pull requests
 
-Describe the user-visible problem, the root cause, the chosen solution, test evidence, deployment or migration impact, and rollback considerations. Include screenshots for UI changes and never include real client data.
+Describe the user-visible problem, the root cause, the chosen solution, test evidence, deployment or migration impact, and rollback considerations. Include screenshots for UI changes and never include real client data. Keep pull requests focused, link a real issue when one exists, request review, and wait for every required CI job before merging.
+
+External contributions are welcome when they represent genuine engineering work. Contributors retain their real authorship; maintainers must never fabricate contributor identities, commits, reviews, or activity.
 
 ## Security
 
