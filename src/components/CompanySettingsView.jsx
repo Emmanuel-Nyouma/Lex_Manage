@@ -34,13 +34,15 @@ const EditMemberModal = ({ member, onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 z-[120] bg-slate-950/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-300">
+      <div role="dialog" aria-modal="true" aria-labelledby="edit-member-title" className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-300">
         <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-          <h3 className="font-bold text-slate-900 dark:text-white">
+          <h3 id="edit-member-title" className="font-bold text-slate-900 dark:text-white">
             Edit Member: {member.firstName} {member.lastName}
           </h3>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close member editor"
             className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
           >
             <X size={20} className="text-slate-500" />
@@ -48,12 +50,13 @@ const EditMemberModal = ({ member, onClose, onSave }) => {
         </div>
         <div className="p-6 space-y-6">
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
+            <label htmlFor="member-role" className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
               Member Role
             </label>
             <div className="relative">
               <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
               <select
+                id="member-role"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
                 className="w-full pl-10 pr-10 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none appearance-none cursor-pointer focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-white"
@@ -82,9 +85,9 @@ const EditMemberModal = ({ member, onClose, onSave }) => {
 /* ─── Confirm-action modal ───────────────────────────────────────── */
 const ConfirmModal = ({ title, description, confirmLabel, variant = 'danger', onConfirm, onClose }) => (
   <div className="fixed inset-0 z-[130] bg-slate-950/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
-    <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-300 p-6 space-y-4">
-      <h3 className="font-bold text-slate-900 dark:text-white">{title}</h3>
-      <p className="text-sm text-slate-500 dark:text-slate-400">{description}</p>
+    <div role="alertdialog" aria-modal="true" aria-labelledby="confirm-action-title" aria-describedby="confirm-action-description" className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-300 p-6 space-y-4">
+      <h3 id="confirm-action-title" className="font-bold text-slate-900 dark:text-white">{title}</h3>
+      <p id="confirm-action-description" className="text-sm text-slate-500 dark:text-slate-400">{description}</p>
       <div className="flex gap-3 pt-2">
         <Button variant="ghost" className="flex-1" onClick={onClose}>Cancel</Button>
         <Button
@@ -249,9 +252,13 @@ const CompanySettingsView = () => {
     }
   };
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard!');
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('Copied to clipboard!');
+    } catch {
+      toast.error('Unable to copy to clipboard');
+    }
   };
 
   const handleSaveFirm = async (e) => {
@@ -362,13 +369,15 @@ const CompanySettingsView = () => {
                 {tenantInfo.country || 'N/A'}
               </span>
               <span className="opacity-20">|</span>
-              <span
+              <button
+                type="button"
                 className="text-slate-400 dark:text-slate-500 select-all cursor-copy"
                 onClick={() => copyToClipboard(tenantInfo.id)}
                 title="Click to copy full ID"
+                aria-label="Copy firm ID"
               >
                 ID: {tenantInfo.id.split('-')[0]}…
-              </span>
+              </button>
             </div>
           )}
         </div>
@@ -400,6 +409,7 @@ const CompanySettingsView = () => {
             { id: 'firm',       label: 'Firm Info',                         icon: Building2},
           ].map(({ id, label, icon: _Icon }) => (
             <button
+              type="button"
               key={id}
               onClick={() => setActiveTab(id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${

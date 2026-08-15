@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from '../lib/router';
 import {
   Users, UserPlus, Search, Mail, Phone, MapPin,
-  Trash2, Edit2, X, Building2, User as UserIcon,
+  Trash2, X, Building2, User as UserIcon,
   ChevronRight,
   AlertCircle, RefreshCcw,
 } from 'lucide-react';
@@ -95,6 +95,7 @@ const ClientsDirectoryView = () => {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-300" size={18} />
           <input 
             type="text"
+            aria-label="Search clients"
             placeholder="Quick search client..."
             value={searchQuery}
             onChange={handleSearchChange}
@@ -107,7 +108,7 @@ const ClientsDirectoryView = () => {
             <div className="absolute top-full left-0 w-full sm:max-w-md mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-[80] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="p-2 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Results for "{searchQuery}"</span>
-                <button onClick={() => setShowSearchPopup(false)} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
+                <button type="button" aria-label="Close search results" onClick={() => setShowSearchPopup(false)} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
                   <X size={14} className="text-slate-400" />
                 </button>
               </div>
@@ -115,7 +116,9 @@ const ClientsDirectoryView = () => {
                 {filteredClients.length > 0 ? (
                   filteredClients.map(client => (
                     <button
+                      type="button"
                       key={client.id}
+                      aria-label={`Open search result ${client.name}`}
                       onClick={() => {
                         navigate(`/clients/${client.id}`);
                         setShowSearchPopup(false);
@@ -157,8 +160,17 @@ const ClientsDirectoryView = () => {
             {filteredClients.map((client) => (
               <div 
                 key={client.id} 
+                role="button"
+                tabIndex={0}
+                aria-label={`Open ${client.name}`}
                 className="py-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors px-2 rounded-xl"
                 onClick={() => navigate(`/clients/${client.id}`)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    navigate(`/clients/${client.id}`);
+                  }
+                }}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
@@ -175,13 +187,7 @@ const ClientsDirectoryView = () => {
                   {isAdmin && (
                     <div className="flex gap-1 shrink-0">
                       <button
-                        onClick={(e) => { e.stopPropagation(); /* handle edit */ }}
-                        className="p-2.5 text-slate-500 dark:text-slate-300 hover:text-blue-600 transition-colors rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                        aria-label="Edit client"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
+                        type="button"
                         onClick={(e) => { e.stopPropagation(); handleDeleteClient(client.id); }}
                         className="p-2.5 text-slate-500 dark:text-slate-300 hover:text-red-600 transition-colors rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20"
                         aria-label="Delete client"
@@ -228,7 +234,15 @@ const ClientsDirectoryView = () => {
                 {filteredClients.map((client) => (
                   <tr 
                     key={client.id} 
+                    tabIndex={0}
+                    aria-label={`Open ${client.name}`}
                     onClick={() => navigate(`/clients/${client.id}`)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        navigate(`/clients/${client.id}`);
+                      }
+                    }}
                     className="group hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-all cursor-pointer"
                   >
                     <td className="py-4 px-4">
@@ -267,13 +281,9 @@ const ClientsDirectoryView = () => {
                       {isAdmin && (
                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
-                            className="p-2 text-slate-500 dark:text-slate-300 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button
+                            type="button"
                             onClick={(e) => { e.stopPropagation(); handleDeleteClient(client.id); }}
+                            aria-label={`Delete ${client.name}`}
                             className="p-2 text-slate-500 dark:text-slate-300 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                           >
                             <Trash2 size={16} />

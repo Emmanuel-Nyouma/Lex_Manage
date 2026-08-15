@@ -10,11 +10,13 @@ import { useKeyboardNavigation } from '../hooks/useKeyboardNavigation';
 import { toast } from 'sonner';
 import { sanitize } from '../lib/sanitizer';
 import { formatLegalDate } from '../utils/dateOnly';
+import { useNavigate } from '../lib/router';
 
 import { useDeadlines, useCreateDeadline, useMarkDeadlineDone, useCases } from '../hooks/useCases';
 
 const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
   const { currentUser } = useLexStore();
+  const navigate = useNavigate();
   const { refetch: refetchCases } = useCases();
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -95,9 +97,15 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
     
     Format the output with bold headings for "Risk Assessment", "Key Precedent", and "Recommended Strategy". Keep it concise (under 150 words).`;
     
-    const result = await onCallGemini(prompt, "You are a senior legal strategist.");
-    setAiAnalysis(result);
-    setIsAnalyzing(false);
+    try {
+      const result = await onCallGemini(prompt, "You are a senior legal strategist.");
+      setAiAnalysis(result);
+    } catch (error) {
+      console.error(error);
+      toast.error("Impossible de générer la stratégie pour le moment.");
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const generateClientEmail = async () => {
@@ -107,9 +115,25 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
     The current status is '${activeCase.status}'.
     The tone should be professional, reassuring, and concise.`;
     
-    const result = await onCallGemini(prompt, "You are an expert legal secretary.");
-    setDraftEmail(result);
-    setIsAnalyzing(false);
+    try {
+      const result = await onCallGemini(prompt, "You are an expert legal secretary.");
+      setDraftEmail(result);
+    } catch (error) {
+      console.error(error);
+      toast.error("Impossible de générer l’e-mail pour le moment.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const copyDraftEmail = async () => {
+    try {
+      await navigator.clipboard.writeText(draftEmail || '');
+      toast.success('Brouillon copié dans le presse-papiers.');
+    } catch (error) {
+      console.error(error);
+      toast.error('Impossible de copier le brouillon.');
+    }
   };
 
   return (
@@ -161,7 +185,7 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
                <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-amber-100 dark:border-amber-900/30 text-sm text-slate-800 dark:text-slate-200 animate-in fade-in slide-in-from-top-2 shadow-inner">
                  <div className="text-[10px] text-amber-600 dark:text-amber-500 mb-2 uppercase tracking-widest font-bold">Email Draft Preview</div>
                  <div className="whitespace-pre-line leading-relaxed font-mono text-xs bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border dark:border-slate-800" dangerouslySetInnerHTML={{ __html: sanitize(draftEmail) }}></div>
-                 <button aria-label="Copy to clipboard" className="mt-3 w-full py-2 bg-slate-900 dark:bg-amber-600 text-white text-xs font-bold rounded-lg hover:bg-slate-800 dark:hover:bg-amber-700 transition-colors">Copy to Clipboard</button>
+                  <button type="button" onClick={copyDraftEmail} aria-label="Copy to clipboard" className="mt-3 w-full py-2 bg-slate-900 dark:bg-amber-600 text-white text-xs font-bold rounded-lg hover:bg-slate-800 dark:hover:bg-amber-700 transition-colors">Copy to Clipboard</button>
                </div>
              )}
            </div>
@@ -267,7 +291,7 @@ const CaseDrawer = ({ activeCase, onClose, onCallGemini }) => {
            </div>
         </div>
         <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex gap-3 sticky bottom-0">
-           <button className="flex-1 py-3 bg-slate-900 dark:bg-amber-600 text-white rounded-xl text-sm font-bold hover:bg-slate-800 dark:hover:bg-amber-700 transition-all active:scale-[0.98] shadow-lg shadow-slate-200 dark:shadow-none">
+           <button type="button" onClick={() => navigate(`/cases/${activeCase.id}`)} className="flex-1 py-3 bg-slate-900 dark:bg-amber-600 text-white rounded-xl text-sm font-bold hover:bg-slate-800 dark:hover:bg-amber-700 transition-all active:scale-[0.98] shadow-lg shadow-slate-200 dark:shadow-none">
              Open full case
            </button>
         </div>

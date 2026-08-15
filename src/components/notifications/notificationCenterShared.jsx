@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { LEVEL_CONFIG, STATUS_CONFIG } from './notificationCenterData';
 
 // ─── Small shared helpers ────────────────────────────────────────────────────
@@ -23,32 +23,42 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-const NField = ({ label, required, ...props }) => (
-  <div>
-    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
-      {label}
-    </label>
-    <input
-      required={required}
-      className="w-full px-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-white placeholder:text-slate-400"
-      {...props}
-    />
-  </div>
-);
+const NField = ({ label, required, id, ...props }) => {
+  const generatedId = useId();
+  const fieldId = id || generatedId;
+  return (
+    <div>
+      <label htmlFor={fieldId} className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
+        {label}
+      </label>
+      <input
+        id={fieldId}
+        required={required}
+        className="w-full px-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-white placeholder:text-slate-400"
+        {...props}
+      />
+    </div>
+  );
+};
 
-const NSelect = ({ label, children, ...props }) => (
-  <div>
-    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
-      {label}
-    </label>
-    <select
-      className="w-full px-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-white appearance-none"
-      {...props}
-    >
-      {children}
-    </select>
-  </div>
-);
+const NSelect = ({ label, children, id, ...props }) => {
+  const generatedId = useId();
+  const fieldId = id || generatedId;
+  return (
+    <div>
+      <label htmlFor={fieldId} className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
+        {label}
+      </label>
+      <select
+        id={fieldId}
+        className="w-full px-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-white appearance-none"
+        {...props}
+      >
+        {children}
+      </select>
+    </div>
+  );
+};
 
 const Detail = ({ label, value }) => (
   <div>

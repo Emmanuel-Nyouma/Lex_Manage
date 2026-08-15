@@ -133,8 +133,10 @@ const ScheduledRow = ({ item: s, onCancel, onDelete, cancelling }) => (
     <div className="flex items-center gap-1 shrink-0">
       {onCancel && s.status === 'PENDING' && (
         <button
+          type="button"
           onClick={() => onCancel(s.id)}
           disabled={cancelling}
+          aria-label={`Cancel ${s.title || motifLabel(s.motif)}`}
           className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-all disabled:opacity-40"
           title="Cancel (keep in archive)"
         >
@@ -143,8 +145,10 @@ const ScheduledRow = ({ item: s, onCancel, onDelete, cancelling }) => (
       )}
       {onDelete && (
         <button
+          type="button"
           onClick={() => onDelete(s.id)}
           disabled={cancelling}
+          aria-label={`Delete ${s.title || motifLabel(s.motif)}`}
           className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all disabled:opacity-40"
           title="Delete permanently"
         >
@@ -210,10 +214,11 @@ const ScheduleForm = ({ onCreated }) => {
           </NSelect>
           {/* Date/time picker */}
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
+            <label htmlFor="scheduled-at" className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
               Send at *
             </label>
             <input
+              id="scheduled-at"
               type="datetime-local"
               required
               value={form.scheduledAt}
@@ -233,8 +238,9 @@ const ScheduleForm = ({ onCreated }) => {
         </div>
 
         <div>
-          <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">Message</label>
+          <label htmlFor="scheduled-message" className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">Message</label>
           <textarea
+            id="scheduled-message"
             rows={3}
             placeholder="Détails de la notification…"
             value={form.message}
@@ -244,8 +250,8 @@ const ScheduleForm = ({ onCreated }) => {
         </div>
 
         <div>
-          <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">Recipients</label>
-          <div className="flex flex-wrap gap-2">
+          <span id="scheduled-recipients-label" className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">Recipients</span>
+          <div className="flex flex-wrap gap-2" role="group" aria-labelledby="scheduled-recipients-label">
             {ROLE_OPTIONS.map(r => (
               <button
                 key={r.value}

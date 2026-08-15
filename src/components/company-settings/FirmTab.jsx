@@ -23,8 +23,10 @@ const FirmTab = ({
 
             <div className="flex flex-col items-center gap-4">
               {/* Preview */}
-              <div
+              <button
+                type="button"
                 onClick={() => logoInputRef.current?.click()}
+                aria-label="Choose firm logo"
                 className="relative w-32 h-32 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden cursor-pointer hover:border-amber-400 transition-colors group bg-slate-50 dark:bg-slate-800/50"
               >
                 {logoPreview ? (
@@ -46,17 +48,19 @@ const FirmTab = ({
                     : <Camera size={24} className="text-white" />
                   }
                 </div>
-              </div>
+              </button>
 
               <input
                 ref={logoInputRef}
                 type="file"
+                aria-label="Firm logo file"
                 accept="image/png,image/jpeg,image/svg+xml,image/webp"
                 className="hidden"
                 onChange={handleLogoChange}
               />
 
               <button
+                type="button"
                 onClick={() => logoInputRef.current?.click()}
                 disabled={isUploadingLogo}
                 className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline disabled:opacity-50"

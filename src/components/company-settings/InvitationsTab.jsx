@@ -37,6 +37,7 @@ const InvitationsTab = ({ isLoading, invitations, copyToClipboard, revokeInvitat
                     </span>
                     <div className="flex gap-1">
                       <button
+                        type="button"
                         onClick={() => copyToClipboard(`${window.location.origin}/login?invitation=${invite.token}`)}
                         className="p-2.5 text-slate-400 hover:text-amber-600 transition-colors rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/20"
                         aria-label="Copy invitation link"
@@ -44,6 +45,7 @@ const InvitationsTab = ({ isLoading, invitations, copyToClipboard, revokeInvitat
                         <Copy size={16} />
                       </button>
                       <button
+                        type="button"
                         onClick={() => revokeInvitation(invite.id)}
                         className="p-2.5 text-slate-400 hover:text-red-600 transition-colors rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20"
                         aria-label="Revoke invitation"
@@ -87,6 +89,7 @@ const InvitationsTab = ({ isLoading, invitations, copyToClipboard, revokeInvitat
                       <td className="py-4 px-2 text-right">
                         <div className="flex justify-end gap-1">
                           <button
+                            type="button"
                             onClick={() =>
                               copyToClipboard(
                                 `${window.location.origin}/login?invitation=${invite.token}`
@@ -94,13 +97,16 @@ const InvitationsTab = ({ isLoading, invitations, copyToClipboard, revokeInvitat
                             }
                             className="p-2 text-slate-400 hover:text-amber-600 transition-colors rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20"
                             title="Copy invitation link"
+                            aria-label="Copy invitation link"
                           >
                             <Copy size={16} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => revokeInvitation(invite.id)}
                             className="p-2 text-slate-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                             title="Revoke invitation"
+                            aria-label="Revoke invitation"
                           >
                             <Trash2 size={16} />
                           </button>

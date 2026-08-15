@@ -113,8 +113,9 @@ const DocumentUpload = ({ onUploadSuccess, existingDocuments = [] }) => {
           
           <div className="space-y-3">
             <div>
-              <label className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Catégorie principale</label>
+              <label htmlFor="document-category" className="text-[10px] font-black uppercase text-slate-400 mb-1 block">Catégorie principale</label>
               <select 
+                id="document-category"
                 value={selectedCategory}
                 onChange={(e) => {
                   setSelectedCategory(e.target.value);
@@ -134,6 +135,7 @@ const DocumentUpload = ({ onUploadSuccess, existingDocuments = [] }) => {
                 <div className="flex flex-wrap gap-2">
                   {currentCategoryObj.subCategories.map(sub => (
                     <button
+                      type="button"
                       key={sub.id}
                       onClick={() => setSelectedSubCategory(sub.id)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${selectedSubCategory === sub.id ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-50'}`}
@@ -159,6 +161,7 @@ const DocumentUpload = ({ onUploadSuccess, existingDocuments = [] }) => {
               <div className="grid grid-cols-2 gap-2">
                 {ACCESS_ROLES.map(role => (
                   <button
+                    type="button"
                     key={role.id}
                     onClick={() => toggleRole(role.id)}
                     className={`flex items-center gap-2 p-2 rounded-lg border text-[11px] font-bold transition-all ${allowedRoles.includes(role.id) ? 'bg-amber-100 dark:bg-amber-900/20 border-amber-500 text-amber-700 dark:text-amber-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-amber-300'}`}
