@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { Camera, Building2, Loader2, MapPin, Globe, Link2, Phone, Hash, Shield, RefreshCw, Save } from 'lucide-react';
 import { Card } from '../ui';
 
@@ -195,24 +195,28 @@ const FirmTab = ({
 );
 
 /* ─── Reusable field component ───────────────────────────────────── */
-const FirmField = ({ label, icon: Icon, placeholder, type = 'text', required, value, onChange }) => (
-  <div>
-    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
-      {label}{required && <span className="text-red-400 ml-0.5">*</span>}
-    </label>
-    <div className="relative">
-      {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />}
-      <input
-        type={type}
-        required={required}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-white placeholder:text-slate-400"
-      />
+const FirmField = ({ label, icon: Icon, placeholder, type = 'text', required, value, onChange }) => {
+  const inputId = useId();
+  return (
+    <div>
+      <label htmlFor={inputId} className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
+        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
+      </label>
+      <div className="relative">
+        {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />}
+        <input
+          id={inputId}
+          type={type}
+          required={required}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-white placeholder:text-slate-400"
+        />
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 
 export default FirmTab;

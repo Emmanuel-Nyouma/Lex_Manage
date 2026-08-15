@@ -276,8 +276,9 @@ const SendNotificationDialog = ({ isOpen, onClose, preloadTemplate = null }) => 
             <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-2">4. Message final</p>
             <Input {...register('title')} label="Sujet de l'alerte" placeholder="Ex: Audience reportée..." />
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Contenu détaillé</label>
+              <label htmlFor="notification-message" className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">Contenu détaillé</label>
               <textarea 
+                id="notification-message"
                 {...register('message')} 
                 className="w-full p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl min-h-[140px] focus:ring-2 focus:ring-amber-500/20 focus:outline-none transition-all text-sm dark:text-white placeholder:text-slate-400" 
                 placeholder="Expliquez précisément ce qui nécessite l'attention..." 

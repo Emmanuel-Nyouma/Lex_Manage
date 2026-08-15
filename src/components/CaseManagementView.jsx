@@ -42,6 +42,7 @@ const CaseManagementView = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    refetch,
   } = useCases(10);
   const {
     data: routeCase,

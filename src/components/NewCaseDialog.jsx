@@ -212,13 +212,23 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
 
                 {/* Client selection from CRM */}
                 <div className="md:col-span-1 relative">
-                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 ml-1">
+                  <label id={`${dialogId}-client-label`} className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 ml-1">
                     Client <span className="text-slate-400 dark:text-slate-500 font-normal normal-case tracking-normal ml-1 text-[10px]">(facultatif)</span>
                   </label>
                   
                   <div className="relative group">
                     <div 
                       onClick={() => setShowClientSelector(!showClientSelector)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setShowClientSelector((open) => !open);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      aria-labelledby={`${dialogId}-client-label`}
+                      aria-expanded={showClientSelector}
                       className={`w-full px-4 py-2.5 bg-white dark:bg-slate-900 border ${errors.clientName ? 'border-rose-500' : 'border-slate-200 dark:border-slate-800'} rounded-lg text-sm flex items-center justify-between cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50 min-h-[42px]`}
                     >
                       <div className="flex items-center gap-2 truncate">
@@ -329,11 +339,12 @@ const NewCaseDialog = ({ isOpen, onClose }) => {
 
                 {/* Status */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 ml-1">
+                  <label htmlFor={`${dialogId}-status`} className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 ml-1">
                     Statut initial <span className="text-rose-500 ml-0.5">*</span>
                   </label>
                   <div className="relative group">
                     <select 
+                      id={`${dialogId}-status`}
                       {...register("status")}
                       className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:text-white appearance-none cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50"
                     >
