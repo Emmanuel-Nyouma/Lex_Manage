@@ -1,9 +1,13 @@
 # ─── Build stage ─────────────────────────────────────────────────────────────
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
-COPY . .
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --fetch-retries=5 --fetch-retry-factor=2 --fetch-retry-maxtimeout=120000
+COPY index.html vite.config.js postcss.config.js tailwind.config.js ./
+COPY src ./src
+COPY public ./public
+COPY assets ./assets
 
 # Vite inlines VITE_* at BUILD time, so these must be provided as build args
 # (compose `args:` or `docker build --build-arg`). For a same-origin deploy set
