@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
-export const UserRoleEnum = z.enum([
-  'SUPER_ADMIN',
+export const AssignableUserRoleEnum = z.enum([
   'CABINET_ADMIN',
   'LAWYER',
   'ASSISTANT',
@@ -13,11 +12,11 @@ export const CreateUserSchema = z.object({
   lastName: z.string().min(2, "Le nom est requis"),
   email: z.string().email("Format d'email invalide"),
   password: z.string().min(8, "Le mot de passe doit faire au moins 8 caractères"),
-  role: UserRoleEnum,
+  role: AssignableUserRoleEnum,
 });
 
 export const UpdateUserSchema = z.object({
   firstName: z.string().min(2).optional(),
   lastName: z.string().min(2).optional(),
-  role: UserRoleEnum.optional(),
+  role: AssignableUserRoleEnum.optional(),
 });

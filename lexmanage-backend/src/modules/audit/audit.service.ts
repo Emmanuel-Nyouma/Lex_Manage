@@ -16,10 +16,13 @@ export class AuditService {
     details?: any;
     ipAddress?: string;
   }) {
-    // Persistent audit log
-    return this.prisma.auditLog.create({ data: params }).catch((err) => {
-      this.logger.error(`Failed to record audit log: ${err.message}`, err.stack);
-    });
+    try {
+      return await this.prisma.auditLog.create({ data: params });
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(`Failed to record audit log: ${error.message}`, error.stack);
+      throw err;
+    }
   }
 
   // Production Telemetry: Log system errors for monitoring
@@ -32,11 +35,12 @@ export class AuditService {
   }
 
   async getLogs(tenantId: string, limit = 50) {
+    const safeLimit = Number.isFinite(limit) ? Math.min(100, Math.max(1, limit)) : 50;
     return this.prisma.auditLog.findMany({
       where: { tenantId },
       include: { user: { select: { firstName: true, lastName: true, email: true } } },
       orderBy: { createdAt: 'desc' },
-      take: limit,
+      take: safeLimit,
     });
   }
 }

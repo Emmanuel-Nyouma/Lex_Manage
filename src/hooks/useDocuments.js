@@ -3,12 +3,13 @@ import apiClient from '../lib/api';
 import { toast } from 'sonner';
 
 // Hook pour récupérer tous les documents (cursor-based pagination)
-export const useDocuments = (limit = 10, category = 'ALL', caseId = null) => {
+export const useDocuments = (limit = 10, category = 'ALL', caseId = null, query = '') => {
   return useInfiniteQuery({
-    queryKey: ['documents', 'infinite', limit, category, caseId],
+    queryKey: ['documents', 'infinite', limit, category, caseId, query],
     queryFn: async ({ pageParam }) => {
       const params = new URLSearchParams({ limit: String(limit), category });
       if (caseId) params.append('caseId', caseId);
+      if (query.trim()) params.append('q', query.trim());
       if (pageParam) params.append('cursor', pageParam);
 
       const { data } = await apiClient.get(`/documents?${params.toString()}`);

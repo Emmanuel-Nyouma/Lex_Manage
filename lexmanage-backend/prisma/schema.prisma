@@ -116,148 +116,170 @@ enum NotificationMotif {
   OTHER
 }
 
+enum NotificationSource {
+  USER
+  SYSTEM
+}
+
 // ■■ Core Models ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 model Tenant {
-  id            String             @id @default(uuid())
-  name          String
-  slug          String             @unique
-  plan          String             @default("FREE")
-  country       String?
-  city          String?
-  address       String?
-  phone         String?
-  fax           String?
-  website       String?
-  siret         String?
-  barNumber     String?            @map("bar_number")
-  logoUrl       String?            @map("logo_url")
-  isActive      Boolean            @default(true) @map("is_active")
-  createdAt     DateTime           @default(now()) @map("created_at")
-  updatedAt     DateTime           @updatedAt @map("updated_at")
-  users              User[]
-  cases              Case[]
-  documents          Document[]
-  notifications      Notification[]
-  deadlines          Deadline[]
-  clients            Client[]
-  auditLogs          AuditLog[]
-  conversations      ChatConversation[]
-  invitations        Invitation[]
-  notifTemplates     NotificationTemplate[]
-  scheduledNotifs    ScheduledNotification[]
+  id                  String                  @id @default(uuid())
+  name                String
+  slug                String                  @unique
+  plan                String                  @default("FREE")
+  country             String?
+  city                String?
+  address             String?
+  phone               String?
+  fax                 String?
+  website             String?
+  siret               String?
+  barNumber           String?                 @map("bar_number")
+  logoUrl             String?                 @map("logo_url")
+  isActive            Boolean                 @default(true) @map("is_active")
+  createdAt           DateTime                @default(now()) @map("created_at")
+  updatedAt           DateTime                @updatedAt @map("updated_at")
+  users               User[]
+  cases               Case[]
+  documents           Document[]
+  notifications       Notification[]
+  deadlines           Deadline[]
+  clients             Client[]
+  auditLogs           AuditLog[]
+  conversations       ChatConversation[]
+  invitations         Invitation[]
+  notifTemplates      NotificationTemplate[]
+  scheduledNotifs     ScheduledNotification[]
+  passwordResetTokens PasswordResetToken[]
 
   @@map("tenants")
 }
 
 model User {
-  id                    String         @id @default(uuid())
-  tenantId              String         @map("tenant_id")
-  email                 String         @unique
-  passwordHash          String         @map("password_hash")
-  firstName             String         @map("first_name")
-  lastName              String         @map("last_name")
-  avatarUrl             String?        @map("avatar_url")
+  id                    String                  @id @default(uuid())
+  tenantId              String                  @map("tenant_id")
+  email                 String                  @unique
+  passwordHash          String                  @map("password_hash")
+  firstName             String                  @map("first_name")
+  lastName              String                  @map("last_name")
+  avatarUrl             String?                 @map("avatar_url")
   phone                 String?
-  role                  Role           @default(LAWYER)
-  isActive              Boolean        @default(true) @map("is_active")
-  refreshToken          String?        @map("refresh_token")
-  refreshTokenExpiresAt DateTime?      @map("refresh_token_expires_at")
-  createdAt             DateTime       @default(now()) @map("created_at")
-  updatedAt             DateTime       @updatedAt @map("updated_at")
-  tenant                Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  cases                 Case[]         @relation("CaseAssignee")
-  uploadedDocuments     Document[]     @relation("DocumentUploader")
-  notificationsCreated  Notification[]           @relation("NotificationCreator")
-  notifTemplates        NotificationTemplate[]    @relation("TemplateCreator")
-  scheduledNotifs       ScheduledNotification[]   @relation("ScheduledNotifCreator")
+  barreau               String?
+  specialty             String?
+  role                  Role                    @default(LAWYER)
+  isActive              Boolean                 @default(true) @map("is_active")
+  refreshToken          String?                 @unique @map("refresh_token")
+  refreshTokenExpiresAt DateTime?               @map("refresh_token_expires_at")
+  createdAt             DateTime                @default(now()) @map("created_at")
+  updatedAt             DateTime                @updatedAt @map("updated_at")
+  tenant                Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  cases                 Case[]                  @relation("CaseAssignee")
+  uploadedDocuments     Document[]              @relation("DocumentUploader")
+  notificationsCreated  Notification[]          @relation("NotificationCreator")
+  notifTemplates        NotificationTemplate[]  @relation("TemplateCreator")
+  scheduledNotifs       ScheduledNotification[] @relation("ScheduledNotifCreator")
   auditLogs             AuditLog[]
   conversations         ChatConversation[]
+  passwordResetTokens   PasswordResetToken[]
 
+  @@unique([id, tenantId])
   @@index([tenantId])
   @@map("users")
 }
 
 model Case {
-  id          String         @id @default(uuid())
-  tenantId    String         @map("tenant_id")
-  title       String
-  description String?
-  clientName  String         @map("client_name")
-  courtName   String?        @map("court_name")
-  caseNumber  String?        @map("case_number")
-  status      CaseStatus     @default(OPEN)
-  priority    String         @default("MEDIUM")
-  clientId    String?        @map("client_id")
-  assigneeId  String?        @map("assignee_id")
-  closedAt    DateTime?      @map("closed_at")
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt @map("updated_at")
-  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  client      Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  assignee    User?          @relation("CaseAssignee", fields: [assigneeId], references: [id])
-  deadlines   Deadline[]
-  documents   Document[]
+  id              String                  @id @default(uuid())
+  tenantId        String                  @map("tenant_id")
+  title           String
+  description     String?
+  clientName      String                  @map("client_name")
+  courtName       String?                 @map("court_name")
+  caseNumber      String?                 @map("case_number")
+  status          CaseStatus              @default(OPEN)
+  priority        String                  @default("MEDIUM")
+  clientId        String?                 @map("client_id")
+  assigneeId      String?                 @map("assignee_id")
+  closedAt        DateTime?               @map("closed_at")
+  createdAt       DateTime                @default(now()) @map("created_at")
+  updatedAt       DateTime                @updatedAt @map("updated_at")
+  tenant          Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  client          Client?                 @relation(fields: [clientId, tenantId], references: [id, tenantId])
+  assignee        User?                   @relation("CaseAssignee", fields: [assigneeId, tenantId], references: [id, tenantId])
+  deadlines       Deadline[]
+  documents       Document[]
   notifications   Notification[]          @relation("CaseNotifications")
   scheduledNotifs ScheduledNotification[] @relation("CaseScheduledNotifs")
 
-  @@index([tenantId])
+  @@unique([id, tenantId])
+  @@index([tenantId, createdAt, id])
+  @@index([tenantId, status])
+  @@index([tenantId, assigneeId])
+  @@index([tenantId, clientId])
   @@map("cases")
 }
 
 // ■■ Document Repository ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 model Document {
-  id            String         @id @default(cuid())
-  tenantId      String         @map("tenant_id")
-  title         String
-  file_name     String         @map("file_name")
-  file_url      String         @map("file_url")
-  file_type     String         @map("file_type")
-  file_size     Int            @map("file_size")
-  category      String?
-  subCategory   String?        @map("sub_category")
-  allowedRoles  Role[]         @default([]) @map("allowed_roles")
-  type          DocumentType   @default(OTHER)
-  status        DocumentStatus @default(UPLOADED)
-  uploaderId    String         @map("uploader_id")
-  case_id       String?        @map("case_id")
-  isPending     Boolean        @default(false) @map("is_pending")
-  deletedAt     DateTime?      @map("deleted_at")
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
-  
-  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  uploadedBy    User           @relation("DocumentUploader", fields: [uploaderId], references: [id])
-  cases         Case?          @relation(fields: [case_id], references: [id])
+  id           String         @id @default(cuid())
+  tenantId     String         @map("tenant_id")
+  title        String
+  file_name    String         @map("file_name")
+  file_url     String         @map("file_url")
+  file_type    String         @map("file_type")
+  file_size    Int            @map("file_size")
+  category     String?
+  subCategory  String?        @map("sub_category")
+  allowedRoles Role[]         @default([]) @map("allowed_roles")
+  type         DocumentType   @default(OTHER)
+  status       DocumentStatus @default(UPLOADED)
+  uploaderId   String         @map("uploader_id")
+  case_id      String?        @map("case_id")
+  isPending    Boolean        @default(false) @map("is_pending")
+  deletedAt    DateTime?      @map("deleted_at")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  legacyQdrantId String?       @map("qdrant_id")
+
+  tenant     Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  uploadedBy User   @relation("DocumentUploader", fields: [uploaderId, tenantId], references: [id, tenantId])
+  cases      Case?  @relation(fields: [case_id, tenantId], references: [id, tenantId])
 
   @@unique([tenantId, file_url])
-  @@index([tenantId])
+  @@unique([id, tenantId])
+  @@index([tenantId, createdAt, id])
   @@index([tenantId, type])
+  @@index([tenantId, case_id])
   @@map("documents")
 }
 
 // ■■ Notifications ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 model Notification {
-  id           String            @id @default(cuid())
-  tenantId     String            @map("tenant_id")
-  level        NotificationLevel
-  motif        NotificationMotif
-  title        String?
-  message      String?           @db.VarChar(500)
-  createdById  String            @map("created_by_id")
-  recipientIds String[]          @map("recipient_ids")
-  readByIds    String[]          @map("read_by_ids")
-  caseId       String?           @map("case_id")
-  createdAt    DateTime          @default(now()) @map("created_at")
-  
-  tenant       Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdBy    User              @relation("NotificationCreator", fields: [createdById], references: [id], onDelete: Cascade)
-  case         Case?             @relation("CaseNotifications", fields: [caseId], references: [id], onDelete: SetNull)
+  id             String             @id @default(cuid())
+  tenantId       String             @map("tenant_id")
+  level          NotificationLevel
+  motif          NotificationMotif
+  title          String?
+  message        String?            @db.VarChar(500)
+  source         NotificationSource @default(USER)
+  createdById    String?            @map("created_by_id")
+  recipientIds   String[]           @map("recipient_ids")
+  readByIds      String[]           @map("read_by_ids")
+  caseId         String?            @map("case_id")
+  idempotencyKey String?            @map("idempotency_key")
+  createdAt      DateTime           @default(now()) @map("created_at")
 
-  @@index([tenantId])
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy User?  @relation("NotificationCreator", fields: [createdById, tenantId], references: [id, tenantId])
+  case      Case?  @relation("CaseNotifications", fields: [caseId, tenantId], references: [id, tenantId])
+
+  @@unique([tenantId, idempotencyKey])
   @@index([tenantId, level])
+  @@index([tenantId, createdAt])
+  @@index([recipientIds], type: Gin)
+  @@index([readByIds], type: Gin)
   @@map("notifications")
 }
 
@@ -275,8 +297,8 @@ model NotificationTemplate {
   createdById    String            @map("created_by_id")
   createdAt      DateTime          @default(now()) @map("created_at")
 
-  tenant      Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdBy   User    @relation("TemplateCreator", fields: [createdById], references: [id])
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy User   @relation("TemplateCreator", fields: [createdById, tenantId], references: [id, tenantId])
 
   @@index([tenantId])
   @@map("notification_templates")
@@ -293,18 +315,17 @@ model ScheduledNotification {
   message        String?           @db.VarChar(500)
   recipientRoles String[]          @map("recipient_roles")
   scheduledAt    DateTime          @map("scheduled_at")
-  status         String            @default("PENDING") // PENDING | SENT | CANCELLED
+  status         String            @default("PENDING") // PENDING | PROCESSING | SENT | CANCELLED
   jobId          String?           @map("job_id")
   caseId         String?           @map("case_id")
   createdById    String            @map("created_by_id")
   createdAt      DateTime          @default(now()) @map("created_at")
 
-  tenant    Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdBy User    @relation("ScheduledNotifCreator", fields: [createdById], references: [id])
-  case      Case?   @relation("CaseScheduledNotifs", fields: [caseId], references: [id], onDelete: SetNull)
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy User   @relation("ScheduledNotifCreator", fields: [createdById, tenantId], references: [id, tenantId])
+  case      Case?  @relation("CaseScheduledNotifs", fields: [caseId, tenantId], references: [id, tenantId])
 
-  @@index([tenantId])
-  @@index([scheduledAt, status])
+  @@index([tenantId, scheduledAt, status])
   @@map("scheduled_notifications")
 }
 
@@ -323,7 +344,8 @@ model Client {
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   cases       Case[]
 
-  @@index([tenantId])
+  @@unique([id, tenantId])
+  @@index([tenantId, createdAt, id])
   @@map("clients")
 }
 
@@ -332,16 +354,16 @@ model Deadline {
   tenantId  String   @map("tenant_id")
   caseId    String?  @map("case_id")
   title     String
-  dueAt     DateTime @map("due_at")
+  dueAt     DateTime @map("due_at") @db.Date
   priority  String   @default("MEDIUM")
   isDone    Boolean  @default(false) @map("is_done")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  case      Case?    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  case      Case?    @relation(fields: [caseId, tenantId], references: [id, tenantId], onDelete: Cascade)
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
-  @@index([caseId])
+  @@index([tenantId, dueAt, isDone])
+  @@index([tenantId, caseId])
   @@map("deadlines")
 }
 
@@ -357,8 +379,25 @@ model Invitation {
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
+  @@index([tenantId, email, used, expiresAt])
   @@index([token])
   @@map("invitations")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tenantId  String    @map("tenant_id")
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId, tenantId], references: [id, tenantId], onDelete: Cascade)
+
+  @@index([tenantId, userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
 }
 
 model AuditLog {
@@ -372,10 +411,10 @@ model AuditLog {
   ipAddress String?  @map("ip_address")
   createdAt DateTime @default(now()) @map("created_at")
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId, tenantId], references: [id, tenantId])
 
-  @@index([tenantId])
-  @@index([userId])
+  @@index([tenantId, createdAt, id])
+  @@index([tenantId, userId])
   @@map("audit_logs")
 }
 
@@ -387,11 +426,12 @@ model ChatConversation {
   createdAt DateTime      @default(now()) @map("created_at")
   updatedAt DateTime      @updatedAt @map("updated_at")
   tenant    Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user      User          @relation(fields: [userId], references: [id])
+  user      User          @relation(fields: [userId, tenantId], references: [id, tenantId])
   messages  ChatMessage[]
 
-  @@index([tenantId])
-  @@index([userId])
+  @@unique([id, tenantId])
+  @@index([tenantId, updatedAt, id])
+  @@index([tenantId, userId])
   @@map("chat_conversations")
 }
 
@@ -401,9 +441,11 @@ model ChatMessage {
   role           String
   content        String
   sources        Json?
+  requestId      String?          @map("request_id")
   createdAt      DateTime         @default(now()) @map("created_at")
   conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
+  @@unique([conversationId, requestId, role])
   @@index([conversationId])
   @@map("chat_messages")
 }

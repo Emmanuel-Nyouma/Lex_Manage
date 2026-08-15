@@ -16,6 +16,7 @@ const DocumentsView = () => {
   const { currentUser } = useLexStore();
   const DMS_CATEGORIES = useDmsCategories();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [searchCategory, setSearchCategory] = useState('ALL');
 
   const {
@@ -26,8 +27,8 @@ const DocumentsView = () => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useDocuments(12, searchCategory);
-  const documents = data?.documents || [];
+  } = useDocuments(12, searchCategory, null, debouncedSearch);
+  const documents = useMemo(() => data?.documents || [], [data?.documents]);
   
   const deleteDoc = useDeleteDocument();
   const ingestToAi = useIngestToLexAssist();
@@ -41,6 +42,11 @@ const DocumentsView = () => {
 
   const canUpload = currentUser?.role === 'CABINET_ADMIN' || currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'LAWYER';
   const canDelete = currentUser?.role === 'CABINET_ADMIN' || currentUser?.role === 'SUPER_ADMIN';
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
 
   // Handle outside click for search popup
   useEffect(() => {
@@ -120,7 +126,7 @@ const DocumentsView = () => {
       }
       return acc;
     }, initial);
-  }, [documents, searchCategory]);
+  }, [documents, searchCategory, DMS_CATEGORIES]);
 
   const toggleCategory = (catId) => {
     setExpandedCategories(prev => 
@@ -150,9 +156,9 @@ const DocumentsView = () => {
           <RefreshCcw size={24} />
         </div>
         <div>
-          <h3 className="font-bold text-slate-900 dark:text-white">Error Loading Documents</h3>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">{error.message || "Failed to sync with document repository."}</p>
-          <Button onClick={() => refetch()} variant="secondary" size="sm" className="mt-4">Retry Sync</Button>
+          <h3 className="font-bold text-slate-900 dark:text-white">Impossible de charger les documents</h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">{error.message || "La synchronisation avec l’espace documentaire a échoué."}</p>
+          <Button onClick={() => refetch()} variant="secondary" size="sm" className="mt-4">Réessayer</Button>
         </div>
       </div>
     );
@@ -163,9 +169,9 @@ const DocumentsView = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3 tracking-tight">
-            <Files className="text-amber-500" /> Document Management System
+            <Files className="text-amber-500" /> Gestion documentaire
           </h1>
-          <p className="text-slate-600 dark:text-slate-300 dark:text-slate-400 font-medium">Secure repository for legal acts, evidence, and corporate documents.</p>
+          <p className="text-slate-600 dark:text-slate-300 dark:text-slate-400 font-medium">Espace sécurisé pour les actes, preuves et documents juridiques.</p>
         </div>
         {canUpload && (
           <button 
@@ -173,7 +179,7 @@ const DocumentsView = () => {
             className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white dark:bg-amber-600 dark:text-white rounded-xl font-bold text-sm shadow-lg hover:scale-105 transition-all active:scale-95"
           >
             {showUpload ? <X size={18} /> : <Plus size={18} />}
-            {showUpload ? 'Fermer' : 'Importer Documents'}
+            {showUpload ? 'Fermer' : 'Importer des documents'}
           </button>
         )}
       </div>
@@ -327,7 +333,7 @@ const DocumentsView = () => {
                           <button
                             onClick={() => handleView(doc.id)}
                             aria-label="Voir document"
-                            title="View document"
+                            title="Voir le document"
                             className="p-3 text-slate-500 dark:text-slate-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl transition-all"
                           >
                             <Eye size={20} />
@@ -343,7 +349,7 @@ const DocumentsView = () => {
                             <button
                               onClick={() => handleDelete(doc)}
                               aria-label="Supprimer document"
-                              title="Delete document"
+                              title="Supprimer le document"
                               className="p-3 text-slate-500 dark:text-slate-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all"
                             >
                               <Trash2 size={20} />

@@ -1,9 +1,26 @@
-import { Body, Controller, Post, Get, Patch, UseGuards, Res, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  ForbiddenException,
+  Get,
+  Patch,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto, RefreshTokenDto, UpdateProfileDto } from './dto/auth.dto';
+import {
+  ChangePasswordDto,
+  ForgotPasswordDto,
+  LoginDto,
+  RegisterDto,
+  ResetPasswordDto,
+  UpdateProfileDto,
+} from './dto/auth.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
@@ -15,28 +32,20 @@ export class AuthController {
   @Post('register')
   @Throttle({ short: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Register a new law firm (Tenant) with admin user' })
-  async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
+  async register(@Body() dto: RegisterDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    this.assertTrustedOrigin(req);
     const { refreshToken, ...result } = await this.authService.register(dto);
-    const isProd = process.env.NODE_ENV === 'production';
-    // SameSite=None (prod) so the cookie is sent on the cross-site POST /auth/refresh
-    // XHR when the SPA and API live on different domains. Requires Secure (HTTPS),
-    // which holds in prod. If you deploy same-origin (one domain via reverse proxy),
-    // you may tighten this back to 'strict' for stronger CSRF protection.
-    res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
+    this.setRefreshCookie(res, refreshToken);
     return result;
   }
 
   @Post('login')
   @Throttle({ short: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Login and get JWT tokens' })
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+  async login(@Body() dto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    this.assertTrustedOrigin(req);
     const { refreshToken, ...result } = await this.authService.login(dto);
-    const isProd = process.env.NODE_ENV === 'production';
-    // SameSite=None (prod) so the cookie is sent on the cross-site POST /auth/refresh
-    // XHR when the SPA and API live on different domains. Requires Secure (HTTPS),
-    // which holds in prod. If you deploy same-origin (one domain via reverse proxy),
-    // you may tighten this back to 'strict' for stronger CSRF protection.
-    res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
+    this.setRefreshCookie(res, refreshToken);
     return result;
   }
 
@@ -44,13 +53,10 @@ export class AuthController {
   @Throttle({ short: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Get a new access token using a refresh token' })
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    this.assertTrustedOrigin(req);
     const refreshToken = req.cookies['refreshToken'];
     const { refreshToken: newRefreshToken, ...result } = await this.authService.refreshToken(refreshToken);
-    const isProd = process.env.NODE_ENV === 'production';
-    // Must match the login/register cookie: SameSite=None so the cookie is sent
-    // on the cross-site POST /auth/refresh (frontend and backend are on different
-    // domains). 'strict' here silently broke session persistence after the first refresh.
-    res.cookie('refreshToken', newRefreshToken, { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
+    this.setRefreshCookie(res, newRefreshToken);
     return result;
   }
 
@@ -70,13 +76,67 @@ export class AuthController {
     return this.authService.updateProfile(userId, dto);
   }
 
+  @Post('forgot-password')
+  @Throttle({ short: { limit: 3, ttl: 60000 } })
+  requestPasswordReset(@Body() dto: ForgotPasswordDto) {
+    return this.authService.requestPasswordReset(dto.email);
+  }
+
+  @Post('reset-password')
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
+  }
+
+  @Patch('change-password')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  changePassword(@CurrentUser('id') userId: string, @Body() dto: ChangePasswordDto) {
+    return this.authService.changePassword(userId, dto);
+  }
+
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout and invalidate refresh token' })
   async logout(@CurrentUser('id') userId: string, @Res({ passthrough: true }) res: Response) {
     await this.authService.logout(userId);
-    res.clearCookie('refreshToken');
+    res.clearCookie('refreshToken', this.cookieSecurityOptions());
     return { message: 'Logged out successfully' };
+  }
+
+  private assertTrustedOrigin(req: Request) {
+    const origin = req.get('origin');
+    if (!origin) return;
+    const allowed = (process.env.ALLOWED_ORIGINS || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+    if (!allowed.includes(origin)) {
+      throw new ForbiddenException('Untrusted request origin');
+    }
+  }
+
+  private setRefreshCookie(res: Response, token: string) {
+    const payload = JSON.parse(
+      Buffer.from(token.split('.')[1], 'base64url').toString('utf8'),
+    ) as { exp?: number };
+    const maxAge = payload.exp
+      ? Math.max(0, payload.exp * 1000 - Date.now())
+      : undefined;
+    res.cookie('refreshToken', token, {
+      ...this.cookieSecurityOptions(),
+      ...(maxAge ? { maxAge } : {}),
+    });
+  }
+
+  private cookieSecurityOptions() {
+    const isProd = process.env.NODE_ENV === 'production';
+    return {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
+      path: '/',
+    };
   }
 }

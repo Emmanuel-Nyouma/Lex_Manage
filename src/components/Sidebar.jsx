@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink } from '../lib/router';
 import {
   LayoutDashboard, Brain, Briefcase, Calendar, Files,
   Settings, Gavel, LogOut, Building2, Bell, Users, UserCheck, Bot, X,

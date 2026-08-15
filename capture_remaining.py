@@ -1,8 +1,16 @@
 from playwright.sync_api import sync_playwright
 import os
 
-OUT = r"C:\Users\hp\lex-manage\report_screenshots"
-BASE = "http://localhost:5173"
+OUT = os.environ.get("LEXMANAGE_SCREENSHOT_DIR", "report_screenshots")
+BASE = os.environ.get("LEXMANAGE_BASE_URL", "http://localhost:5173")
+EMAIL = os.environ.get("LEXMANAGE_TEST_EMAIL")
+PASSWORD = os.environ.get("LEXMANAGE_TEST_PASSWORD")
+
+if not EMAIL or not PASSWORD:
+    raise RuntimeError(
+        "Set LEXMANAGE_TEST_EMAIL and LEXMANAGE_TEST_PASSWORD before running "
+        "the authenticated screenshot flow."
+    )
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
@@ -12,8 +20,8 @@ with sync_playwright() as p:
     # Login
     page.goto(BASE, wait_until="networkidle", timeout=15000)
     page.wait_for_timeout(800)
-    page.fill("input[type='email'], input[type='text']", "admin@demo.com")
-    page.fill("input[type='password']", "password123")
+    page.fill("input[type='email'], input[type='text']", EMAIL)
+    page.fill("input[type='password']", PASSWORD)
     page.locator("button:has-text('Login')").click()
     page.wait_for_timeout(2500)
 
@@ -51,8 +59,8 @@ with sync_playwright() as p:
     page2 = ctx2.new_page()
     page2.goto(BASE, wait_until="networkidle", timeout=15000)
     page2.wait_for_timeout(800)
-    page2.fill("input[type='email'], input[type='text']", "admin@demo.com")
-    page2.fill("input[type='password']", "password123")
+    page2.fill("input[type='email'], input[type='text']", EMAIL)
+    page2.fill("input[type='password']", PASSWORD)
     page2.locator("button:has-text('Login')").click()
     page2.wait_for_timeout(2500)
     page2.screenshot(path=f"{OUT}/20_dashboard_with_sidebar.png", full_page=False)
@@ -86,8 +94,8 @@ with sync_playwright() as p:
     try:
         page2.goto(BASE, wait_until="networkidle", timeout=15000)
         page2.wait_for_timeout(800)
-        page2.fill("input[type='email'], input[type='text']", "admin@demo.com")
-        page2.fill("input[type='password']", "password123")
+        page2.fill("input[type='email'], input[type='text']", EMAIL)
+        page2.fill("input[type='password']", PASSWORD)
         page2.locator("button:has-text('Login')").click()
         page2.wait_for_timeout(2000)
         page2.locator("button[aria-label*='notif'], button[aria-label*='Notification'], header button").nth(1).click(timeout=3000)

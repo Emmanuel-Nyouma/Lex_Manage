@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from '../lib/router';
 import { 
   Gavel, 
   Mail, 
@@ -55,18 +55,18 @@ const PasswordStrengthMeter = ({ password = "" }) => {
         ))}
       </div>
       <p className="text-[10px] text-slate-600 dark:text-slate-300 dark:text-slate-400">
-        Password strength: <strong>{strength === 0 ? 'None' : strength <= 2 ? 'Weak' : strength === 3 ? 'Medium' : 'Strong'}</strong>
+        Robustesse : <strong>{strength === 0 ? 'Aucune' : strength <= 2 ? 'Faible' : strength === 3 ? 'Moyenne' : 'Forte'}</strong>
       </p>
       
       <ul className="text-[10px] space-y-1 text-slate-600 dark:text-slate-400 mt-1">
         <li className={has8Chars ? 'text-green-600 dark:text-green-500 font-medium' : 'text-slate-500 dark:text-slate-300'}>
-          {has8Chars ? '✓' : '○'} At least 8 characters
+          {has8Chars ? '✓' : '○'} Au moins 8 caractères
         </li>
         <li className={hasUppercase ? 'text-green-600 dark:text-green-500 font-medium' : 'text-slate-500 dark:text-slate-300'}>
-          {hasUppercase ? '✓' : '○'} Uppercase letter
+          {hasUppercase ? '✓' : '○'} Une lettre majuscule
         </li>
         <li className={hasNumbers ? 'text-green-600 dark:text-green-500 font-medium' : 'text-slate-500 dark:text-slate-300'}>
-          {hasNumbers ? '✓' : '○'} At least 1 number
+          {hasNumbers ? '✓' : '○'} Au moins un chiffre
         </li>
       </ul>
     </div>
@@ -74,33 +74,40 @@ const PasswordStrengthMeter = ({ password = "" }) => {
 };
 
 const loginSchema = z.object({
-  email: z.string().email("Invalid email format"),
-  password: z.string().min(1, "Password is required")
-});
-
-const mfaSchema = z.object({
-  code: z.string().length(6, "Code must be 6 digits")
+  email: z.string().email("Adresse email invalide"),
+  password: z.string().min(1, "Le mot de passe est obligatoire")
 });
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email("Invalid email format"),
+  email: z.string().email("Adresse email invalide"),
+});
+
+const resetPasswordSchema = z.object({
+  newPassword: z.string()
+    .min(8, "Le mot de passe doit contenir au moins 8 caractères")
+    .regex(/[A-Z]/, "Il doit contenir au moins une majuscule")
+    .regex(/[0-9]/, "Il doit contenir au moins un chiffre"),
+  confirmNewPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmNewPassword, {
+  message: "Les mots de passe ne correspondent pas",
+  path: ["confirmNewPassword"],
 });
 
 const signupSchema = z.object({
-  firmName: z.string().min(2, "Firm name is required").optional().or(z.literal('')),
-  country: z.string().min(2, "Country is required").optional().or(z.literal('')),
-  city: z.string().min(2, "City is required").optional().or(z.literal('')),
-  firstName: z.string().min(2, "First name is required"),
-  lastName: z.string().min(2, "Last name is required"),
-  phone: z.string().min(8, "Phone number is required"),
-  email: z.string().email("Invalid email format"),
+  firmName: z.string().min(2, "Le nom du cabinet est obligatoire").optional().or(z.literal('')),
+  country: z.string().min(2, "Le pays est obligatoire").optional().or(z.literal('')),
+  city: z.string().min(2, "La ville est obligatoire").optional().or(z.literal('')),
+  firstName: z.string().min(2, "Le prénom est obligatoire"),
+  lastName: z.string().min(2, "Le nom est obligatoire"),
+  phone: z.string().min(8, "Le numéro de téléphone est obligatoire"),
+  email: z.string().email("Adresse email invalide"),
   password: z.string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Must contain at least one uppercase letter")
-    .regex(/[0-9]/, "Must contain at least one number"),
+    .min(8, "Le mot de passe doit contenir au moins 8 caractères")
+    .regex(/[A-Z]/, "Il doit contenir au moins une majuscule")
+    .regex(/[0-9]/, "Il doit contenir au moins un chiffre"),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
+  message: "Les mots de passe ne correspondent pas",
   path: ["confirmPassword"],
 });
 
@@ -109,9 +116,14 @@ const AuthScreen = () => {
   const language = useLexStore((s) => s.language);
   const invitationToken = searchParams.get('invitation');
   const requestedMode = searchParams.get('mode');
+  const resetToken = searchParams.get('token');
   const [view, setView] = useState(
-    invitationToken || requestedMode === 'signup' ? 'signup' : 'login'
-  ); // 'login', 'signup', 'forgot_password', 'mfa_challenge'
+    requestedMode === 'reset_password' && resetToken
+      ? 'reset_password'
+      : invitationToken || requestedMode === 'signup'
+        ? 'signup'
+        : 'login'
+  );
   const [signupStep, setSignupStep] = useState(invitationToken ? 2 : 1);
   const [shouldShake, setShouldShake] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -133,15 +145,17 @@ const AuthScreen = () => {
     };
   }, []);
 
-  const { register, handleSubmit, watch, getValues, setError, clearErrors, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, control, getValues, setError, clearErrors, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(
       view === 'login' ? loginSchema :
       view === 'signup' ? signupSchema :
-      view === 'mfa_challenge' ? mfaSchema :
+      view === 'reset_password' ? resetPasswordSchema :
       forgotPasswordSchema
     ),
     mode: "onChange"
   });
+  const passwordValue = useWatch({ control, name: 'password', defaultValue: '' });
+  const newPasswordValue = useWatch({ control, name: 'newPassword', defaultValue: '' });
 
   // Step 1 (firm info) is mandatory before reaching step 2. The signup schema
   // keeps these fields optional (so invited users who skip step 1 can register),
@@ -151,15 +165,15 @@ const AuthScreen = () => {
     let valid = true;
 
     if (!firmName || firmName.trim().length < 2) {
-      setError('firmName', { type: 'manual', message: 'Firm name is required' });
+      setError('firmName', { type: 'manual', message: 'Le nom du cabinet est obligatoire' });
       valid = false;
     }
     if (!country || country.trim().length < 2) {
-      setError('country', { type: 'manual', message: 'Country is required' });
+      setError('country', { type: 'manual', message: 'Le pays est obligatoire' });
       valid = false;
     }
     if (!city || city.trim().length < 2) {
-      setError('city', { type: 'manual', message: 'City is required' });
+      setError('city', { type: 'manual', message: 'La ville est obligatoire' });
       valid = false;
     }
 
@@ -169,7 +183,7 @@ const AuthScreen = () => {
     } else {
       setShouldShake(true);
       setTimeout(() => setShouldShake(false), 800);
-      toast.error("Please fill in all firm details before continuing.");
+      toast.error("Renseignez toutes les informations du cabinet avant de continuer.");
     }
   };
 
@@ -194,10 +208,19 @@ const AuthScreen = () => {
         };
         
         await apiClient.post('/auth/register', registerData);
-        toast.success("Firm created successfully! Please log in.");
+        toast.success("Cabinet créé. Vous pouvez maintenant vous connecter.");
         setView('login');
       } else if (view === 'forgot_password') {
-        toast.info("Feature coming soon.");
+        const { data } = await apiClient.post('/auth/forgot-password', { email: values.email });
+        toast.success(data.message || "Si le compte existe, un lien a été envoyé.");
+        setView('login');
+      } else if (view === 'reset_password') {
+        await apiClient.post('/auth/reset-password', {
+          token: resetToken,
+          newPassword: values.newPassword,
+        });
+        toast.success("Mot de passe réinitialisé. Vous pouvez maintenant vous connecter.");
+        setView('login');
       }
     } catch (err) {
       console.error("Auth Error:", err);
@@ -209,11 +232,11 @@ const AuthScreen = () => {
         const status = err.response?.status;
         setLoginError(
           status === 401
-            ? 'Incorrect email or password'
-            : (err.response?.data?.message || 'Login failed. Please try again.')
+            ? 'Adresse email ou mot de passe incorrect'
+            : (err.response?.data?.message || 'Connexion impossible. Veuillez réessayer.')
         );
       } else {
-        const errorMessage = err.response?.data?.message || err.message || "An error occurred during authentication";
+        const errorMessage = err.response?.data?.message || err.message || "Une erreur est survenue pendant l’authentification";
         toast.error(errorMessage);
       }
     }
@@ -226,9 +249,9 @@ const AuthScreen = () => {
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-500">
            <div className="text-center animate-in zoom-in-95 duration-700">
               <h1 className="text-6xl font-black text-white tracking-tight mb-4">
-                 Welcome <span className="text-amber-500">Back</span>
+                 Heureux de vous <span className="text-amber-500">revoir</span>
               </h1>
-              <p className="text-slate-400 font-medium text-lg">LexManage is loading your firm data...</p>
+              <p className="text-slate-400 font-medium text-lg">LexManage charge les données de votre cabinet…</p>
               <div className="mt-8 flex justify-center">
                  <div className="w-16 h-1 border-4 border-slate-700 border-t-amber-500 rounded-full animate-spin"></div>
               </div>
@@ -245,11 +268,11 @@ const AuthScreen = () => {
           </div>
           <div className="space-y-6">
             <h1 className="text-5xl font-extrabold leading-[1.1] mb-4">
-              The reference platform <br />
-              <span className="text-amber-500">for excellence in law firms.</span>
+              La plateforme de référence <br />
+              <span className="text-amber-500">pour les cabinets d’avocats.</span>
             </h1>
             <p className="text-slate-500 dark:text-slate-300 text-lg max-w-md leading-relaxed">
-              Manage your cases, automate your billing, and collaborate securely.
+              Gérez vos dossiers, automatisez vos opérations et collaborez en toute sécurité.
             </p>
           </div>
         </div>
@@ -260,11 +283,11 @@ const AuthScreen = () => {
               <ShieldCheck size={20} />
             </div>
             <div>
-              <p className="font-bold text-sm">Multi-Tenant Isolation</p>
-              <p className="text-xs text-slate-600 dark:text-slate-300">Data strictly partitioned by firm.</p>
+              <p className="font-bold text-sm">Isolation multi-cabinets</p>
+              <p className="text-xs text-slate-600 dark:text-slate-300">Données strictement séparées pour chaque cabinet.</p>
             </div>
           </div>
-          <div className="z-10 text-xs text-slate-600 dark:text-slate-300 font-medium tracking-widest uppercase">© 2026 LexManage Systems • SaaS Edition</div>
+          <div className="z-10 text-xs text-slate-600 dark:text-slate-300 font-medium tracking-widest uppercase">© 2026 LexManage Systems • Édition SaaS</div>
         </div>
       </div>
 
@@ -272,28 +295,30 @@ const AuthScreen = () => {
         <div className={`w-full max-w-md space-y-8 animate-in fade-in slide-in-from-right-4 duration-500 py-8 ${shouldShake ? 'animate-shake' : ''}`}>
           
           <div className="text-center lg:text-left">
-            {(view === 'forgot_password' || view === 'mfa_challenge' || (view === 'signup' && signupStep === 2)) && (
+            {(view === 'forgot_password' || view === 'reset_password' || (view === 'signup' && signupStep === 2)) && (
               <button 
-                aria-label="Back"
+                aria-label="Retour"
                 onClick={() => {
                   if (view === 'signup' && signupStep === 2 && !invitationToken) setSignupStep(1);
                   else setView('login');
                 }}
                 className="flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-amber-600 mb-6 transition-all group"
               >
-                <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Back
+                <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Retour
               </button>
             )}
             
             <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-              {view === 'login' ? 'Welcome' : 
-               view === 'signup' ? (invitationToken ? 'Join the firm' : 'Create your firm') : 
-               'Recovery'}
+              {view === 'login' ? 'Bienvenue' :
+               view === 'signup' ? (invitationToken ? 'Rejoindre le cabinet' : 'Créer votre cabinet') :
+               view === 'reset_password' ? 'Nouveau mot de passe' : 'Récupération'}
             </h2>
             <p className="mt-3 text-slate-600 dark:text-slate-300 font-medium">
               {view === 'login' ? 'Log in to your secure workspace.' : 
-               view === 'signup' ? (signupStep === 1 ? 'Step 1: Firm Information' : 'Step 2: Main Administrator') : 
-               'A reset link will be sent to you.'}
+               view === 'signup' ? (signupStep === 1 ? 'Étape 1 : informations du cabinet' : 'Étape 2 : administrateur principal') :
+               view === 'reset_password'
+                 ? 'Choisissez un nouveau mot de passe sécurisé.'
+                 : 'Un lien de réinitialisation vous sera envoyé.'}
             </p>
           </div>
 
@@ -305,7 +330,7 @@ const AuthScreen = () => {
                 className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-amber-700 dark:text-amber-300 animate-in fade-in slide-in-from-top-2 duration-300"
               >
                 <Loader2 size={18} className="shrink-0 animate-spin" />
-                <span className="text-sm font-semibold">Waking up the server, please wait…</span>
+                <span className="text-sm font-semibold">Démarrage du serveur, veuillez patienter…</span>
               </div>
             )}
             {view === 'login' && (
@@ -319,11 +344,11 @@ const AuthScreen = () => {
                     <span className="text-sm font-semibold">{loginError}</span>
                   </div>
                 )}
-                <Input {...register("email")} label="Work Email" type="email" icon={Mail} error={errors.email?.message} />
+                <Input {...register("email")} label="Email professionnel" type="email" icon={Mail} error={errors.email?.message} />
                 <div className="space-y-2">
-                  <Input {...register("password")} label="Password" type="password" icon={Lock} error={errors.password?.message} />
+                  <Input {...register("password")} label="Mot de passe" type="password" icon={Lock} error={errors.password?.message} />
                   <div className="flex justify-end">
-                    <button type="button" onClick={() => { setLoginError(''); setView('forgot_password'); }} className="text-xs font-bold text-amber-600 hover:text-amber-700 transition-colors">Forgot password?</button>
+                    <button type="button" onClick={() => { setLoginError(''); setView('forgot_password'); }} className="text-xs font-bold text-amber-600 hover:text-amber-700 transition-colors">Mot de passe oublié ?</button>
                   </div>
                 </div>
               </>
@@ -331,13 +356,13 @@ const AuthScreen = () => {
 
             {view === 'signup' && !invitationToken && signupStep === 1 && (
               <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
-                <Input {...register("firmName")} label="Firm Name" icon={Briefcase} placeholder="ex: Kamdem & Associates" error={errors.firmName?.message} />
+                <Input {...register("firmName")} label="Nom du cabinet" icon={Briefcase} placeholder="Ex. : Kamdem & Associés" error={errors.firmName?.message} />
                 <div className="grid grid-cols-2 gap-4">
-                  <Input {...register("country")} label="Country" placeholder="Cameroon" error={errors.country?.message} />
-                  <Input {...register("city")} label="City" placeholder="Douala" error={errors.city?.message} />
+                  <Input {...register("country")} label="Pays" placeholder="Cameroun" error={errors.country?.message} />
+                  <Input {...register("city")} label="Ville" placeholder="Douala" error={errors.city?.message} />
                 </div>
                 <Button type="button" onClick={nextStep} className="w-full h-14 text-lg font-bold" icon={ArrowRight}>
-                  Next
+                  Suivant
                 </Button>
               </div>
             )}
@@ -345,17 +370,17 @@ const AuthScreen = () => {
             {view === 'signup' && (invitationToken || signupStep === 2) && (
               <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
                 <div className="grid grid-cols-2 gap-4">
-                  <Input {...register("firstName")} label="First Name" icon={User} error={errors.firstName?.message} />
-                  <Input {...register("lastName")} label="Last Name" error={errors.lastName?.message} />
+                <Input {...register("firstName")} label="Prénom" icon={User} error={errors.firstName?.message} />
+                  <Input {...register("lastName")} label="Nom" error={errors.lastName?.message} />
                 </div>
-                <Input {...register("email")} label="Work Email" type="email" icon={Mail} error={errors.email?.message} />
-                <Input {...register("phone")} label="Phone" type="tel" icon={Phone} placeholder="+237 ..." error={errors.phone?.message} />
+                <Input {...register("email")} label="Email professionnel" type="email" icon={Mail} error={errors.email?.message} />
+                <Input {...register("phone")} label="Téléphone" type="tel" icon={Phone} placeholder="+237 …" error={errors.phone?.message} />
                 <div className="space-y-4">
                   <div>
-                    <Input {...register("password")} label="Password" type="password" icon={Lock} error={errors.password?.message} />
-                    <PasswordStrengthMeter password={watch('password')} />
+                    <Input {...register("password")} label="Mot de passe" type="password" icon={Lock} error={errors.password?.message} />
+                    <PasswordStrengthMeter password={passwordValue} />
                   </div>
-                  <Input {...register("confirmPassword")} label="Confirm Password" type="password" icon={ShieldCheck} error={errors.confirmPassword?.message} />
+                  <Input {...register("confirmPassword")} label="Confirmer le mot de passe" type="password" icon={ShieldCheck} error={errors.confirmPassword?.message} />
                 </div>
                 <div className="flex gap-3">
                   {!invitationToken && (
@@ -366,11 +391,11 @@ const AuthScreen = () => {
                       icon={ChevronLeft}
                       className="h-14 px-6 text-base font-bold"
                     >
-                      Back
+                      Retour
                     </Button>
                   )}
                   <Button type="submit" isLoading={isSubmitting} className="flex-1 h-14 text-lg font-bold" icon={Check}>
-                    {invitationToken ? 'Join now' : 'Create firm'}
+                    {invitationToken ? 'Rejoindre maintenant' : 'Créer le cabinet'}
                   </Button>
                 </div>
               </div>
@@ -378,38 +403,51 @@ const AuthScreen = () => {
 
             {view === 'forgot_password' && (
               <div className="space-y-5">
-                <Input {...register("email")} label="Recovery Email" type="email" icon={Mail} error={errors.email?.message} />
+                <Input {...register("email")} label="Email de récupération" type="email" icon={Mail} error={errors.email?.message} />
                 <Button type="submit" isLoading={isSubmitting} className="w-full h-14 font-bold">
-                  Send link
+                  Envoyer le lien
+                </Button>
+              </div>
+            )}
+
+            {view === 'reset_password' && (
+              <div className="space-y-5">
+                <div>
+                  <Input {...register("newPassword")} label="Nouveau mot de passe" type="password" icon={Lock} error={errors.newPassword?.message} />
+                  <PasswordStrengthMeter password={newPasswordValue} />
+                </div>
+                <Input {...register("confirmNewPassword")} label="Confirmer le mot de passe" type="password" icon={ShieldCheck} error={errors.confirmNewPassword?.message} />
+                <Button type="submit" isLoading={isSubmitting} className="w-full h-14 font-bold">
+                  Réinitialiser le mot de passe
                 </Button>
               </div>
             )}
 
             {view === 'login' && (
               <Button type="submit" isLoading={isSubmitting} className="w-full h-14 text-lg font-bold shadow-[0_10px_20px_rgba(15,23,42,0.1)]" icon={ArrowRight}>
-                Login
+                Se connecter
               </Button>
             )}
           </form>
 
           {view === 'login' && !invitationToken && (
             <div className="text-center pt-8 border-t border-slate-100 dark:border-slate-800">
-              <p className="text-slate-600 dark:text-slate-300 text-sm mb-4">Don't have an account yet?</p>
+              <p className="text-slate-600 dark:text-slate-300 text-sm mb-4">Vous n’avez pas encore de compte ?</p>
               <button 
-                aria-label="Create a new firm"
+                aria-label="Créer un nouveau cabinet"
                 onClick={() => { setLoginError(''); setView('signup'); setSignupStep(1); }}
                 className="w-full py-3 px-6 rounded-xl border-2 border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white font-bold hover:bg-slate-50 dark:hover:bg-slate-900 transition-all flex items-center justify-center gap-2"
               >
                 <UserPlus size={18} className="text-amber-500" />
-                Create a new firm
+                Créer un nouveau cabinet
               </button>
             </div>
           )}
 
           {view === 'signup' && (
             <div className="text-center pt-6">
-              <button aria-label="Login" onClick={() => setView('login')} className="text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors">
-                Already registered? Login
+              <button aria-label="Se connecter" onClick={() => setView('login')} className="text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors">
+                Déjà inscrit ? Se connecter
               </button>
             </div>
           )}

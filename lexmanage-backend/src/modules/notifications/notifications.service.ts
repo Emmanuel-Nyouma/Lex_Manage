@@ -1,8 +1,13 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bullmq';
+import { Queue } from 'bull';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateNotificationDto } from './dto/create-notification.dto';
 import { EventsGateway } from '../events/events.gateway';
 import { NotificationLevel, NotificationMotif } from '@prisma/client';
 
@@ -27,6 +32,8 @@ export interface CreateScheduledDto {
 
 @Injectable()
 export class NotificationsService {
+  private readonly logger = new Logger(NotificationsService.name);
+
   constructor(
     private prisma: PrismaService,
     private eventsGateway: EventsGateway,
@@ -116,10 +123,40 @@ export class NotificationsService {
     return { count: unread.length };
   }
 
-  async create(dto: any, tenantId: string, createdById: string) {
-    const { recipientIds, recipientRoles, caseId, ...data } = dto;
+  async create(dto: any, tenantId: string, createdById: string | null) {
+    const { recipientIds, recipientRoles, caseId } = dto;
 
-    let finalRecipientIds = recipientIds || [];
+    if (dto.idempotencyKey) {
+      const existing = await this.prisma.notification.findFirst({
+        where: { tenantId, idempotencyKey: dto.idempotencyKey },
+        include: {
+          tenant: { select: { name: true } },
+          createdBy: { select: { firstName: true, lastName: true, email: true } },
+        },
+      });
+      if (existing) return existing;
+    }
+
+    if (caseId) {
+      const targetCase = await this.prisma.case.findFirst({
+        where: { id: caseId, tenantId },
+        select: { id: true },
+      });
+      if (!targetCase) throw new BadRequestException('Case does not belong to this firm');
+    }
+
+    let finalRecipientIds: string[] = Array.isArray(recipientIds)
+      ? Array.from(new Set(recipientIds))
+      : [];
+    if (finalRecipientIds.length > 0) {
+      const validRecipients = await this.prisma.user.findMany({
+        where: { tenantId, id: { in: finalRecipientIds }, isActive: true },
+        select: { id: true },
+      });
+      if (validRecipients.length !== finalRecipientIds.length) {
+        throw new BadRequestException('One or more recipients do not belong to this firm');
+      }
+    }
 
     // If roles are specified, expand them to user IDs
     if (recipientRoles && recipientRoles.length > 0) {
@@ -140,7 +177,7 @@ export class NotificationsService {
     //  reaches everyone, including the sender.)
     if (
       finalRecipientIds.length > 0 &&
-      createdById !== 'SYSTEM' &&
+      createdById &&
       !finalRecipientIds.includes(createdById)
     ) {
       finalRecipientIds.push(createdById);
@@ -153,10 +190,12 @@ export class NotificationsService {
         title: dto.title,
         message: dto.message || '',
         tenantId,
-        createdById,
+        source: createdById ? 'USER' : 'SYSTEM',
+        createdById: createdById || null,
         recipientIds: finalRecipientIds,
         readByIds: [],
         caseId: caseId || null,
+        idempotencyKey: dto.idempotencyKey || null,
       },
       include: {
         tenant: { select: { name: true } },
@@ -164,14 +203,7 @@ export class NotificationsService {
       },
     });
 
-    // Real-time emission
-    if (finalRecipientIds.length > 0) {
-      // Send to specific users via gateway if implemented, 
-      // otherwise broadcast and filter on client (current sendToTenant approach)
-      this.eventsGateway.sendToTenant(tenantId, 'notification.new', notification);
-    } else {
-      this.eventsGateway.sendToTenant(tenantId, 'notification.new', notification);
-    }
+    this.eventsGateway.sendToTenant(tenantId, 'notification.new', notification);
 
     // If URGENT level, queue emails
     if (notification.level === 'URGENT') {
@@ -179,21 +211,26 @@ export class NotificationsService {
         ? await this.prisma.user.findMany({ where: { id: { in: finalRecipientIds }, tenantId, isActive: true }, select: { email: true } })
         : await this.prisma.user.findMany({ where: { tenantId, isActive: true }, select: { email: true } });
 
-      for (const targetUser of targets) {
-        await this.mailQueue.add('send-urgent-notification', {
+      await this.mailQueue.addBulk(targets.map((targetUser) => ({
+        name: 'send-urgent-notification',
+        data: {
           to: targetUser.email,
           data: {
             firmName: notification.tenant.name,
             motifLabel: notification.motif,
             message: notification.message,
-            senderName: createdById === 'SYSTEM' ? 'Système LexManage' : `${notification.createdBy.firstName} ${notification.createdBy.lastName}`,
+            senderName: notification.createdBy
+              ? `${notification.createdBy.firstName} ${notification.createdBy.lastName}`
+              : 'Système LexManage',
             timestamp: notification.createdAt,
           },
-        }, {
+        },
+        opts: {
+          jobId: `urgent:${notification.id}:${targetUser.email}`,
           attempts: 3,
           backoff: { type: 'exponential', delay: 2000 },
-        });
-      }
+        },
+      })));
     }
 
     return notification;
@@ -205,7 +242,7 @@ export class NotificationsService {
     return this.prisma.notification.findMany({
       where: {
         tenantId,
-        NOT: { createdById: 'SYSTEM' },
+        source: 'USER',
       },
       orderBy: { createdAt: 'desc' },
       take: 100,
@@ -279,6 +316,13 @@ export class NotificationsService {
     if (scheduledAt <= new Date()) {
       throw new BadRequestException('Scheduled date must be in the future');
     }
+    if (dto.caseId) {
+      const targetCase = await this.prisma.case.findFirst({
+        where: { id: dto.caseId, tenantId },
+        select: { id: true },
+      });
+      if (!targetCase) throw new BadRequestException('Case does not belong to this firm');
+    }
 
     // Create the DB record first (no jobId yet)
     const record = await this.prisma.scheduledNotification.create({
@@ -298,11 +342,17 @@ export class NotificationsService {
 
     // Schedule the BullMQ delayed job
     const delay = scheduledAt.getTime() - Date.now();
-    const job = await this.remindersQueue.add(
-      'send-scheduled-notification',
-      { scheduledNotifId: record.id, tenantId },
-      { delay, jobId: `sched-${record.id}`, attempts: 3, backoff: { type: 'exponential', delay: 2000 } },
-    );
+    let job;
+    try {
+      job = await this.remindersQueue.add(
+        'send-scheduled-notification',
+        { scheduledNotifId: record.id, tenantId },
+        { delay, jobId: `sched-${record.id}`, attempts: 3, backoff: { type: 'exponential', delay: 2000 } },
+      );
+    } catch {
+      await this.prisma.scheduledNotification.delete({ where: { id: record.id } });
+      throw new ServiceUnavailableException('Scheduling service is temporarily unavailable');
+    }
 
     // Persist the jobId for later cancellation
     return this.prisma.scheduledNotification.update({
@@ -325,8 +375,9 @@ export class NotificationsService {
       try {
         const job = await this.remindersQueue.getJob(record.jobId);
         if (job) await job.remove();
-      } catch {
-        // Job may have already fired — ignore
+      } catch (error) {
+        this.logger.error(`Could not remove scheduled job ${record.jobId}`, error as Error);
+        throw new ServiceUnavailableException('Could not cancel the scheduled delivery');
       }
     }
 
@@ -345,8 +396,9 @@ export class NotificationsService {
       try {
         const job = await this.remindersQueue.getJob(record.jobId);
         if (job) await job.remove();
-      } catch {
-        // Job may have already fired — ignore
+      } catch (error) {
+        this.logger.error(`Could not remove scheduled job ${record.jobId}`, error as Error);
+        throw new ServiceUnavailableException('Could not delete the scheduled delivery');
       }
     }
 

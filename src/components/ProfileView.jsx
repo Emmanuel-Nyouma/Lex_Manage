@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { toast } from 'sonner';
 import { 
-  Mail, Phone, Shield, ShieldCheck, Lock, User, 
-  ExternalLink, Check, AlertCircle, Loader2 
+  Mail, Phone, ShieldCheck, Lock
 } from 'lucide-react';
 import { Card, Badge, Button, Input } from './ui';
 import useLexStore from '../store/useLexStore';
 import { useUpdateProfile } from '../hooks/useProfile';
+import apiClient from '../lib/api';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -21,6 +22,13 @@ const ProfileView = () => {
   const updateProfile = useUpdateProfile();
   
   const [isEditing, setIsEditing] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwords, setPasswords] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
 
   const { 
     register, 
@@ -49,10 +57,31 @@ const ProfileView = () => {
     updateProfile.mutate(data, {
       onSuccess: () => {
         setIsEditing(false);
-        fetchMe();
-        toast.success("Profile updated successfully");
+        void fetchMe();
       }
     });
+  };
+
+  const changePassword = async (event) => {
+    event.preventDefault();
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      toast.error('Les nouveaux mots de passe ne correspondent pas.');
+      return;
+    }
+    setIsSavingPassword(true);
+    try {
+      await apiClient.patch('/auth/change-password', {
+        currentPassword: passwords.currentPassword,
+        newPassword: passwords.newPassword,
+      });
+      setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setIsChangingPassword(false);
+      toast.success('Mot de passe modifié. Vos autres sessions ont été révoquées.');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Impossible de modifier le mot de passe.');
+    } finally {
+      setIsSavingPassword(false);
+    }
   };
 
   const fullName = `${currentUser?.firstName || ''} ${currentUser?.lastName || ''}`.trim() || 'No Name Set';
@@ -164,26 +193,45 @@ const ProfileView = () => {
                 <Lock size={16} className="text-amber-600" /> Account Security
               </h3>
               
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/20 rounded-xl">
-                  <div className="flex items-center gap-2">
-                    <Check size={14} className="text-emerald-600" />
-                    <span className="text-xs font-bold text-emerald-800 dark:text-emerald-500">MFA Active</span>
+              {isChangingPassword ? (
+                <form className="space-y-3" onSubmit={changePassword}>
+                  <Input
+                    label="Mot de passe actuel"
+                    type="password"
+                    required
+                    value={passwords.currentPassword}
+                    onChange={(event) => setPasswords((value) => ({ ...value, currentPassword: event.target.value }))}
+                  />
+                  <Input
+                    label="Nouveau mot de passe"
+                    type="password"
+                    minLength={8}
+                    required
+                    value={passwords.newPassword}
+                    onChange={(event) => setPasswords((value) => ({ ...value, newPassword: event.target.value }))}
+                  />
+                  <Input
+                    label="Confirmer le mot de passe"
+                    type="password"
+                    minLength={8}
+                    required
+                    value={passwords.confirmPassword}
+                    onChange={(event) => setPasswords((value) => ({ ...value, confirmPassword: event.target.value }))}
+                  />
+                  <div className="flex gap-2">
+                    <Button type="button" variant="ghost" onClick={() => setIsChangingPassword(false)}>
+                      Annuler
+                    </Button>
+                    <Button type="submit" isLoading={isSavingPassword}>Enregistrer</Button>
                   </div>
-                  <Badge variant="success">Secured</Badge>
-                </div>
-
-                <button className="w-full flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl transition-colors group">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle size={14} className="text-slate-500 dark:text-slate-300" />
-                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Change Password</span>
-                  </div>
-                  <ExternalLink size={12} className="text-slate-500 dark:text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
-              </div>
-              
+                </form>
+              ) : (
+                <Button className="w-full" variant="outline" onClick={() => setIsChangingPassword(true)}>
+                  Modifier le mot de passe
+                </Button>
+              )}
               <p className="text-[10px] text-slate-500 dark:text-slate-300 mt-4 leading-relaxed">
-                Last password change: <span className="font-bold">Mar 12, 2026</span>. We recommend updating your credentials every 90 days.
+                L’authentification multifacteur n’est pas encore activée pour ce compte.
               </p>
             </Card>
           </div>

@@ -10,25 +10,12 @@ import apiClient from '../lib/api';
 import { toast } from 'sonner';
 import { Card, Badge, Button, Input, PageSkeleton } from './ui';
 import SendNotificationDialog from './SendNotificationDialog';
+import TeamTab from './company-settings/TeamTab';
+import InvitationsTab from './company-settings/InvitationsTab';
+import InviteTab from './company-settings/InviteTab';
+import FirmTab from './company-settings/FirmTab';
 
 /* ─── Role badge colors ──────────────────────────────────────────── */
-const ROLE_VARIANT = {
-  CABINET_ADMIN: 'info',
-  LAWYER: 'secondary',
-  ASSISTANT: 'neutral',
-  SECRETARY: 'neutral',
-  SUPER_ADMIN: 'error',
-};
-
-const ROLE_LABELS = {
-  CABINET_ADMIN: 'Administrator',
-  LAWYER: 'Lawyer / Associate',
-  ASSISTANT: 'Legal Assistant',
-  SECRETARY: 'Secretary',
-  SUPER_ADMIN: 'Super Admin',
-};
-
-/* ─── Edit-member modal ──────────────────────────────────────────── */
 const EditMemberModal = ({ member, onClose, onSave }) => {
   const [role, setRole] = useState(member.role);
   const [isSaving, setIsSaving] = useState(false);
@@ -438,665 +425,61 @@ const CompanySettingsView = () => {
         </Button>
       </div>
 
-      {/* ══════════════════════════════════════════════════════════
-          Tab: Team
-      ══════════════════════════════════════════════════════════ */}
+
       {activeTab === 'team' && (
-        <Card className="p-0 border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden bg-white dark:bg-slate-900/50">
-          <div className="p-6 border-b dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/50">
-            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Users size={18} className="text-slate-500 dark:text-slate-400" />
-              Current Team
-            </h3>
-            <div className="flex items-center gap-3">
-              {/* Show/hide inactive toggle */}
-              {inactiveCount > 0 && (
-                <button
-                  onClick={() => setShowInactive(v => !v)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all ${
-                    showInactive
-                      ? 'border-slate-400 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                      : 'border-slate-200 dark:border-slate-700 text-slate-400 hover:border-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-                  }`}
-                >
-                  <Power size={12} />
-                  {showInactive ? 'Hide' : 'Show'} inactive ({inactiveCount})
-                </button>
-              )}
-              <Badge variant="info">{activeCount} active</Badge>
-            </div>
-          </div>
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <PageSkeleton variant="table" className="w-full" />
-            </div>
-          ) : members.length === 0 ? (
-            <div className="text-center py-16 text-slate-400">No members yet.</div>
-          ) : (
-            <>
-            {/* Mobile: member cards (< md) */}
-            <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
-              {members
-                .filter(m => showInactive || m.isActive !== false)
-                .map((member) => {
-                  const isCurrentUser = member.id === currentUser?.id;
-                  const isActive = member.isActive !== false;
-                  return (
-                    <div key={member.id} className={`p-4 ${!isActive ? 'opacity-60' : ''}`}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300 text-sm shrink-0">
-                            {member.firstName?.[0]}{member.lastName?.[0]}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-bold text-slate-900 dark:text-white text-sm truncate">
-                              {member.firstName} {member.lastName}
-                              {isCurrentUser && (
-                                <span className="ml-1.5 text-[9px] font-black text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded uppercase tracking-wider">You</span>
-                              )}
-                            </p>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate flex items-center gap-1 mt-0.5">
-                              <Mail size={10} className="shrink-0" /> {member.email}
-                            </p>
-                            {member.phone && (
-                              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate flex items-center gap-1">
-                                <Phone size={10} className="shrink-0" /> {member.phone}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <Badge variant={ROLE_VARIANT[member.role] || 'secondary'} className="text-[9px] font-black tracking-widest shrink-0">
-                          {ROLE_LABELS[member.role] || member.role.replace('_', ' ')}
-                        </Badge>
-                      </div>
-
-                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                        <div className="flex items-center gap-3">
-                          {isActive ? (
-                            <span className="flex items-center gap-1 text-emerald-600 font-bold text-[11px] uppercase tracking-tighter">
-                              <CheckCircle2 size={13} /> Active
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1 text-red-400 font-bold text-[11px] uppercase tracking-tighter">
-                              <UserX size={13} /> Disabled
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => setEditingMember(member)}
-                            disabled={isCurrentUser}
-                            className="p-2.5 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-xl transition-all disabled:opacity-30"
-                            aria-label="Edit role"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button
-                            onClick={() => setConfirmAction({ type: isActive ? 'deactivate' : 'reactivate', member })}
-                            disabled={isCurrentUser}
-                            className={`p-2.5 rounded-xl transition-all disabled:opacity-30 ${
-                              isActive
-                                ? 'text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
-                                : 'text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
-                            }`}
-                            aria-label={isActive ? 'Deactivate member' : 'Reactivate member'}
-                          >
-                            {isActive ? <UserX size={16} /> : <CheckCircle2 size={16} />}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-
-            {/* Desktop / tablet: table (≥ md) */}
-            <div className="overflow-x-auto hidden md:block">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50 dark:bg-slate-800/50 text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">
-                  <tr>
-                    <th className="px-6 py-4 tracking-wider">Member</th>
-                    <th className="px-6 py-4 tracking-wider">Role</th>
-                    <th className="px-6 py-4 tracking-wider">Status</th>
-                    <th className="px-6 py-4 tracking-wider">Joined</th>
-                    <th className="px-6 py-4 text-right tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y dark:divide-slate-800">
-                  {members
-                    .filter(m => showInactive || m.isActive !== false)
-                    .map((member) => {
-                    const isCurrentUser = member.id === currentUser?.id;
-                    const isActive = member.isActive !== false;
-                    return (
-                      <tr
-                        key={member.id}
-                        className={`transition-colors ${
-                          isActive
-                            ? 'hover:bg-slate-50/80 dark:hover:bg-slate-800/30'
-                            : 'bg-slate-50/40 dark:bg-slate-800/10 opacity-60 hover:opacity-80'
-                        }`}
-                      >
-                        {/* Member info */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300 text-sm shrink-0">
-                              {member.firstName?.[0]}{member.lastName?.[0]}
-                            </div>
-                            <div>
-                              <p className="font-bold text-slate-900 dark:text-white text-sm">
-                                {member.firstName} {member.lastName}
-                                {isCurrentUser && (
-                                  <span className="ml-2 text-[9px] font-black text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                                    You
-                                  </span>
-                                )}
-                              </p>
-                              <div className="flex items-center gap-3 mt-0.5">
-                                <span className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
-                                  <Mail size={10} /> {member.email}
-                                </span>
-                                {member.phone && (
-                                  <span className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
-                                    <Phone size={10} /> {member.phone}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Role */}
-                        <td className="px-6 py-4">
-                          <Badge variant={ROLE_VARIANT[member.role] || 'secondary'} className="text-[10px] font-black tracking-widest">
-                            {ROLE_LABELS[member.role] || member.role.replace('_', ' ')}
-                          </Badge>
-                        </td>
-
-                        {/* Status */}
-                        <td className="px-6 py-4">
-                          {isActive ? (
-                            <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs uppercase tracking-tighter">
-                              <CheckCircle2 size={14} /> Active
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1.5 text-red-400 font-bold text-xs uppercase tracking-tighter">
-                              <UserX size={14} /> Disabled
-                            </div>
-                          )}
-                        </td>
-
-                        {/* Joined */}
-                        <td className="px-6 py-4 text-xs text-slate-400 dark:text-slate-500 font-medium">
-                          {member.createdAt
-                            ? new Date(member.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
-                            : '—'}
-                        </td>
-
-                        {/* Actions */}
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {/* Edit role */}
-                            <button
-                              onClick={() => setEditingMember(member)}
-                              disabled={isCurrentUser}
-                              className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-all disabled:opacity-30"
-                              title="Edit role"
-                            >
-                              <Edit2 size={15} />
-                            </button>
-
-                            {/* Soft disable / reactivate */}
-                            <button
-                              onClick={() =>
-                                setConfirmAction({
-                                  type: isActive ? 'deactivate' : 'reactivate',
-                                  member,
-                                })
-                              }
-                              disabled={isCurrentUser}
-                              className={`p-2 rounded-lg transition-all disabled:opacity-30 ${
-                                isActive
-                                  ? 'text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
-                                  : 'text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
-                              }`}
-                              title={isActive ? 'Deactivate member' : 'Reactivate member'}
-                            >
-                              {isActive ? <UserX size={15} /> : <CheckCircle2 size={15} />}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            </>
-          )}
-        </Card>
+        <TeamTab
+          inactiveCount={inactiveCount}
+          showInactive={showInactive}
+          setShowInactive={setShowInactive}
+          activeCount={activeCount}
+          isLoading={isLoading}
+          members={members}
+          currentUser={currentUser}
+          setEditingMember={setEditingMember}
+          setConfirmAction={setConfirmAction}
+        />
       )}
 
-      {/* ══════════════════════════════════════════════════════════
-          Tab: Invitations
-      ══════════════════════════════════════════════════════════ */}
       {activeTab === 'invitations' && (
-        <Card className="p-6 border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/50">
-          <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-            <Clock size={20} className="text-slate-500 dark:text-slate-400" />
-            Pending Invitations
-          </h3>
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <PageSkeleton variant="table" className="w-full" />
-            </div>
-          ) : invitations.length > 0 ? (
-            <>
-            {/* Mobile: invitation cards (< md) */}
-            <div className="md:hidden space-y-3">
-              {invitations.map((invite) => (
-                <div key={invite.id} className="p-4 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{invite.email}</p>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5 uppercase tracking-tighter">
-                        <ExternalLink size={10} /> {invite.token.slice(0, 8)}…
-                      </p>
-                    </div>
-                    <Badge variant="secondary" className="shrink-0">
-                      {ROLE_LABELS[invite.role] || invite.role.replace('_', ' ')}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
-                      <Clock size={12} /> Expire le {new Date(invite.expiresAt).toLocaleDateString()}
-                    </span>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => copyToClipboard(`${window.location.origin}/login?invitation=${invite.token}`)}
-                        className="p-2.5 text-slate-400 hover:text-amber-600 transition-colors rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                        aria-label="Copy invitation link"
-                      >
-                        <Copy size={16} />
-                      </button>
-                      <button
-                        onClick={() => revokeInvitation(invite.id)}
-                        className="p-2.5 text-slate-400 hover:text-red-600 transition-colors rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20"
-                        aria-label="Revoke invitation"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Desktop / tablet: table (≥ md) */}
-            <div className="overflow-x-auto hidden md:block">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
-                    <th className="pb-4 px-2">Associate</th>
-                    <th className="pb-4 px-2">Role</th>
-                    <th className="pb-4 px-2">Expires on</th>
-                    <th className="pb-4 px-2 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                  {invitations.map((invite) => (
-                    <tr key={invite.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="py-4 px-2">
-                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{invite.email}</p>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5 uppercase tracking-tighter">
-                          <ExternalLink size={10} /> TOKEN: {invite.token.slice(0, 8)}…
-                        </p>
-                      </td>
-                      <td className="py-4 px-2">
-                        <Badge variant="secondary">
-                          {ROLE_LABELS[invite.role] || invite.role.replace('_', ' ')}
-                        </Badge>
-                      </td>
-                      <td className="py-4 px-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
-                        {new Date(invite.expiresAt).toLocaleDateString()}
-                      </td>
-                      <td className="py-4 px-2 text-right">
-                        <div className="flex justify-end gap-1">
-                          <button
-                            onClick={() =>
-                              copyToClipboard(
-                                `${window.location.origin}/login?invitation=${invite.token}`
-                              )
-                            }
-                            className="p-2 text-slate-400 hover:text-amber-600 transition-colors rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                            title="Copy invitation link"
-                          >
-                            <Copy size={16} />
-                          </button>
-                          <button
-                            onClick={() => revokeInvitation(invite.id)}
-                            className="p-2 text-slate-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
-                            title="Revoke invitation"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            </>
-          ) : (
-            <div className="text-center py-10 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-              <Mail className="text-slate-300 mx-auto mb-3" size={32} />
-              <p className="text-slate-400 italic text-sm">No active invitations.</p>
-            </div>
-          )}
-        </Card>
+        <InvitationsTab
+          isLoading={isLoading}
+          invitations={invitations}
+          copyToClipboard={copyToClipboard}
+          revokeInvitation={revokeInvitation}
+        />
       )}
 
-      {/* ══════════════════════════════════════════════════════════
-          Tab: Invite
-      ══════════════════════════════════════════════════════════ */}
       {activeTab === 'invite' && (
-        <div className="max-w-md">
-          <Card className="p-6 border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/50">
-            <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-              <UserPlus size={20} className="text-amber-500" /> Invite a member
-            </h3>
-
-            <form onSubmit={handleInvite} className="space-y-5">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
-                  Professional Email
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="john.doe@lawfirm.com"
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-white"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
-                  Role in the firm
-                </label>
-                <div className="relative">
-                  <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className="w-full pl-10 pr-10 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none appearance-none cursor-pointer focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-white"
-                  >
-                    <option value="LAWYER">Lawyer / Associate</option>
-                    <option value="ASSISTANT">Legal Assistant</option>
-                    <option value="SECRETARY">Secretary</option>
-                    <option value="CABINET_ADMIN">Administrator</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" size={14} />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isInviting}
-                className="w-full py-3.5 bg-slate-900 dark:bg-amber-600 text-white rounded-xl text-sm font-bold hover:bg-slate-800 dark:hover:bg-amber-700 shadow-lg disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-              >
-                {isInviting ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
-                Generate invitation
-              </button>
-            </form>
-
-            {lastGeneratedLink && (
-              <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 rounded-xl animate-in zoom-in-95">
-                <p className="text-[10px] font-bold text-amber-800 dark:text-amber-500 uppercase mb-2">
-                  Invitation link ready:
-                </p>
-                <div className="flex gap-2">
-                  <input
-                    readOnly
-                    value={lastGeneratedLink}
-                    className="flex-1 bg-white dark:bg-slate-950 border border-amber-200 dark:border-amber-800 rounded-lg px-2 py-2 text-[10px] text-slate-600 dark:text-slate-300 outline-none"
-                  />
-                  <button
-                    onClick={() => copyToClipboard(lastGeneratedLink)}
-                    className="p-2 bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors shadow-sm"
-                  >
-                    <Copy size={16} className="text-amber-600" />
-                  </button>
-                </div>
-                <p className="text-[9px] text-amber-700 dark:text-amber-500/70 mt-3 italic leading-relaxed">
-                  Send this link to your associate. They can create their account and automatically join your firm.
-                </p>
-                <button
-                  onClick={() => setActiveTab('invitations')}
-                  className="mt-3 text-[10px] font-bold text-amber-600 dark:text-amber-400 underline underline-offset-2 hover:no-underline"
-                >
-                  View all pending invitations →
-                </button>
-              </div>
-            )}
-          </Card>
-        </div>
+        <InviteTab
+          email={email}
+          setEmail={setEmail}
+          role={role}
+          setRole={setRole}
+          isInviting={isInviting}
+          handleInvite={handleInvite}
+          lastGeneratedLink={lastGeneratedLink}
+          copyToClipboard={copyToClipboard}
+          setActiveTab={setActiveTab}
+        />
       )}
 
-      {/* ══════════════════════════════════════════════════════════
-          Tab: Firm Info
-      ══════════════════════════════════════════════════════════ */}
       {activeTab === 'firm' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-          {/* ── Logo card ── */}
-          <Card className="p-6 border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/50 h-fit">
-            <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-              <Camera size={18} className="text-amber-500" /> Firm Logo
-            </h3>
-
-            <div className="flex flex-col items-center gap-4">
-              {/* Preview */}
-              <div
-                onClick={() => logoInputRef.current?.click()}
-                className="relative w-32 h-32 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden cursor-pointer hover:border-amber-400 transition-colors group bg-slate-50 dark:bg-slate-800/50"
-              >
-                {logoPreview ? (
-                  <img
-                    src={logoPreview}
-                    alt="Firm logo"
-                    className="w-full h-full object-contain p-2"
-                  />
-                ) : (
-                  <div className="flex flex-col items-center gap-2 text-slate-400">
-                    <Building2 size={32} />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">No logo</span>
-                  </div>
-                )}
-                {/* Hover overlay */}
-                <div className="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
-                  {isUploadingLogo
-                    ? <Loader2 size={24} className="text-white animate-spin" />
-                    : <Camera size={24} className="text-white" />
-                  }
-                </div>
-              </div>
-
-              <input
-                ref={logoInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/svg+xml,image/webp"
-                className="hidden"
-                onChange={handleLogoChange}
-              />
-
-              <button
-                onClick={() => logoInputRef.current?.click()}
-                disabled={isUploadingLogo}
-                className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline disabled:opacity-50"
-              >
-                {isUploadingLogo ? 'Uploading…' : 'Click to change logo'}
-              </button>
-              <p className="text-[10px] text-slate-400 text-center leading-relaxed">
-                PNG, JPEG, SVG or WebP<br />Max 2 MB — displayed in emails & documents
-              </p>
-            </div>
-          </Card>
-
-          {/* ── Edit form ── */}
-          <form
-            onSubmit={handleSaveFirm}
-            className="lg:col-span-2 space-y-6"
-          >
-            <Card className="p-6 border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/50">
-              <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                <Building2 size={18} className="text-amber-500" /> General Information
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                {/* Firm name */}
-                <FirmField
-                  label="Firm Name"
-                  icon={Building2}
-                  placeholder="Cabinet Dupont & Associés"
-                  required
-                  {...firmField('name')}
-                />
-                {/* Website */}
-                <FirmField
-                  label="Website"
-                  icon={Link2}
-                  placeholder="https://cabinet-dupont.fr"
-                  type="url"
-                  {...firmField('website')}
-                />
-                {/* City */}
-                <FirmField
-                  label="City"
-                  icon={MapPin}
-                  placeholder="Paris"
-                  {...firmField('city')}
-                />
-                {/* Country */}
-                <FirmField
-                  label="Country"
-                  icon={Globe}
-                  placeholder="France"
-                  {...firmField('country')}
-                />
-                {/* Address — full width */}
-                <div className="sm:col-span-2">
-                  <FirmField
-                    label="Full Address"
-                    icon={MapPin}
-                    placeholder="12 rue de la Paix, 75001 Paris"
-                    {...firmField('address')}
-                  />
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6 border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/50">
-              <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                <Phone size={18} className="text-amber-500" /> Contacts & Legal Identifiers
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                {/* Phone */}
-                <FirmField
-                  label="Phone"
-                  icon={Phone}
-                  placeholder="+33 1 23 45 67 89"
-                  type="tel"
-                  {...firmField('phone')}
-                />
-                {/* Fax */}
-                <FirmField
-                  label="Fax"
-                  icon={Phone}
-                  placeholder="+33 1 23 45 67 90"
-                  type="tel"
-                  {...firmField('fax')}
-                />
-                {/* SIRET */}
-                <FirmField
-                  label="SIRET"
-                  icon={Hash}
-                  placeholder="123 456 789 00012"
-                  {...firmField('siret')}
-                />
-                {/* N° Barreau */}
-                <FirmField
-                  label="Bar Number (N° Barreau)"
-                  icon={Shield}
-                  placeholder="75001"
-                  {...firmField('barNumber')}
-                />
-              </div>
-            </Card>
-
-            {/* Save button */}
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  if (tenantInfo) setFirmForm({
-                    name: tenantInfo.name ?? '', city: tenantInfo.city ?? '',
-                    country: tenantInfo.country ?? '', address: tenantInfo.address ?? '',
-                    phone: tenantInfo.phone ?? '', fax: tenantInfo.fax ?? '',
-                    website: tenantInfo.website ?? '', siret: tenantInfo.siret ?? '',
-                    barNumber: tenantInfo.barNumber ?? '',
-                  });
-                }}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
-              >
-                <RefreshCw size={15} /> Reset
-              </button>
-              <button
-                type="submit"
-                disabled={isSavingFirm}
-                className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 dark:bg-amber-600 text-white rounded-xl text-sm font-bold hover:bg-slate-800 dark:hover:bg-amber-700 shadow-lg disabled:opacity-50 transition-all"
-              >
-                {isSavingFirm
-                  ? <Loader2 size={16} className="animate-spin" />
-                  : <Save size={16} />
-                }
-                Save Changes
-              </button>
-            </div>
-          </form>
-        </div>
+        <FirmTab
+          logoInputRef={logoInputRef}
+          logoPreview={logoPreview}
+          isUploadingLogo={isUploadingLogo}
+          handleLogoChange={handleLogoChange}
+          handleSaveFirm={handleSaveFirm}
+          firmField={firmField}
+          tenantInfo={tenantInfo}
+          setFirmForm={setFirmForm}
+          isSavingFirm={isSavingFirm}
+        />
       )}
+
 
     </div>
   );
 };
-
-/* ─── Reusable field component ───────────────────────────────────── */
-const FirmField = ({ label, icon: Icon, placeholder, type = 'text', required, value, onChange }) => (
-  <div>
-    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
-      {label}{required && <span className="text-red-400 ml-0.5">*</span>}
-    </label>
-    <div className="relative">
-      {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />}
-      <input
-        type={type}
-        required={required}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-white placeholder:text-slate-400"
-      />
-    </div>
-  </div>
-);
 
 export default CompanySettingsView;

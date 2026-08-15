@@ -38,7 +38,7 @@ const ErrorHandler = ({ error }) => {
             </p>
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-2">{presentation.category}</p>
             
-            {(errorStack || typeof error === 'object') && (
+            {import.meta.env.DEV && (errorStack || typeof error === 'object') && (
               <button 
                 onClick={() => setShowDetails(!showDetails)}
                 className="mt-3 flex items-center gap-1.5 text-[10px] font-bold text-slate-500 hover:text-red-600 transition-colors uppercase tracking-widest"
@@ -51,7 +51,7 @@ const ErrorHandler = ({ error }) => {
           </div>
         </div>
 
-        {showDetails && (
+        {import.meta.env.DEV && showDetails && (
           <div className="px-4 pb-4 animate-in fade-in slide-in-from-top-2">
             <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 text-[10px] font-mono text-slate-500 dark:text-slate-400 overflow-auto max-h-40 scrollbar-thin">
               {errorStack ? (

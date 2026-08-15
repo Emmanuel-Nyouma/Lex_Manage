@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '../lib/router';
 import {
   Users, UserPlus, Search, Mail, Phone, MapPin,
   Trash2, Edit2, X, Check, Building2, User as UserIcon,
   Loader2, ChevronRight, Briefcase, CalendarClock, ChevronDown, Link2,
+  AlertCircle, RefreshCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, Button, Input, Badge, PageSkeleton } from './ui';
@@ -11,6 +12,7 @@ import { useClients, useCreateClient, useDeleteClient } from '../hooks/useClient
 import { useCases } from '../hooks/useCases';
 import { useGlobalDeadlines } from '../hooks/useCalendar';
 import useLexStore from '../store/useLexStore';
+import { formatLegalDate } from '../utils/dateOnly';
 
 const ClientsDirectoryView = () => {
   const navigate = useNavigate();
@@ -540,7 +542,7 @@ const ClientsDirectoryView = () => {
                                   className={`w-full px-3 py-2.5 text-left hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors border-b border-slate-50 dark:border-slate-800 last:border-0 ${d.id === newClient.deadlineId ? 'bg-blue-50 dark:bg-blue-900/10' : ''}`}>
                                   <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{d.title}</p>
                                   <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                                    {new Date(d.dueAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                    {formatLegalDate(d.dueAt, 'fr-FR', { month: 'short', day: 'numeric', year: 'numeric' })}
                                     {d.case ? ` · ${d.case.title}` : ''}
                                   </p>
                                 </button>

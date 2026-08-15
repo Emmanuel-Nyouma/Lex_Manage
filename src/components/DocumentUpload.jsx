@@ -22,7 +22,7 @@ const DocumentUpload = ({ onUploadSuccess, existingDocuments = [] }) => {
 
   const currentCategoryObj = useMemo(() => 
     DMS_CATEGORIES.find(c => c.id === selectedCategory), 
-  [selectedCategory]);
+  [selectedCategory, DMS_CATEGORIES]);
 
   const onDrop = useCallback(async (acceptedFiles) => {
     if (acceptedFiles.length === 0) return;

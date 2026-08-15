@@ -7,23 +7,12 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   // Security
   app.use(helmet());
   app.use(cookieParser());
   
-  if (process.env.NODE_ENV === 'production') {
-    app.use((req, res, next) => {
-      // Skip HTTPS redirect for internal health checks
-      if (req.path === '/health') return next();
-      if (req.header('x-forwarded-proto') !== 'https') {
-        res.redirect(301, `https://${req.header('host')}${req.url}`);
-      } else {
-        next();
-      }
-    });
-  }
-
   const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map((origin) => origin.trim()) || ['http://localhost:3000'];
   app.enableCors({
     origin: allowedOrigins,
@@ -40,7 +29,9 @@ async function bootstrap() {
   );
 
   // API prefix — exclude /health so Render's health check works without auth
-  app.setGlobalPrefix('api/v1', { exclude: ['health'] });
+  app.setGlobalPrefix('api/v1', {
+    exclude: ['health', 'health/live', 'health/ready'],
+  });
 
   // Swagger documentation
   const config = new DocumentBuilder()

@@ -15,6 +15,12 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+coverage/
+.tmp-clean-install/
+__pycache__/
+*.py[cod]
+.gradle-home/
+.gradle-bin/
 .next
 **/.next
 *.local

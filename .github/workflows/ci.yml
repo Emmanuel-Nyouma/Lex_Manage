@@ -10,6 +10,9 @@ jobs:
   backend-build:
     name: Backend — Type-check & Build
     runs-on: ubuntu-latest
+    env:
+      # Prisma validation only parses this URL; the unit-test job does not connect.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/lexmanage?schema=public
     defaults:
       run:
         working-directory: lexmanage-backend
@@ -20,7 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: lexmanage-backend/package-lock.json
 
@@ -29,6 +32,18 @@ jobs:
 
       - name: Generate Prisma client
         run: npx prisma generate
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test:coverage
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Type-check (tsc)
         run: npx tsc --noEmit
@@ -46,14 +61,45 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test:coverage
+
       - name: Build
         run: npm run build
         env:
-          VITE_API_BASE_URL: https://placeholder.onrender.com
+          VITE_API_URL: https://placeholder.onrender.com/api/v1
+          VITE_WS_URL: https://placeholder.onrender.com
+
+      - name: Reject localhost production endpoints
+        shell: bash
+        run: |
+          if grep -R "http://localhost:3001" dist; then
+            echo "Production bundle contains a localhost API endpoint"
+            exit 1
+          fi
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+  docker-validate:
+    name: Docker — Validate & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Compose configuration
+        run: docker compose --env-file .env.example config --quiet
+
+      - name: Build application images
+        run: docker compose --env-file .env.example build frontend backend

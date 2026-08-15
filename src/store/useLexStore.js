@@ -7,7 +7,7 @@ const useLexStore = create((set, get) => ({
   accessToken: null, // Access token in-memory
   language: localStorage.getItem('language') || 'en',
   theme: localStorage.getItem('theme') || 'light',
-  isLoading: false,
+  isLoading: true,
   isRefreshing: false,
 
   setLanguage: (lang) => {
@@ -25,42 +25,27 @@ const useLexStore = create((set, get) => ({
     }
   },
 
-  // ✅ NEW: Persist token to localStorage
   setAccessToken: (token) => {
     set({ accessToken: token });
     if (token) {
-      localStorage.setItem('accessToken', token);  // ✅ Persist
-      localStorage.setItem('wasLoggedIn', 'true'); // ✅ session hint
+      localStorage.setItem('wasLoggedIn', 'true');
     } else {
-      localStorage.removeItem('accessToken');      // ✅ Clean up
       localStorage.removeItem('wasLoggedIn');
     }
+    // Remove tokens written by older versions of the application.
+    localStorage.removeItem('accessToken');
   },
 
-  // ✅ UPDATED: Initialize from localStorage
   initAuth: async () => {
     if (get().isRefreshing) return;
 
-    // Only try to refresh if we have a hint that a session might exist
-    const wasLoggedIn = localStorage.getItem('wasLoggedIn') === 'true';
-    if (!wasLoggedIn) {
-      console.log('No previous session detected, skipping auto-refresh');
-      return;
-    }
-
     set({ isLoading: true });
     try {
-      // Try to restore from localStorage
-      const savedToken = localStorage.getItem('accessToken');
-      if (savedToken) {
-        set({ accessToken: savedToken });
-      }
-      
-      // Refresh to get fresh token + user data
       await get().refreshAccessToken();
-    } catch (_err) {
-      console.log('Existing session expired or invalid');
-      get().setAccessToken(null); // Clears hint and token
+    } catch {
+      set({ currentUser: null, accessToken: null });
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('wasLoggedIn');
     } finally {
       set({ isLoading: false });
     }
@@ -71,7 +56,7 @@ const useLexStore = create((set, get) => ({
     set({ isLoading: true });
     try {
       const { data } = await apiClient.post('/auth/login', { email, password });
-      get().setAccessToken(data.accessToken);  // ✅ Persists + sets Zustand
+      get().setAccessToken(data.accessToken);
       set({ currentUser: data.user });
     } catch (err) {
       console.error('Login error:', err.response?.data || err.message);
@@ -81,7 +66,6 @@ const useLexStore = create((set, get) => ({
     }
   },
 
-  // ✅ UPDATED: Clear both Zustand and localStorage
   logout: async () => {
     try {
       await apiClient.post('/auth/logout');
@@ -98,12 +82,17 @@ const useLexStore = create((set, get) => ({
     try {
       const { data } = await apiClient.get('/auth/me');
       set({ currentUser: data });
+      return data;
     } catch (err) {
       console.error('Fetch me error', err);
+      if ([401, 403].includes(err.response?.status)) {
+        set({ currentUser: null, accessToken: null });
+        localStorage.removeItem('wasLoggedIn');
+      }
+      throw err;
     }
   },
 
-  // ✅ UPDATED: Update token on refresh
   refreshAccessToken: async () => {
     if (get().isRefreshing) {
       return get().refreshPromise;
@@ -113,7 +102,7 @@ const useLexStore = create((set, get) => ({
       set({ isRefreshing: true });
       try {
         const { data } = await apiClient.post('/auth/refresh');
-        get().setAccessToken(data.accessToken);  // ✅ Persists + sets
+        get().setAccessToken(data.accessToken);
         // The /auth/refresh response does NOT include the user object. Only update
         // currentUser when one is actually returned; otherwise keep the existing
         // profile (post-login) or hydrate it from /auth/me (e.g. after a page reload).
@@ -127,7 +116,7 @@ const useLexStore = create((set, get) => ({
         const isAuthError = err.response && [400, 401, 403].includes(err.response.status);
         if (isAuthError) {
           set({ currentUser: null });
-          get().setAccessToken(null);  // ✅ Clears on refresh failure
+          get().setAccessToken(null);
         } else {
           console.warn("Silent refresh failed due to server or network error. Retaining credentials.");
         }

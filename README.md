@@ -110,7 +110,7 @@ lex-manage/
 │   │   └── schema.prisma       # 13 models (Tenant, User, Case, Client, Document, …)
 │   └── Dockerfile
 ├── src/                        # React frontend
-│   ├── components/             # All views and UI components
+│   ├── components/             # Views and reusable UI components
 │   ├── hooks/                  # React Query hooks (useCases, useClients, …)
 │   ├── config/
 │   │   └── dms.config.js       # DMS category tree
@@ -177,19 +177,56 @@ VITE_API_BASE_URL="https://your-backend.onrender.com"
 git clone https://github.com/Emmanuel-Nyouma/Lex_Manage.git
 cd Lex_Manage
 
-# 2. Backend
+# 2. Backend (reproducible install)
 cd lexmanage-backend
 cp .env.example .env          # fill in your values
-npm install
+npm ci
 npx prisma db push
 npm run start:dev             # runs on :3001
 
 # 3. Frontend (new terminal)
 cd ..
 cp .env.example .env          # set VITE_API_BASE_URL=http://localhost:3001
-npm install
+npm ci
 npm run dev                   # runs on :5173
 ```
+
+## ✅ Quality checks
+
+Run the same checks locally that GitHub Actions runs on every push and pull request:
+
+```bash
+# Frontend
+npm run lint
+npm run test:coverage
+npm run build
+npm audit --omit=dev --audit-level=high
+
+# Backend
+cd lexmanage-backend
+npm run lint
+npm run test:coverage
+npx prisma validate
+npx tsc --noEmit
+npm run build
+npm audit --omit=dev --audit-level=high
+```
+
+Frontend tests use Vitest with Testing Library. Backend tests use Vitest with mocked infrastructure where appropriate. New fixes and features should include tests that demonstrate the expected behavior; see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+
+## 🐳 Isolated Docker development
+
+The root Compose file is the canonical self-contained stack: frontend, backend, PostgreSQL, Redis, and MinIO.
+
+```bash
+cp .env.example .env
+docker compose config --quiet
+docker compose up --build
+```
+
+Then open `http://localhost`. Nginx serves the SPA and proxies `/api` and `/socket.io` to the backend on the same origin. Readiness checks verify PostgreSQL, Redis, object storage, the API, and the frontend before dependent services are considered healthy.
+
+The file `lexmanage-backend/docker-compose.yml` starts dependencies only for developers who run the backend directly with `npm run start:dev`; it is not the complete application stack. Docker Desktop or another running Docker daemon is required.
 
 ---
 
@@ -207,7 +244,8 @@ npm run dev                   # runs on :5173
 > **Cold start:** The Render backend sleeps after 15 min. The app auto-retries up to 12× with a visible "Waking up the server…" banner.
 
 ### CI/CD
-Push to `main` → Vercel redeploys frontend automatically. Render redeploys backend automatically.
+
+GitHub Actions installs from both lockfiles, validates Prisma, runs frontend and backend lint/tests/builds, checks production dependencies, and rejects a frontend production bundle that contains a localhost API endpoint. After CI succeeds on `main`, Vercel redeploys the frontend and Render redeploys the backend.
 
 ---
 

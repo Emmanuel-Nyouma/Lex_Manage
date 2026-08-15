@@ -1,25 +1,27 @@
-# Base stage for dependencies
-FROM node:20-alpine AS base
+# Install once so build and production stages share the exact same dependency tree.
+FROM node:22-alpine AS dependencies
 WORKDIR /app
 RUN apk add --no-cache openssl
 COPY package*.json ./
 COPY prisma ./prisma/
-RUN npm install
-
-# Build stage
-FROM base AS build
-COPY . .
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --fetch-retries=5 --fetch-retry-factor=2 --fetch-retry-maxtimeout=120000
 RUN npx prisma generate
+
+FROM dependencies AS build
+COPY . .
 RUN npm run build
 
-# Production stage
-FROM node:20-alpine AS production
+FROM dependencies AS production-deps
+RUN npm prune --omit=dev
+
+FROM node:22-alpine AS production
 WORKDIR /app
 RUN apk add --no-cache openssl
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/package*.json ./
+COPY --from=production-deps /app/node_modules ./node_modules
+COPY --from=production-deps /app/package*.json ./
 COPY --from=build /app/prisma ./prisma
 
 EXPOSE 3001
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss --skip-generate && node dist/main"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]

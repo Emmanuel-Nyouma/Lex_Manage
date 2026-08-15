@@ -5,12 +5,18 @@ Logs in, navigates every section, takes full-page screenshots.
 from playwright.sync_api import sync_playwright
 import os, time
 
-OUT = r"C:\Users\hp\lex-manage\report_screenshots"
+OUT = os.environ.get("LEXMANAGE_SCREENSHOT_DIR", "report_screenshots")
 os.makedirs(OUT, exist_ok=True)
 
-BASE = "http://localhost:5173"
-EMAIL = "admin@demo.com"
-PASSWORD = "password123"
+BASE = os.environ.get("LEXMANAGE_BASE_URL", "http://localhost:5173")
+EMAIL = os.environ.get("LEXMANAGE_TEST_EMAIL")
+PASSWORD = os.environ.get("LEXMANAGE_TEST_PASSWORD")
+
+if not EMAIL or not PASSWORD:
+    raise RuntimeError(
+        "Set LEXMANAGE_TEST_EMAIL and LEXMANAGE_TEST_PASSWORD before running "
+        "the authenticated screenshot flow."
+    )
 
 def nav_wait(page, path, ms=1800):
     page.evaluate(f"window.__navTo = '{path}'")

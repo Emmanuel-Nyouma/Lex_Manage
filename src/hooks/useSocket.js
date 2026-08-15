@@ -16,7 +16,6 @@ export const useSocket = () => {
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
-        setSocketInstance(null);
       }
       return;
     }

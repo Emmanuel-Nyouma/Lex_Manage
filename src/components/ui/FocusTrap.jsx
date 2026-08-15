@@ -8,6 +8,7 @@ export const FocusTrap = ({ children, isActive, onClose }) => {
 
   useEffect(() => {
     if (!isActive) return;
+    const previouslyFocused = document.activeElement;
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && onClose) {
@@ -19,6 +20,7 @@ export const FocusTrap = ({ children, isActive, onClose }) => {
         const focusableElements = containerRef.current.querySelectorAll(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
         );
+        if (focusableElements.length === 0) return;
         const firstElement = focusableElements[0];
         const lastElement = focusableElements[focusableElements.length - 1];
 
@@ -46,6 +48,7 @@ export const FocusTrap = ({ children, isActive, onClose }) => {
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
+      if (previouslyFocused instanceof HTMLElement) previouslyFocused.focus();
     };
   }, [isActive, onClose]);
 

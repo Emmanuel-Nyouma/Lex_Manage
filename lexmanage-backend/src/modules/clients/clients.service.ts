@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateClientDto, UpdateClientDto } from './dto/client.dto';
+import { UpdateClientDto } from './dto/client.dto';
 import { AuditService } from '../audit/audit.service';
 
 @Injectable()
@@ -48,6 +48,13 @@ export class ClientsService {
       }
 
       if (resolvedCaseId) {
+        const targetCase = await tx.case.findFirst({
+          where: { id: resolvedCaseId, tenantId },
+          select: { id: true },
+        });
+        if (!targetCase) {
+          throw new NotFoundException('Case not found in your firm');
+        }
         await tx.case.update({
           where: { id: resolvedCaseId },
           data: { clientId: newClient.id },
@@ -87,7 +94,13 @@ export class ClientsService {
 
   async remove(id: string, tenantId: string, userId: string) {
     const original = await this.findOne(id, tenantId);
-    await this.prisma.client.delete({ where: { id } });
+    await this.prisma.$transaction(async (tx) => {
+      await tx.case.updateMany({
+        where: { tenantId, clientId: id },
+        data: { clientId: null },
+      });
+      await tx.client.delete({ where: { id } });
+    });
 
     await this.auditService.log({
       tenantId,

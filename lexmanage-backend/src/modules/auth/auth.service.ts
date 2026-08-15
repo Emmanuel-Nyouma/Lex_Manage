@@ -7,10 +7,17 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import { v4 as uuidv4 } from 'uuid';
+import { createHash, randomBytes, randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
-import { LoginDto, RegisterDto, UpdateProfileDto } from './dto/auth.dto';
+import {
+  ChangePasswordDto,
+  LoginDto,
+  RegisterDto,
+  ResetPasswordDto,
+  UpdateProfileDto,
+} from './dto/auth.dto';
 import { tenantContext } from '../../common/context/tenant.context';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +26,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private mailService: MailService,
   ) {}
 
   // ... (register method)
@@ -26,78 +34,97 @@ export class AuthService {
   // ── REGISTER (Creates a new Tenant + Admin user OR Joins via Invitation) ─
   async register(dto: RegisterDto) {
     return tenantContext.runUnscoped(async () => {
-    this.logger.debug('Registering new user');
-    try {
-      const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
-      if (existing) throw new ConflictException('Email already registered');
+      this.logger.debug('Registering new user');
+      try {
+        const normalizedEmail = this.normalizeEmail(dto.email);
+        const passwordHash = await bcrypt.hash(dto.password, 12);
 
-      let tenantId: string;
-      let role: any = 'CABINET_ADMIN';
+        const user = await this.prisma.$transaction(async (tx) => {
+          const existing = await tx.user.findUnique({ where: { email: normalizedEmail } });
+          if (existing) throw new ConflictException('Email already registered');
 
-      if (dto.invitationToken) {
-        this.logger.debug('Joining via invitation token');
-        const invitation = await this.prisma.invitation.findUnique({
-          where: { token: dto.invitationToken },
+          let tenantId: string;
+          let role: 'CABINET_ADMIN' | 'LAWYER' | 'ASSISTANT' | 'SECRETARY' = 'CABINET_ADMIN';
+
+          if (dto.invitationToken) {
+            this.logger.debug('Joining via invitation token');
+            const invitation = await tx.invitation.findUnique({
+              where: { token: dto.invitationToken },
+              include: { tenant: { select: { isActive: true } } },
+            });
+
+            if (
+              !invitation ||
+              invitation.used ||
+              invitation.expiresAt <= new Date() ||
+              !invitation.tenant.isActive ||
+              this.normalizeEmail(invitation.email) !== normalizedEmail
+            ) {
+              throw new UnauthorizedException('Invalid or expired invitation token');
+            }
+
+            const consumed = await tx.invitation.updateMany({
+              where: {
+                id: invitation.id,
+                used: false,
+                expiresAt: { gt: new Date() },
+              },
+              data: { used: true },
+            });
+            if (consumed.count !== 1) {
+              throw new UnauthorizedException('Invitation already used');
+            }
+
+            tenantId = invitation.tenantId;
+            role = invitation.role === 'SUPER_ADMIN' ? 'CABINET_ADMIN' : invitation.role;
+          } else {
+            if (!dto.tenantName?.trim()) {
+              throw new ConflictException('Tenant name is required for new cabinets');
+            }
+
+            const slugBase = dto.tenantName
+              .trim()
+              .toLowerCase()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-|-$/g, '');
+            const tenant = await tx.tenant.create({
+              data: {
+                name: dto.tenantName.trim(),
+                slug: `${slugBase || 'cabinet'}-${randomUUID().slice(0, 6)}`,
+                country: dto.country,
+                city: dto.city,
+              },
+            });
+            tenantId = tenant.id;
+          }
+
+          return tx.user.create({
+            data: {
+              tenantId,
+              email: normalizedEmail,
+              passwordHash,
+              firstName: dto.firstName.trim(),
+              lastName: dto.lastName.trim(),
+              phone: dto.phone,
+              role,
+            },
+          });
         });
 
-        if (!invitation || invitation.used || invitation.expiresAt < new Date()) {
-          throw new UnauthorizedException('Invalid or expired invitation token');
-        }
+        const tokens = await this.generateTokens(user.id, user.email, user.role, user.tenantId);
+        await this.storeRefreshToken(user.id, tokens.refreshToken);
 
-        tenantId = invitation.tenantId;
-        role = invitation.role;
-
-        // Mark invitation as used
-        await this.prisma.invitation.update({
-          where: { id: invitation.id },
-          data: { used: true },
-        });
-      } else {
-        if (!dto.tenantName) throw new ConflictException('Tenant name is required for new cabinets');
-        
-        const slug = dto.tenantName.toLowerCase().replace(/\s+/g, '-') + '-' + uuidv4().slice(0, 6);
-        this.logger.debug('Creating new tenant');
-
-        const tenant = await this.prisma.tenant.create({
-          data: { 
-            name: dto.tenantName, 
-            slug,
-            country: dto.country,
-            city: dto.city
-          },
-        });
-        tenantId = tenant.id;
+        return {
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          user: this.sanitizeUser(user),
+        };
+      } catch (error) {
+        this.logger.error('Registration failed', error);
+        throw error;
       }
-
-      this.logger.debug('Hashing password');
-      const passwordHash = await bcrypt.hash(dto.password, 12);
-
-      this.logger.debug('Creating user record');
-      const user = await this.prisma.user.create({
-        data: {
-          tenantId,
-          email: dto.email,
-          passwordHash,
-          firstName: dto.firstName,
-          lastName: dto.lastName,
-          phone: dto.phone,
-          role: role,
-        },
-      });
-
-      this.logger.debug('Generating tokens');
-      const tokens = await this.generateTokens(user.id, user.email, user.role, user.tenantId);
-      await this.storeRefreshToken(user.id, tokens.refreshToken);
-
-      return {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        user: this.sanitizeUser(user),
-      };
-    } catch (error) {
-      this.logger.error('Registration failed', error);
-      throw error;
-    }
     });
   }
 
@@ -121,11 +148,105 @@ export class AuthService {
     return this.sanitizeUser(user);
   }
 
+  async requestPasswordReset(email: string) {
+    return tenantContext.runUnscoped(async () => {
+      const normalizedEmail = this.normalizeEmail(email);
+      const user = await this.prisma.user.findUnique({
+        where: { email: normalizedEmail },
+        include: { tenant: { select: { isActive: true } } },
+      });
+
+      if (user?.isActive && user.tenant.isActive) {
+        const token = randomBytes(32).toString('hex');
+        const tokenHash = this.hashRefreshToken(token);
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+        await this.prisma.$transaction([
+          this.prisma.passwordResetToken.deleteMany({
+            where: { userId: user.id, usedAt: null },
+          }),
+          this.prisma.passwordResetToken.create({
+            data: { tenantId: user.tenantId, userId: user.id, tokenHash, expiresAt },
+          }),
+        ]);
+
+        const frontendUrl = (
+          process.env.FRONTEND_URL ||
+          process.env.ALLOWED_ORIGINS?.split(',')[0] ||
+          ''
+        ).replace(/\/$/, '');
+        if (frontendUrl) {
+          await this.mailService.sendPasswordResetEmail(
+            user.email,
+            `${frontendUrl}/login?mode=reset_password&token=${encodeURIComponent(token)}`,
+          );
+        } else {
+          this.logger.error('FRONTEND_URL is not configured; password reset email was not sent');
+        }
+      }
+
+      return { message: 'If an active account exists, a reset link has been sent.' };
+    });
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    return tenantContext.runUnscoped(async () => {
+      const record = await this.prisma.passwordResetToken.findUnique({
+        where: { tokenHash: this.hashRefreshToken(dto.token) },
+        include: {
+          user: { include: { tenant: { select: { isActive: true } } } },
+        },
+      });
+      if (
+        !record ||
+        record.usedAt ||
+        record.expiresAt <= new Date() ||
+        !record.user.isActive ||
+        !record.user.tenant.isActive
+      ) {
+        throw new UnauthorizedException('Invalid or expired reset token');
+      }
+
+      const passwordHash = await bcrypt.hash(dto.newPassword, 12);
+      await this.prisma.$transaction([
+        this.prisma.passwordResetToken.update({
+          where: { id: record.id },
+          data: { usedAt: new Date() },
+        }),
+        this.prisma.user.update({
+          where: { id: record.userId },
+          data: { passwordHash, refreshToken: null, refreshTokenExpiresAt: null },
+        }),
+      ]);
+      return { message: 'Password updated successfully' };
+    });
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !(await bcrypt.compare(dto.currentPassword, user.passwordHash))) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+    if (await bcrypt.compare(dto.newPassword, user.passwordHash)) {
+      throw new ConflictException('New password must be different from the current password');
+    }
+    const passwordHash = await bcrypt.hash(dto.newPassword, 12);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash, refreshToken: null, refreshTokenExpiresAt: null },
+    });
+    return { message: 'Password changed successfully' };
+  }
+
   // ── LOGIN ─────────────────────────────────────────────────────────────────
   async login(dto: LoginDto) {
     return tenantContext.runUnscoped(async () => {
-      const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
-      if (!user || !user.isActive) throw new UnauthorizedException('Invalid credentials');
+      const user = await this.prisma.user.findUnique({
+        where: { email: this.normalizeEmail(dto.email) },
+        include: { tenant: { select: { isActive: true } } },
+      });
+      if (!user || !user.isActive || !user.tenant.isActive) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
 
       const passwordValid = await bcrypt.compare(dto.password, user.passwordHash);
       if (!passwordValid) throw new UnauthorizedException('Invalid credentials');
@@ -142,17 +263,38 @@ export class AuthService {
   }
 
   // ── REFRESH TOKEN ─────────────────────────────────────────────────────────
-  async refreshToken(token: string) {
+  async refreshToken(token?: string) {
     return tenantContext.runUnscoped(async () => {
+      if (!token || typeof token !== 'string') {
+        throw new UnauthorizedException('Refresh token missing');
+      }
+
+      let payload: any;
+      try {
+        payload = await this.jwtService.verifyAsync(token, {
+          secret: process.env.JWT_SECRET,
+          algorithms: ['HS256'],
+        });
+      } catch {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
       const user = await this.prisma.user.findFirst({
-        where: { refreshToken: token },
+        where: {
+          id: payload.sub,
+          tenantId: payload.tenantId,
+          refreshToken: this.hashRefreshToken(token),
+        },
+        include: { tenant: { select: { isActive: true } } },
       });
       if (!user || !user.refreshToken) throw new UnauthorizedException('Invalid refresh token');
       if (user.refreshTokenExpiresAt && user.refreshTokenExpiresAt < new Date()) {
         throw new UnauthorizedException('Refresh token expired');
       }
       // Block deactivated accounts — even if they hold a valid token
-      if (!user.isActive) throw new UnauthorizedException('Account has been deactivated');
+      if (!user.isActive || !user.tenant.isActive) {
+        throw new UnauthorizedException('Account has been deactivated');
+      }
 
       const tokens = await this.generateTokens(user.id, user.email, user.role, user.tenantId);
       await this.storeRefreshToken(user.id, tokens.refreshToken);
@@ -186,16 +328,34 @@ export class AuthService {
   }
 
   private async storeRefreshToken(userId: string, token: string) {
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    const decoded = this.jwtService.decode(token) as { exp?: number } | null;
+    if (!decoded?.exp) {
+      throw new UnauthorizedException('Refresh token has no expiration');
+    }
     await this.prisma.user.update({
       where: { id: userId },
-      data: { refreshToken: token, refreshTokenExpiresAt: expiresAt },
+      data: {
+        refreshToken: this.hashRefreshToken(token),
+        refreshTokenExpiresAt: new Date(decoded.exp * 1000),
+      },
     });
   }
 
+  private hashRefreshToken(token: string) {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private normalizeEmail(email: string) {
+    return email.trim().toLowerCase();
+  }
+
   private sanitizeUser(user: any) {
-    const { passwordHash, refreshToken, refreshTokenExpiresAt, ...safe } = user;
+    const {
+      passwordHash: _passwordHash,
+      refreshToken: _refreshToken,
+      refreshTokenExpiresAt: _refreshTokenExpiresAt,
+      ...safe
+    } = user;
     return safe;
   }
 }

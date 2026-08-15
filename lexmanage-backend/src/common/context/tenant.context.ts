@@ -11,8 +11,8 @@ class TenantContext {
   /**
    * Runs a function within the context of a specific tenantId.
    */
-  run(tenantId: string | undefined, callback: () => void) {
-    this.storage.run({ tenantId }, callback);
+  run<T>(tenantId: string | undefined, callback: () => T): T {
+    return this.storage.run({ tenantId }, callback);
   }
 
   /**

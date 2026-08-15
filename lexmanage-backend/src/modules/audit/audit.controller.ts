@@ -16,6 +16,10 @@ export class AuditController {
 
   @Get()
   getLogs(@CurrentUser('tenantId') tenantId: string, @Query('limit') limit = 50) {
-    return this.auditService.getLogs(tenantId, +limit);
+    const parsed = Number(limit);
+    return this.auditService.getLogs(
+      tenantId,
+      Number.isInteger(parsed) ? Math.min(100, Math.max(1, parsed)) : 50,
+    );
   }
 }

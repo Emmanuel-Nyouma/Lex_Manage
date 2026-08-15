@@ -31,8 +31,11 @@ export class MailService {
       this.logger.warn(`Skipping email to ${to} (Resend not initialized)`);
       return;
     }
-    const { firmName, motifLabel, message, senderName, timestamp } = data;
-    const subject = `[URGENT] ${motifLabel} — ${firmName}`;
+    const firmName = this.escapeHtml(data.firmName);
+    const motifLabel = this.escapeHtml(data.motifLabel);
+    const message = this.escapeHtml(data.message || '');
+    const senderName = this.escapeHtml(data.senderName);
+    const subject = `[URGENT] ${data.motifLabel} — ${data.firmName}`;
 
     const html = `
       <div style='font-family:Arial,sans-serif;max-width:600px'>
@@ -73,6 +76,38 @@ export class MailService {
       this.logger.error(`Failed to send urgent email to ${to}`, error);
       throw error;
     }
+  }
+
+  async sendPasswordResetEmail(to: string, resetUrl: string) {
+    if (!this.resend) {
+      this.logger.warn(`Skipping password reset email to ${to} (Resend not initialized)`);
+      return;
+    }
+    const safeUrl = this.escapeHtml(resetUrl);
+    const { error } = await this.resend.emails.send({
+      from: `LexManage <${this.fromEmail}>`,
+      to: [to],
+      subject: 'Réinitialisation de votre mot de passe LexManage',
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px">
+          <h2>Réinitialisation du mot de passe</h2>
+          <p>Une demande de réinitialisation a été reçue pour votre compte.</p>
+          <p><a href="${safeUrl}">Choisir un nouveau mot de passe</a></p>
+          <p>Ce lien expire dans une heure. Ignorez cet email si vous n’êtes pas à l’origine de la demande.</p>
+        </div>
+      `,
+    });
+    if (error) throw new Error(`Resend API error: ${error.name} - ${error.message}`);
+  }
+
+  private escapeHtml(value: string) {
+    return value.replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;',
+    })[char] as string);
   }
 
 }

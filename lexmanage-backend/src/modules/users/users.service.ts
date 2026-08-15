@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException, ConflictException, Inject } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, ConflictException, Inject } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateUserDto, UpdateUserDto } from './dto/user.dto';
+import { CreateUserDto, UpdateUserDto, UserRole } from './dto/user.dto';
 import { AuditService } from '../audit/audit.service';
 
 @Injectable()
@@ -32,7 +32,7 @@ export class UsersService {
   }
 
   async findOne(id: string, tenantId: string) {
-    const cacheKey = `user:${id}`;
+    const cacheKey = `user:${tenantId}:${id}`;
     const cached = await this.cacheManager.get(cacheKey);
     if (cached) return cached;
 
@@ -50,12 +50,13 @@ export class UsersService {
   }
 
   async create(dto: CreateUserDto, tenantId: string, userId: string) {
-    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const email = dto.email.trim().toLowerCase();
+    const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing) throw new ConflictException('Email already in use');
     const { password, ...rest } = dto;
     const passwordHash = await bcrypt.hash(password, 12);
     const user = await this.prisma.user.create({
-      data: { ...rest, passwordHash, tenantId },
+      data: { ...rest, email, passwordHash, tenantId },
       select: {
         id: true, email: true, firstName: true, lastName: true, role: true, createdAt: true,
       },
@@ -76,7 +77,25 @@ export class UsersService {
   }
 
   async update(id: string, dto: UpdateUserDto, tenantId: string, userId: string) {
-    const original = await this.findOne(id, tenantId); // Ownership check
+    const original = await this.findOne(id, tenantId) as { role: UserRole }; // Ownership check
+    if (dto.role === UserRole.SUPER_ADMIN) {
+      throw new BadRequestException('SUPER_ADMIN cannot be assigned from a firm route');
+    }
+    if (id === userId && dto.role && dto.role !== UserRole.CABINET_ADMIN) {
+      throw new BadRequestException('You cannot demote your own administrator account');
+    }
+    if (
+      original.role === UserRole.CABINET_ADMIN &&
+      dto.role &&
+      dto.role !== UserRole.CABINET_ADMIN
+    ) {
+      const adminCount = await this.prisma.user.count({
+        where: { tenantId, role: UserRole.CABINET_ADMIN, isActive: true },
+      });
+      if (adminCount <= 1) {
+        throw new BadRequestException('The firm must keep at least one active administrator');
+      }
+    }
     const updated = await this.prisma.user.update({
       where: { id },
       data: dto,
@@ -86,7 +105,7 @@ export class UsersService {
       },
     });
 
-    await this.cacheManager.del(`user:${id}`);
+    await this.cacheManager.del(`user:${tenantId}:${id}`);
     await this.cacheManager.del(`users:${tenantId}`);
 
     await this.auditService.log({
@@ -124,10 +143,22 @@ export class UsersService {
   }
 
   async deactivate(id: string, tenantId: string, userId: string) {
-    await this.findOne(id, tenantId);
-    await this.prisma.user.update({ where: { id }, data: { isActive: false } });
+    const target = await this.findOne(id, tenantId) as { role: UserRole };
+    if (id === userId) throw new BadRequestException('You cannot deactivate your own account');
+    if (target.role === UserRole.CABINET_ADMIN) {
+      const adminCount = await this.prisma.user.count({
+        where: { tenantId, role: UserRole.CABINET_ADMIN, isActive: true },
+      });
+      if (adminCount <= 1) {
+        throw new BadRequestException('The firm must keep at least one active administrator');
+      }
+    }
+    await this.prisma.user.update({
+      where: { id },
+      data: { isActive: false, refreshToken: null, refreshTokenExpiresAt: null },
+    });
 
-    await this.cacheManager.del(`user:${id}`);
+    await this.cacheManager.del(`user:${tenantId}:${id}`);
     await this.cacheManager.del(`users:${tenantId}`);
 
     await this.auditService.log({

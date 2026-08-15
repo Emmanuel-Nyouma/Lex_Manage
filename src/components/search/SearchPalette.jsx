@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Search, FileText, Briefcase, Users, X, Loader2, Command, ArrowRight, UserCheck } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '../../lib/router';
 import apiClient from '../../lib/api';
 
 export const SearchPalette = ({ isOpen, onClose }) => {
@@ -119,7 +119,7 @@ export const SearchPalette = ({ isOpen, onClose }) => {
           />
           <div className="flex items-center gap-2">
             {isSearching && <Loader2 size={18} className="animate-spin text-amber-500" />}
-            <button onClick={onClose} className="p-1 text-slate-500 dark:text-slate-300 hover:text-slate-600 dark:hover:text-slate-200 rounded-md">
+            <button type="button" onClick={onClose} aria-label="Fermer la recherche" title="Fermer" className="p-1 text-slate-500 dark:text-slate-300 hover:text-slate-600 dark:hover:text-slate-200 rounded-md">
               <X size={20} />
             </button>
           </div>

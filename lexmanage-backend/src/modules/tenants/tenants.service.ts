@@ -1,19 +1,8 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MinioService } from '../documents/minio.service';
-import { v4 as uuidv4 } from 'uuid';
-
-export interface UpdateTenantDto {
-  name?: string;
-  city?: string;
-  country?: string;
-  address?: string;
-  phone?: string;
-  fax?: string;
-  website?: string;
-  siret?: string;
-  barNumber?: string;
-}
+import { randomUUID } from 'crypto';
+import { CreateInvitationDto, UpdateMemberDto, UpdateTenantDto } from './dto/tenant.dto';
 
 @Injectable()
 export class TenantsService {
@@ -42,7 +31,7 @@ export class TenantsService {
       secretaries: tenant.users.filter(u => u.role === 'SECRETARY').length,
     };
 
-    const { users, ...rest } = tenant;
+    const { users: _users, ...rest } = tenant;
     // logoUrl is stored as an object key — sign it for direct <img> display.
     const logoUrl = rest.logoUrl
       ? await this.minioService.getAssetUrl(id, rest.logoUrl).catch(() => null)
@@ -71,8 +60,19 @@ export class TenantsService {
     });
   }
 
-  async createInvitation(tenantId: string, email: string, role: any) {
-    const token = uuidv4().replace(/-/g, '');
+  async createInvitation(tenantId: string, dto: CreateInvitationDto) {
+    const email = dto.email.trim().toLowerCase();
+    const [existingUser, pendingInvitation] = await Promise.all([
+      this.prisma.user.findUnique({ where: { email }, select: { id: true } }),
+      this.prisma.invitation.findFirst({
+        where: { tenantId, email, used: false, expiresAt: { gt: new Date() } },
+        select: { id: true },
+      }),
+    ]);
+    if (existingUser) throw new ConflictException('This email is already registered');
+    if (pendingInvitation) throw new ConflictException('An active invitation already exists for this email');
+
+    const token = randomUUID().replace(/-/g, '');
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
 
@@ -80,7 +80,7 @@ export class TenantsService {
       data: {
         tenantId,
         email,
-        role,
+        role: dto.role,
         token,
         expiresAt,
       },
@@ -104,9 +104,30 @@ export class TenantsService {
     return { message: 'Invitation revoked' };
   }
 
-  async updateMember(tenantId: string, id: string, data: { role?: any; isActive?: boolean }) {
+  async updateMember(
+    tenantId: string,
+    requesterId: string,
+    id: string,
+    data: UpdateMemberDto,
+  ) {
     const user = await this.prisma.user.findFirst({ where: { id, tenantId } });
     if (!user) throw new NotFoundException('User not found in your firm');
+    if (id === requesterId && (data.isActive === false || (data.role && data.role !== 'CABINET_ADMIN'))) {
+      throw new BadRequestException('You cannot deactivate or demote your own administrator account');
+    }
+
+    const removesAdmin =
+      user.isActive &&
+      user.role === 'CABINET_ADMIN' &&
+      (data.isActive === false || (data.role !== undefined && data.role !== 'CABINET_ADMIN'));
+    if (removesAdmin) {
+      const activeAdmins = await this.prisma.user.count({
+        where: { tenantId, role: 'CABINET_ADMIN', isActive: true },
+      });
+      if (activeAdmins <= 1) {
+        throw new BadRequestException('The firm must keep at least one active administrator');
+      }
+    }
 
     // Build the update payload — only include defined fields to avoid
     // accidentally nullifying role when only isActive is being patched.
@@ -138,6 +159,14 @@ export class TenantsService {
     const user = await this.prisma.user.findFirst({ where: { id, tenantId } });
     if (!user) throw new NotFoundException('User not found in your firm');
     if (user.isActive === false) return { message: 'Member is already inactive' };
+    if (user.role === 'CABINET_ADMIN') {
+      const activeAdmins = await this.prisma.user.count({
+        where: { tenantId, role: 'CABINET_ADMIN', isActive: true },
+      });
+      if (activeAdmins <= 1) {
+        throw new BadRequestException('The firm must keep at least one active administrator');
+      }
+    }
 
     await this.prisma.user.update({
       where: { id },
@@ -188,10 +217,13 @@ export class TenantsService {
     return updated;
   }
 
-  async uploadLogo(tenantId: string, file: Express.Multer.File) {
-    const allowed = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'];
-    if (!allowed.includes(file.mimetype)) {
-      throw new BadRequestException('Logo must be PNG, JPEG, SVG or WebP');
+  async uploadLogo(tenantId: string, file?: Express.Multer.File) {
+    if (!file) throw new BadRequestException('Logo file is required');
+    const { fileTypeFromBuffer } = await (eval('import("file-type")') as Promise<any>);
+    const detected = await fileTypeFromBuffer(file.buffer);
+    const allowed = ['image/png', 'image/jpeg', 'image/webp'];
+    if (!detected || !allowed.includes(detected.mime)) {
+      throw new BadRequestException('Logo must be a valid PNG, JPEG or WebP image');
     }
     if (file.size > 2 * 1024 * 1024) {
       throw new BadRequestException('Logo must be under 2 MB');
