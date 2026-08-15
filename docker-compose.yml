@@ -12,6 +12,7 @@ services:
       args:
         VITE_API_URL: ${FRONTEND_PUBLIC_URL:-http://localhost}
         VITE_WS_URL: ${FRONTEND_PUBLIC_URL:-http://localhost}
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
     container_name: lex-manage-frontend
     restart: always
     ports:
