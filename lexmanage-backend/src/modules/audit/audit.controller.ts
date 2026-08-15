@@ -15,11 +15,16 @@ export class AuditController {
   constructor(private readonly auditService: AuditService) {}
 
   @Get()
-  getLogs(@CurrentUser('tenantId') tenantId: string, @Query('limit') limit = 50) {
+  getLogs(
+    @CurrentUser('tenantId') tenantId: string,
+    @Query('limit') limit = 50,
+    @Query('cursor') cursor?: string,
+  ) {
     const parsed = Number(limit);
     return this.auditService.getLogs(
       tenantId,
       Number.isInteger(parsed) ? Math.min(100, Math.max(1, parsed)) : 50,
+      cursor,
     );
   }
 }

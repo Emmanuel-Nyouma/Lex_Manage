@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
+    maxWorkers: 4,
     setupFiles: ['./src/test/setup.js'],
     include: ['src/**/*.{test,spec}.{js,jsx}'],
     coverage: {
@@ -14,10 +15,10 @@ export default defineConfig({
       include: ['src/**/*.{js,jsx}'],
       exclude: ['src/**/*.{test,spec}.{js,jsx}', 'src/test/**', 'src/main.jsx'],
       thresholds: {
-        statements: 12,
-        branches: 11,
-        functions: 8,
-        lines: 13,
+        statements: 92,
+        branches: 80,
+        functions: 89,
+        lines: 93,
       },
     },
   },
@@ -35,7 +36,10 @@ export default defineConfig({
           if (id.includes('react-dom') || /node_modules[\\/]react[\\/]/.test(id)) {
             return 'react';
           }
-          return 'vendor';
+          // Let Rollup place remaining transitive dependencies. Forcing every
+          // package into one catch-all vendor chunk creates circular chunk
+          // dependencies with React and Axios on official Vite/Rollup.
+          return undefined;
         },
       },
     },

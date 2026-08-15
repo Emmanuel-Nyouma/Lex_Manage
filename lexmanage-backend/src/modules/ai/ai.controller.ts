@@ -16,6 +16,7 @@ import { IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-valida
 import { Role } from '@prisma/client';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { DataProtectionService } from '../security/data-protection.service';
 
 class AiChatDto {
   @IsString() @MinLength(1) @MaxLength(4000) message: string;
@@ -37,6 +38,7 @@ export class AiController {
     private readonly n8nRag: N8nRagService,
     private readonly prisma: PrismaService,
     private readonly minio: MinioService,
+    private readonly protection: DataProtectionService,
   ) {}
 
   @Post('chat')
@@ -74,10 +76,11 @@ export class AiController {
             { uploaderId: userId },
           ],
         };
-    const doc = await this.prisma.document.findFirst({
+    const encryptedDoc = await this.prisma.document.findFirst({
       where: { id: dto.documentId, tenantId, deletedAt: null, ...access },
     });
-    if (!doc) throw new NotFoundException('Document not found');
+    if (!encryptedDoc) throw new NotFoundException('Document not found');
+    const doc = this.protection.deepDecrypt(encryptedDoc);
 
     // Only PDF and DOCX are supported by the n8n ingest workflow
     const supported = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', 'text/x-plain'];

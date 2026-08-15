@@ -5,6 +5,7 @@ import { Cache } from 'cache-manager';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserDto, UpdateUserDto, UserRole } from './dto/user.dto';
 import { AuditService } from '../audit/audit.service';
+import { DataProtectionService } from '../security/data-protection.service';
 
 @Injectable()
 export class UsersService {
@@ -12,6 +13,7 @@ export class UsersService {
     private prisma: PrismaService,
     private auditService: AuditService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private protection: DataProtectionService,
   ) {}
 
   async findAll(tenantId: string) {
@@ -27,8 +29,9 @@ export class UsersService {
       },
     });
 
-    await this.cacheManager.set(cacheKey, users, 60000); // 1 minute cache
-    return users;
+    const decrypted = this.protection.deepDecrypt(users);
+    await this.cacheManager.set(cacheKey, decrypted, 60000); // 1 minute cache
+    return decrypted;
   }
 
   async findOne(id: string, tenantId: string) {
@@ -45,8 +48,9 @@ export class UsersService {
     });
     if (!user) throw new NotFoundException('User not found');
 
-    await this.cacheManager.set(cacheKey, user, 300000); // 5 minutes cache
-    return user;
+    const decrypted = this.protection.deepDecrypt(user);
+    await this.cacheManager.set(cacheKey, decrypted, 300000); // 5 minutes cache
+    return decrypted;
   }
 
   async create(dto: CreateUserDto, tenantId: string, userId: string) {
@@ -139,7 +143,7 @@ export class UsersService {
       },
       orderBy: { firstName: 'asc' },
     });
-    return users;
+    return this.protection.deepDecrypt(users);
   }
 
   async deactivate(id: string, tenantId: string, userId: string) {
@@ -155,7 +159,12 @@ export class UsersService {
     }
     await this.prisma.user.update({
       where: { id },
-      data: { isActive: false, refreshToken: null, refreshTokenExpiresAt: null },
+      data: {
+        isActive: false,
+        refreshToken: null,
+        refreshTokenExpiresAt: null,
+        sessionVersion: { increment: 1 },
+      },
     });
 
     await this.cacheManager.del(`user:${tenantId}:${id}`);

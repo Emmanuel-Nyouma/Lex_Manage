@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   deleteMutate: vi.fn(),
   toastError: vi.fn(),
   toastSuccess: vi.fn(),
+  role: 'CABINET_ADMIN',
   clientsResult: { data: [], isLoading: false, error: null },
 }));
 
@@ -32,7 +33,7 @@ vi.mock('../hooks/useCalendar', () => ({
 }));
 
 vi.mock('../store/useLexStore', () => ({
-  default: (selector) => selector({ currentUser: { role: 'CABINET_ADMIN' } }),
+  default: (selector) => selector({ currentUser: { role: mocks.role } }),
 }));
 
 vi.mock('sonner', () => ({
@@ -45,9 +46,11 @@ vi.mock('sonner', () => ({
 describe('ClientsDirectoryView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.refetch = vi.fn();
     mocks.clientsResult.data = [];
     mocks.clientsResult.isLoading = false;
     mocks.clientsResult.error = null;
+    mocks.role = 'CABINET_ADMIN';
     vi.spyOn(window, 'confirm').mockReturnValue(true);
   });
 
@@ -108,5 +111,72 @@ describe('ClientsDirectoryView', () => {
 
     expect(window.confirm).toHaveBeenCalledOnce();
     expect(mocks.deleteMutate).toHaveBeenCalledWith('client-1');
+  });
+
+  it.each([
+    [{ response: { status: 401 } }, 'Your session has expired. Please log in again.'],
+    [{ response: { status: 403 } }, "You don't have permission to access this resource."],
+    [new Error('Database unavailable'), 'Database unavailable'],
+    [{}, 'Something went wrong. Please try again.'],
+  ])('présente les variantes d’erreur de synchronisation', (error, message) => {
+    mocks.clientsResult.error = error;
+    mocks.refetch = null;
+    render(<ClientsDirectoryView />);
+    expect(screen.getByText(message)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /retry connection/i })).not.toBeInTheDocument();
+  });
+
+  it('affiche le chargement puis un état vide ouvrant le formulaire', () => {
+    mocks.clientsResult.isLoading = true;
+    const { rerender } = render(<ClientsDirectoryView />);
+    expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
+    mocks.clientsResult.isLoading = false;
+    rerender(<ClientsDirectoryView />);
+    expect(screen.getByText('No clients match your search.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Add a new client' }));
+    expect(screen.getByRole('dialog', { name: 'Add a client' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('recherche par nom ou email, ferme le popup et ouvre un résultat', () => {
+    mocks.clientsResult.data = [
+      { id: 'client-1', name: 'Alice Dupont', email: 'alice@lex.test', phone: '600', address: 'Douala', type_client: 'physique' },
+      { id: 'client-2', name: 'Atlas SARL', email: null, phone: null, address: null, type_client: 'morale' },
+    ];
+    render(<ClientsDirectoryView />);
+    const search = screen.getByRole('textbox', { name: 'Search clients' });
+    fireEvent.change(search, { target: { value: 'alice@lex' } });
+    expect(screen.getByText('Results for "alice@lex"')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Open search result Alice Dupont' }));
+    expect(mocks.navigate).toHaveBeenCalledWith('/clients/client-1');
+    expect(screen.queryByText('Results for "alice@lex"')).not.toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: 'missing' } });
+    expect(screen.getByText('Aucun résultat')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Close search results' }));
+    expect(screen.queryByText('Aucun résultat')).not.toBeInTheDocument();
+    fireEvent.focus(search);
+    expect(screen.getByText('Aucun résultat')).toBeInTheDocument();
+  });
+
+  it('ouvre un client au clavier et respecte un refus de confirmation', () => {
+    mocks.clientsResult.data = [{ id: 'client-1', name: 'Alice', type_client: 'physique' }];
+    vi.mocked(window.confirm).mockReturnValue(false);
+    render(<ClientsDirectoryView />);
+    const openRows = screen.getAllByLabelText('Open Alice');
+    fireEvent.keyDown(openRows[0], { key: 'Enter' });
+    fireEvent.keyDown(openRows[1], { key: ' ' });
+    expect(mocks.navigate).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Alice' }));
+    expect(mocks.deleteMutate).not.toHaveBeenCalled();
+  });
+
+  it('masque toutes les actions administratives aux non-administrateurs', () => {
+    mocks.role = 'LAWYER';
+    mocks.clientsResult.data = [{ id: 'client-1', name: 'Alice', type_client: 'physique' }];
+    render(<ClientsDirectoryView />);
+    expect(screen.queryByRole('button', { name: /new client/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
   });
 });

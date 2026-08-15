@@ -2,23 +2,28 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateClientDto } from './dto/client.dto';
 import { AuditService } from '../audit/audit.service';
+import { DataProtectionService } from '../security/data-protection.service';
 
 @Injectable()
 export class ClientsService {
   constructor(
     private prisma: PrismaService,
     private auditService: AuditService,
+    private protection: DataProtectionService,
   ) {}
 
   async findAll(tenantId: string) {
-    return this.prisma.client.findMany({
+    const clients = await this.prisma.client.findMany({
       where: { tenantId },
-      orderBy: { name: 'asc' },
+      orderBy: { createdAt: 'desc' },
     });
+    return this.protection
+      .deepDecrypt(clients)
+      .sort((left, right) => left.name.localeCompare(right.name));
   }
 
   async findOne(id: string, tenantId: string) {
-    const client = await this.prisma.client.findFirst({
+    const rawClient = await this.prisma.client.findFirst({
       where: { id, tenantId },
       include: {
         cases: {
@@ -30,15 +35,28 @@ export class ClientsService {
         },
       },
     });
-    if (!client) throw new NotFoundException('Client not found');
-    return client;
+    if (!rawClient) throw new NotFoundException('Client not found');
+    return this.protection.deepDecrypt(rawClient);
   }
 
   async create(dto: any, tenantId: string, userId: string) {
     const { caseId, deadlineId, ...clientData } = dto;
 
     const client = await this.prisma.$transaction(async (tx) => {
-      const newClient = await tx.client.create({ data: { ...clientData, tenantId } });
+      const protectedData = {
+        ...clientData,
+        name: this.protection.encrypt(clientData.name),
+        email: this.protection.encrypt(clientData.email),
+        phone: this.protection.encrypt(clientData.phone),
+        address: this.protection.encrypt(clientData.address),
+        searchTokens: this.protection.searchTokens([
+          clientData.name,
+          clientData.email,
+          clientData.phone,
+          clientData.address,
+        ]),
+      };
+      const newClient = await tx.client.create({ data: { ...protectedData, tenantId } });
 
       // Resolve caseId: either direct or via deadline's case
       let resolvedCaseId: string | null = caseId ?? null;
@@ -61,7 +79,7 @@ export class ClientsService {
         });
       }
 
-      return newClient;
+      return this.protection.deepDecrypt(newClient);
     });
 
     await this.auditService.log({
@@ -75,10 +93,24 @@ export class ClientsService {
 
   async update(id: string, dto: UpdateClientDto, tenantId: string, userId: string) {
     const original = await this.findOne(id, tenantId);
-    const updated = await this.prisma.client.update({
+    const protectedDto = {
+      ...dto,
+      ...(dto.name !== undefined ? { name: this.protection.encrypt(dto.name) } : {}),
+      ...(dto.email !== undefined ? { email: this.protection.encrypt(dto.email) } : {}),
+      ...(dto.phone !== undefined ? { phone: this.protection.encrypt(dto.phone) } : {}),
+      ...(dto.address !== undefined ? { address: this.protection.encrypt(dto.address) } : {}),
+      searchTokens: this.protection.searchTokens([
+        dto.name ?? original.name,
+        dto.email ?? original.email,
+        dto.phone ?? original.phone,
+        dto.address ?? original.address,
+      ]),
+    };
+    const rawUpdated = await this.prisma.client.update({
       where: { id },
-      data: dto,
+      data: protectedDto,
     });
+    const updated = this.protection.deepDecrypt(rawUpdated);
 
     await this.auditService.log({
       tenantId,

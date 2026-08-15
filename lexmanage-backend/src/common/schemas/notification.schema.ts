@@ -25,12 +25,12 @@ const levelSatisfiesMotif = (data: { level: 'NORMAL' | 'IMPORTANT' | 'URGENT'; m
 };
 
 export const CreateNotificationSchema = z.object({
-  title: z.string().optional(),
+  title: z.string().max(200).optional(),
   message: z.string().max(500, "Message trop long").optional(),
   level: LEVEL_ENUM,
   motif: MOTIF_ENUM,
-  recipientIds: z.array(z.string().uuid()).optional(),
-  recipientRoles: z.array(ROLE_ENUM).optional(),
+  recipientIds: z.array(z.string().uuid()).max(100).optional(),
+  recipientRoles: z.array(ROLE_ENUM).max(10).optional(),
   caseId: z.string().uuid().optional().nullable(),
 }).refine(levelSatisfiesMotif, {
   message: "Niveau insuffisant pour ce motif",

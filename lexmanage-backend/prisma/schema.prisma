@@ -171,6 +171,7 @@ model User {
   isActive              Boolean                 @default(true) @map("is_active")
   refreshToken          String?                 @unique @map("refresh_token")
   refreshTokenExpiresAt DateTime?               @map("refresh_token_expires_at")
+  sessionVersion        Int                     @default(0) @map("session_version")
   createdAt             DateTime                @default(now()) @map("created_at")
   updatedAt             DateTime                @updatedAt @map("updated_at")
   tenant                Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -196,6 +197,7 @@ model Case {
   clientName      String                  @map("client_name")
   courtName       String?                 @map("court_name")
   caseNumber      String?                 @map("case_number")
+  searchTokens    String[]                @default([]) @map("search_tokens")
   status          CaseStatus              @default(OPEN)
   priority        String                  @default("MEDIUM")
   clientId        String?                 @map("client_id")
@@ -216,6 +218,7 @@ model Case {
   @@index([tenantId, status])
   @@index([tenantId, assigneeId])
   @@index([tenantId, clientId])
+  @@index([searchTokens], type: Gin)
   @@map("cases")
 }
 
@@ -231,6 +234,7 @@ model Document {
   file_size    Int            @map("file_size")
   category     String?
   subCategory  String?        @map("sub_category")
+  searchTokens String[]       @default([]) @map("search_tokens")
   allowedRoles Role[]         @default([]) @map("allowed_roles")
   type         DocumentType   @default(OTHER)
   status       DocumentStatus @default(UPLOADED)
@@ -251,6 +255,7 @@ model Document {
   @@index([tenantId, createdAt, id])
   @@index([tenantId, type])
   @@index([tenantId, case_id])
+  @@index([searchTokens], type: Gin)
   @@map("documents")
 }
 
@@ -338,6 +343,7 @@ model Client {
   email       String?
   phone       String?
   address     String?
+  searchTokens String[] @default([]) @map("search_tokens")
   type_client String
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -346,6 +352,7 @@ model Client {
 
   @@unique([id, tenantId])
   @@index([tenantId, createdAt, id])
+  @@index([searchTokens], type: Gin)
   @@map("clients")
 }
 
@@ -387,7 +394,7 @@ model Invitation {
 model PasswordResetToken {
   id        String    @id @default(cuid())
   tenantId  String    @map("tenant_id")
-  userId    String    @map("user_id")
+  userId    String    @unique @map("user_id")
   tokenHash String    @unique @map("token_hash")
   expiresAt DateTime  @map("expires_at")
   usedAt    DateTime? @map("used_at")
@@ -415,6 +422,7 @@ model AuditLog {
 
   @@index([tenantId, createdAt, id])
   @@index([tenantId, userId])
+  @@index([createdAt])
   @@map("audit_logs")
 }
 

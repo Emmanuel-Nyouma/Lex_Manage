@@ -223,6 +223,15 @@ const ClientDetailView = () => {
                       key={c.id} 
                       className="p-5 hover:border-amber-300 dark:hover:border-amber-500/50 transition-all cursor-pointer group"
                       onClick={() => navigate(`/cases`)}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Ouvrir le dossier ${c.title}`}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          navigate('/cases');
+                        }
+                      }}
                     >
                       <div className="flex justify-between items-start gap-4">
                         <div className="space-y-2">

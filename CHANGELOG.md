@@ -4,6 +4,33 @@ All notable changes to LexManage are documented here. The format follows [Keep a
 
 ## [Unreleased]
 
+### Security
+
+- Added immediate HTTP/WebSocket session revocation, HS256 pinning, atomic password-reset consumption, HTTPS enforcement, and signed n8n requests.
+- Added fail-closed ClamAV scanning and upload throttling before object storage.
+- Added AES-256-GCM field encryption with blind search indexes and S3 server-side encryption for legal records and documents.
+- Added cursor-paginated audit logs, configurable retention cleanup, stricter input bounds, and production secret validation.
+
+## [0.2.0] - 2026-08-15
+
+### Added
+
+- Privacy-preserving optional Sentry reporting for uncaught frontend errors.
+- Behavior-focused frontend tests for authentication, onboarding, dashboard, calendar, cases, clients, documents, company settings, notifications, LexAssist, navigation, hooks, state, and shared UI.
+- A 60% global frontend coverage gate for statements, branches, functions, and lines.
+
+### Changed
+
+- Extracted the client creation modal and calendar popups/grid into focused components; the two core views are now below 350 lines.
+- Replaced the `rolldown-vite` alias with official Vite 7.3.6 and aligned the supported runtime to Node.js 22.12 or newer.
+- Completed safe example environment configuration and contributor/reproducibility documentation.
+- Improved form labels and keyboard operation for firm settings, notification messages, text areas, client selection, and calendar day controls.
+
+### Fixed
+
+- Restored the case-list retry action by wiring the missing React Query `refetch` result.
+- Preserved useful, non-sensitive frontend error context while stripping legal payloads, tokens, email addresses, and identifiers from Sentry events.
+
 ## [0.1.0] - 2026-08-15
 
 ### Added
@@ -26,5 +53,6 @@ All notable changes to LexManage are documented here. The format follows [Keep a
 - Added production dependency auditing to CI.
 - Required environment-provided credentials for seed and screenshot utilities.
 
-[Unreleased]: https://github.com/Emmanuel-Nyouma/Lex_Manage/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Emmanuel-Nyouma/Lex_Manage/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Emmanuel-Nyouma/Lex_Manage/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Emmanuel-Nyouma/Lex_Manage/compare/d594df1...v0.1.0

@@ -1,4 +1,4 @@
-import { IsEnum, IsInt, IsOptional, IsPositive, IsString, IsUUID } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsPositive, IsString, IsUUID, Max, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum DocumentStatus {
@@ -73,18 +73,18 @@ export enum DocumentType {
 }
 
 export class CreateDocumentDto {
-  @ApiProperty() @IsString() title: string;
-  @ApiProperty() @IsString() fileName: string;
-  @ApiProperty() @IsString() fileUrl: string;
-  @ApiProperty() @IsString() fileType: string;
-  @ApiProperty() @IsInt() @IsPositive() fileSize: number;
-  @ApiPropertyOptional() @IsOptional() @IsString() category?: string;
+  @ApiProperty() @IsString() @MaxLength(200) title: string;
+  @ApiProperty() @IsString() @MaxLength(255) fileName: string;
+  @ApiProperty() @IsString() @MaxLength(2048) fileUrl: string;
+  @ApiProperty() @IsString() @MaxLength(150) fileType: string;
+  @ApiProperty() @IsInt() @IsPositive() @Max(50 * 1024 * 1024) fileSize: number;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(100) category?: string;
   @ApiPropertyOptional() @IsOptional() @IsUUID() caseId?: string;
 }
 
 export class UpdateDocumentDto {
-  @ApiPropertyOptional() @IsOptional() @IsString() title?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() category?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(200) title?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(100) category?: string;
   @ApiPropertyOptional({ enum: DocumentType }) @IsOptional() @IsEnum(DocumentType) type?: DocumentType;
   @ApiPropertyOptional({ enum: DocumentStatus }) @IsOptional() @IsEnum(DocumentStatus) status?: DocumentStatus;
 }

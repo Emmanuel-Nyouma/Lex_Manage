@@ -4,7 +4,10 @@ import { BrowserRouter } from './lib/router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import LexManageApp from './App';
 import GlobalErrorBoundary from './components/GlobalErrorBoundary';
+import { initErrorTracking } from './lib/errorTracking';
 import './index.css';
+
+initErrorTracking();
 
 const queryClient = new QueryClient({
   defaultOptions: {

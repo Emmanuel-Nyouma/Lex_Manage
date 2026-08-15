@@ -10,6 +10,7 @@ import { Queue } from 'bull';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { NotificationLevel, NotificationMotif } from '@prisma/client';
+import { DataProtectionService } from '../security/data-protection.service';
 
 export interface CreateTemplateDto {
   name: string;
@@ -39,10 +40,11 @@ export class NotificationsService {
     private eventsGateway: EventsGateway,
     @InjectQueue('mail')      private mailQueue: Queue,
     @InjectQueue('reminders') private remindersQueue: Queue,
+    private protection: DataProtectionService,
   ) {}
 
   async findAll(userId: string, tenantId: string) {
-    return this.prisma.notification.findMany({
+    const notifications = await this.prisma.notification.findMany({
       where: {
         tenantId,
         OR: [
@@ -53,6 +55,7 @@ export class NotificationsService {
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
+    return this.protection.deepDecrypt(notifications);
   }
 
   async getUnreadCount(userId: string, tenantId: string) {
@@ -239,7 +242,7 @@ export class NotificationsService {
   // ── History ───────────────────────────────────────────────────────
 
   async getHistory(tenantId: string) {
-    return this.prisma.notification.findMany({
+    const history = await this.prisma.notification.findMany({
       where: {
         tenantId,
         source: 'USER',
@@ -251,6 +254,7 @@ export class NotificationsService {
         case:      { select: { title: true, caseNumber: true } },
       },
     });
+    return this.protection.deepDecrypt(history);
   }
 
   /** Delete a sent notification from the firm history (admin only). */
@@ -301,7 +305,7 @@ export class NotificationsService {
   // ── Scheduled ────────────────────────────────────────────────────
 
   async getScheduled(tenantId: string) {
-    return this.prisma.scheduledNotification.findMany({
+    const scheduled = await this.prisma.scheduledNotification.findMany({
       where: { tenantId },
       orderBy: { scheduledAt: 'asc' },
       include: {
@@ -309,6 +313,7 @@ export class NotificationsService {
         case:      { select: { title: true, caseNumber: true } },
       },
     });
+    return this.protection.deepDecrypt(scheduled);
   }
 
   async createScheduled(tenantId: string, createdById: string, dto: CreateScheduledDto) {
@@ -355,7 +360,7 @@ export class NotificationsService {
     }
 
     // Persist the jobId for later cancellation
-    return this.prisma.scheduledNotification.update({
+    const scheduledNotification = await this.prisma.scheduledNotification.update({
       where: { id: record.id },
       data: { jobId: String(job.id) },
       include: {
@@ -363,6 +368,7 @@ export class NotificationsService {
         case:      { select: { title: true, caseNumber: true } },
       },
     });
+    return this.protection.deepDecrypt(scheduledNotification);
   }
 
   async cancelScheduled(tenantId: string, id: string) {

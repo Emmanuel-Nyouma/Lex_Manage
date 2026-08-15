@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, RefreshCcw, X, Bug, ChevronDown, ChevronUp } from 'lucide-react';
 import { getErrorPresentation } from '../utils/errorMessages';
+import { captureFrontendError } from '../lib/errorTracking';
 
 class GlobalErrorBoundary extends React.Component {
   constructor(props) {
@@ -14,6 +15,10 @@ class GlobalErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error("Critical interface error captured:", error, errorInfo);
+    captureFrontendError(error, {
+      source: 'global-error-boundary',
+      componentStack: errorInfo?.componentStack,
+    });
   }
 
   handleReset = () => {

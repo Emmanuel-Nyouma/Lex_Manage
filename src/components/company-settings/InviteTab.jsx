@@ -27,6 +27,7 @@ const InviteTab = ({
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
                   <input
+                    aria-label="Professional Email"
                     type="email"
                     required
                     value={email}
@@ -44,6 +45,7 @@ const InviteTab = ({
                 <div className="relative">
                   <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
                   <select
+                    aria-label="Role in the firm"
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
                     className="w-full pl-10 pr-10 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none appearance-none cursor-pointer focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all dark:text-white"
@@ -79,6 +81,8 @@ const InviteTab = ({
                     className="flex-1 bg-white dark:bg-slate-950 border border-amber-200 dark:border-amber-800 rounded-lg px-2 py-2 text-[10px] text-slate-600 dark:text-slate-300 outline-none"
                   />
                   <button
+                    type="button"
+                    aria-label="Copy invitation link"
                     onClick={() => copyToClipboard(lastGeneratedLink)}
                     className="p-2 bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-800 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors shadow-sm"
                   >
@@ -89,6 +93,7 @@ const InviteTab = ({
                   Send this link to your associate. They can create their account and automatically join your firm.
                 </p>
                 <button
+                  type="button"
                   onClick={() => setActiveTab('invitations')}
                   className="mt-3 text-[10px] font-bold text-amber-600 dark:text-amber-400 underline underline-offset-2 hover:no-underline"
                 >

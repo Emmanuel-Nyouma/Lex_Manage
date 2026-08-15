@@ -1,9 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { enforceHttps } from './common/middleware/https-redirect.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -11,6 +12,7 @@ async function bootstrap() {
 
   // Security
   app.use(helmet());
+  app.use(enforceHttps);
   app.use(cookieParser());
   
   const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map((origin) => origin.trim()) || ['http://localhost:3000'];

@@ -11,12 +11,14 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json-summary', 'lcov'],
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.spec.ts', 'src/main.ts'],
+      // Declarative Nest wiring and DTO metadata are validated by TypeScript
+      // builds and application smoke tests; unit coverage tracks executable logic.
+      exclude: ['src/**/*.spec.ts', 'src/main.ts', 'src/**/*.module.ts', 'src/**/dto/**'],
       thresholds: {
-        statements: 14,
-        branches: 12,
-        functions: 12,
-        lines: 14,
+        statements: 99,
+        branches: 98,
+        functions: 99,
+        lines: 100,
       },
     },
   },

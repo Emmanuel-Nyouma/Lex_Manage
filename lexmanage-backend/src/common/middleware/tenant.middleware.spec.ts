@@ -83,4 +83,21 @@ describe('TenantMiddleware', () => {
     expect(runSpy).toHaveBeenCalledWith(undefined, expect.any(Function));
     expect(next).toHaveBeenCalled();
   });
+
+  it.each([
+    ['Basic credentials'],
+    ['Bearer '],
+  ])('ignores an unusable authorization header: %s', async (authorization) => {
+    const next = jest.fn();
+    await middleware.use({ headers: { authorization } } as Request, {} as Response, next);
+    expect(jwtService.verifyAsync).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledOnce();
+  });
+
+  it.each([null, {}, { tenantId: '' }])('ignores a verified payload without tenant: %j', async (payload) => {
+    jest.spyOn(jwtService, 'verifyAsync').mockResolvedValue(payload as any);
+    const next = jest.fn();
+    await middleware.use({ headers: { authorization: 'Bearer token' } } as Request, {} as Response, next);
+    expect(next).toHaveBeenCalledOnce();
+  });
 });

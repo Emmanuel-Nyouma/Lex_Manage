@@ -1,10 +1,14 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Role } from '@prisma/client';
+import { DataProtectionService } from '../security/data-protection.service';
 
 @Injectable()
 export class SearchService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private protection: DataProtectionService,
+  ) {}
 
   async globalSearch(tenantId: string, userId: string, role: Role, query: string) {
     const normalized = query?.trim() || '';
@@ -15,14 +19,32 @@ export class SearchService {
     // then deduplicate by id so partial-word and full-phrase both surface.
     const terms = Array.from(new Set([normalized, ...normalized.split(/\s+/)])).slice(0, 9);
 
+    const queryTokens = this.protection.searchTokens([normalized]);
+    if (this.protection.enabled && queryTokens.length === 0) {
+      return { cases: [], documents: [], members: [], clients: [] };
+    }
     const caseWhere = {
       tenantId,
-      OR: terms.flatMap((q) => [
-        { title: { contains: q, mode: 'insensitive' as const } },
-        { clientName: { contains: q, mode: 'insensitive' as const } },
-        { caseNumber: { contains: q, mode: 'insensitive' as const } },
-        { description: { contains: q, mode: 'insensitive' as const } },
-      ]),
+      ...(this.protection.enabled
+        ? {
+            OR: [
+              { searchTokens: { hasEvery: queryTokens } },
+              ...terms.flatMap((q) => [
+                { title: { contains: q, mode: 'insensitive' as const } },
+                { clientName: { contains: q, mode: 'insensitive' as const } },
+                { caseNumber: { contains: q, mode: 'insensitive' as const } },
+                { description: { contains: q, mode: 'insensitive' as const } },
+              ]),
+            ],
+          }
+        : {
+            OR: terms.flatMap((q) => [
+              { title: { contains: q, mode: 'insensitive' as const } },
+              { clientName: { contains: q, mode: 'insensitive' as const } },
+              { caseNumber: { contains: q, mode: 'insensitive' as const } },
+              { description: { contains: q, mode: 'insensitive' as const } },
+            ]),
+          }),
     };
 
     const docWhere: any = {
@@ -30,11 +52,22 @@ export class SearchService {
       deletedAt: null,
       AND: [
         {
-          OR: terms.flatMap((q) => [
-            { title: { contains: q, mode: 'insensitive' as const } },
-            { file_name: { contains: q, mode: 'insensitive' as const } },
-            { category: { contains: q, mode: 'insensitive' as const } },
-          ]),
+              OR: this.protection.enabled
+            ? [
+                { searchTokens: { hasEvery: queryTokens } },
+                ...terms.flatMap((q) => [
+                  { title: { contains: q, mode: 'insensitive' as const } },
+                  { file_name: { contains: q, mode: 'insensitive' as const } },
+                ]),
+                ...terms.map((q) => ({
+                  category: { contains: q, mode: 'insensitive' as const },
+                })),
+              ]
+            : terms.flatMap((q) => [
+                { title: { contains: q, mode: 'insensitive' as const } },
+                { file_name: { contains: q, mode: 'insensitive' as const } },
+                { category: { contains: q, mode: 'insensitive' as const } },
+              ]),
         },
       ],
     };
@@ -59,12 +92,26 @@ export class SearchService {
 
     const clientWhere = {
       tenantId,
-      OR: terms.flatMap((q) => [
-        { name: { contains: q, mode: 'insensitive' as const } },
-        { email: { contains: q, mode: 'insensitive' as const } },
-        { phone: { contains: q, mode: 'insensitive' as const } },
-        { address: { contains: q, mode: 'insensitive' as const } },
-      ]),
+      ...(this.protection.enabled
+        ? {
+            OR: [
+              { searchTokens: { hasEvery: queryTokens } },
+              ...terms.flatMap((q) => [
+                { name: { contains: q, mode: 'insensitive' as const } },
+                { email: { contains: q, mode: 'insensitive' as const } },
+                { phone: { contains: q, mode: 'insensitive' as const } },
+                { address: { contains: q, mode: 'insensitive' as const } },
+              ]),
+            ],
+          }
+        : {
+            OR: terms.flatMap((q) => [
+              { name: { contains: q, mode: 'insensitive' as const } },
+              { email: { contains: q, mode: 'insensitive' as const } },
+              { phone: { contains: q, mode: 'insensitive' as const } },
+              { address: { contains: q, mode: 'insensitive' as const } },
+            ]),
+          }),
     };
 
     const [cases, documents, members, clients] = await Promise.all([
@@ -87,10 +134,10 @@ export class SearchService {
     ]);
 
     return {
-      cases,
-      documents,
+      cases: this.protection.deepDecrypt(cases),
+      documents: this.protection.deepDecrypt(documents),
       members,
-      clients,
+      clients: this.protection.deepDecrypt(clients),
     };
   }
 }

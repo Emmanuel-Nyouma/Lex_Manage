@@ -24,6 +24,7 @@ const TeamTab = ({
               {/* Show/hide inactive toggle */}
               {inactiveCount > 0 && (
                 <button
+                  type="button"
                   onClick={() => setShowInactive(v => !v)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all ${
                     showInactive
@@ -97,6 +98,7 @@ const TeamTab = ({
                         </div>
                         <div className="flex items-center gap-1">
                           <button
+                            type="button"
                             onClick={() => setEditingMember(member)}
                             disabled={isCurrentUser}
                             className="p-2.5 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-xl transition-all disabled:opacity-30"
@@ -105,6 +107,7 @@ const TeamTab = ({
                             <Edit2 size={16} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => setConfirmAction({ type: isActive ? 'deactivate' : 'reactivate', member })}
                             disabled={isCurrentUser}
                             className={`p-2.5 rounded-xl transition-all disabled:opacity-30 ${
@@ -211,8 +214,10 @@ const TeamTab = ({
                           <div className="flex items-center justify-end gap-1">
                             {/* Edit role */}
                             <button
+                              type="button"
                               onClick={() => setEditingMember(member)}
                               disabled={isCurrentUser}
+                              aria-label="Edit role"
                               className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-all disabled:opacity-30"
                               title="Edit role"
                             >
@@ -221,6 +226,7 @@ const TeamTab = ({
 
                             {/* Soft disable / reactivate */}
                             <button
+                              type="button"
                               onClick={() =>
                                 setConfirmAction({
                                   type: isActive ? 'deactivate' : 'reactivate',
@@ -228,6 +234,7 @@ const TeamTab = ({
                                 })
                               }
                               disabled={isCurrentUser}
+                              aria-label={isActive ? 'Deactivate member' : 'Reactivate member'}
                               className={`p-2 rounded-lg transition-all disabled:opacity-30 ${
                                 isActive
                                   ? 'text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'

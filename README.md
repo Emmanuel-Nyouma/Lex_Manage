@@ -130,47 +130,29 @@ lex-manage/
 
 ## ⚙️ Environment Variables
 
-### Backend (`lexmanage-backend/.env`)
+Copy [`.env.example`](./.env.example) for the complete Docker/full-stack configuration, or [`lexmanage-backend/.env.example`](./lexmanage-backend/.env.example) when running only the API. The checked-in values are safe placeholders; never commit a populated `.env` file.
 
-```bash
-# Database (Neon)
-DATABASE_URL="postgresql://user:pass@host/lexmanage?sslmode=require"
+| Area | Variables |
+|---|---|
+| Frontend endpoints | `VITE_API_URL`, `VITE_WS_URL` |
+| Frontend features | `VITE_ENABLE_AI`, `VITE_SECURE_AUTH` |
+| Frontend error reporting | `VITE_SENTRY_DSN` (optional; empty disables Sentry) |
+| Database/auth | `DATABASE_URL`, `JWT_SECRET`, `JWT_ACCESS_EXPIRY`, `JWT_REFRESH_EXPIRY` |
+| Application/CORS | `PORT`, `NODE_ENV`, `ALLOWED_ORIGINS`, `FRONTEND_URL` |
+| Redis | `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, `REDIS_TLS` |
+| S3-compatible storage | `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET` |
+| AI/n8n | `GEMINI_API_KEY`, `N8N_RAG_CHAT_URL`, `N8N_RAG_INGEST_URL`, `N8N_RAG_DELETE_URL`, `N8N_WEBHOOK_SECRET` |
+| Email | `RESEND_API_KEY`, `MAIL_FROM` |
+| Optional demo seed | `SEED_ADMIN_EMAIL`, `SEED_LAWYER_EMAIL`, `SEED_USER_PASSWORD` |
+| Screenshot automation | `LEXMANAGE_BASE_URL`, `LEXMANAGE_SCREENSHOT_DIR`, `LEXMANAGE_TEST_EMAIL`, `LEXMANAGE_TEST_PASSWORD` |
 
-# JWT
-JWT_SECRET="your-secret"
-JWT_EXPIRATION="15m"
-REFRESH_TOKEN_SECRET="your-refresh-secret"
-
-# Supabase S3 Storage
-S3_ENDPOINT="https://<project-id>.supabase.co/storage/v1/s3"
-S3_REGION="eu-west-2"
-S3_ACCESS_KEY_ID="your-access-key"
-S3_SECRET_ACCESS_KEY="your-secret-key"
-S3_BUCKET_NAME="your-bucket-name"
-
-# Redis (Upstash)
-REDIS_HOST="your-host.upstash.io"
-REDIS_PORT=6379
-REDIS_PASSWORD="your-password"
-REDIS_TLS=true
-
-# n8n RAG Webhooks
-N8N_RAG_CHAT_URL="https://your-n8n.app.n8n.cloud/webhook/legal-rag-chat"
-N8N_RAG_INGEST_URL="https://your-n8n.app.n8n.cloud/webhook/legal-rag-ingest"
-
-# Email (Resend) — optional
-RESEND_API_KEY="re_xxxxxxxxxxxx"
-```
-
-### Frontend (`.env`)
-
-```bash
-VITE_API_BASE_URL="https://your-backend.onrender.com"
-```
+`VITE_API_URL` is the backend origin, with or without `/api/v1`; the frontend normalizes it. For local non-Docker development use `http://localhost:3001`. Sentry is initialized only when `VITE_SENTRY_DSN` is present. Its integration deliberately removes request bodies, user metadata, tokens, email addresses, UUIDs, and console breadcrumbs so legal/client content is not sent by default.
 
 ---
 
 ## 🚀 Local Development
+
+Prerequisite: Node.js 22.12 or newer.
 
 ```bash
 # 1. Clone
@@ -181,17 +163,21 @@ cd Lex_Manage
 cd lexmanage-backend
 cp .env.example .env          # fill in your values
 npm ci
+npx prisma generate
 npx prisma db push
 npm run start:dev             # runs on :3001
 
 # 3. Frontend (new terminal)
 cd ..
-cp .env.example .env          # set VITE_API_BASE_URL=http://localhost:3001
+cp .env.example .env          # set VITE_API_URL/VITE_WS_URL=http://localhost:3001
 npm ci
 npm run dev                   # runs on :5173
 ```
 
 ## ✅ Quality checks
+
+Production security configuration and encrypted-data migration are documented in
+[Security operations](docs/SECURITY_OPERATIONS.md).
 
 Run the same checks locally that GitHub Actions runs on every push and pull request:
 
@@ -214,14 +200,15 @@ npm audit --omit=dev --audit-level=high
 
 Frontend tests use Vitest with Testing Library. Backend tests use Vitest with mocked infrastructure where appropriate. New fixes and features should include tests that demonstrate the expected behavior; see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
+The frontend suite enforces a global minimum of 60% for statements, branches, functions, and lines. `npm run test:coverage` exits non-zero if any metric regresses below that gate.
+
 ## 🐳 Isolated Docker development
 
 The root Compose file is the canonical self-contained stack: frontend, backend, PostgreSQL, Redis, and MinIO.
 
 ```bash
-cp .env.example .env
-docker compose config --quiet
-docker compose up --build
+docker compose --env-file .env.example config --quiet
+docker compose --env-file .env.example up --build
 ```
 
 Then open `http://localhost`. Nginx serves the SPA and proxies `/api` and `/socket.io` to the backend on the same origin. Readiness checks verify PostgreSQL, Redis, object storage, the API, and the frontend before dependent services are considered healthy.

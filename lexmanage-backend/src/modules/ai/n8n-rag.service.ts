@@ -1,4 +1,5 @@
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { createHmac, randomUUID } from 'crypto';
 
 interface N8nChatParams {
   tenantId: string;
@@ -106,11 +107,18 @@ export class N8nRagService {
       throw new ServiceUnavailableException('N8N_WEBHOOK_SECRET is not configured');
     }
     const body = JSON.stringify(payload);
+    const timestamp = Date.now().toString();
+    const signature = createHmac('sha256', this.webhookSecret)
+      .update(`${timestamp}.${body}`)
+      .digest('hex');
     const res = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${this.webhookSecret}`,
+        'X-LexManage-Timestamp': timestamp,
+        'X-LexManage-Signature': `v1=${signature}`,
+        'X-LexManage-Request-Id': randomUUID(),
       },
       body,
       signal: AbortSignal.timeout(timeoutMs),

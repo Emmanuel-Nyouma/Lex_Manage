@@ -23,7 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22.12.0'
           cache: 'npm'
           cache-dependency-path: lexmanage-backend/package-lock.json
 
@@ -48,11 +48,14 @@ jobs:
       - name: Type-check (tsc)
         run: npx tsc --noEmit
 
+      - name: Type-check security migration tools
+        run: npm run typecheck:tools
+
       - name: Build
         run: npm run build
 
   frontend-build:
-    name: Frontend — Build
+    name: Frontend — Lint, Test & Build
     runs-on: ubuntu-latest
 
     steps:
@@ -61,7 +64,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22.12.0'
           cache: 'npm'
           cache-dependency-path: package-lock.json
 

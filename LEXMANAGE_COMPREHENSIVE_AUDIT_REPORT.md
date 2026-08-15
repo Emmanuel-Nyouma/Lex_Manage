@@ -674,10 +674,10 @@ curl -X GET http://localhost:3001/api/v1/cases \
 **Current Vulnerable Code**:
 ```dotenv
 # ⚠️ HARDCODED DEFAULTS
-JWT_SECRET="lexmanage_super_secret_jwt_key_change_in_production"
+JWT_SECRET=
 MINIO_ACCESS_KEY="minioadmin"
 MINIO_SECRET_KEY="minioadmin"
-GEMINI_API_KEY="your_gemini_api_key_here"
+GEMINI_API_KEY=
 
 # Even though the comment says "change in production",
 # developers often copy .env.example directly or use defaults
@@ -710,7 +710,7 @@ Impact if Exploited: CRITICAL
 **Why Production Breaks**:
 ```javascript
 // In production.env
-JWT_SECRET="lexmanage_super_secret_jwt_key_change_in_production"
+JWT_SECRET=
 // ^ Same default! Developer forgot to change
 
 // Attacker knows the secret, can forge JWTs:

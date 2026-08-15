@@ -54,7 +54,7 @@ const HistoryTab = () => {
         <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
           {history.length} notification{history.length > 1 ? 's' : ''} envoyée{history.length > 1 ? 's' : ''}
         </p>
-        <button onClick={load} className="flex items-center gap-1 text-xs text-slate-400 hover:text-amber-500 transition-colors">
+        <button type="button" onClick={load} className="flex items-center gap-1 text-xs text-slate-400 hover:text-amber-500 transition-colors">
           <RefreshCw size={13} /> Refresh
         </button>
       </div>
@@ -67,41 +67,49 @@ const HistoryTab = () => {
             className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 overflow-hidden"
           >
             {/* Row */}
-            <div
-              className="flex items-center gap-4 px-5 py-3.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
-              onClick={() => setExpanded(isOpen ? null : n.id)}
-            >
-              <LevelBadge level={n.level} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                  {n.title || motifLabel(n.motif)}
-                </p>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                  {n.message || '—'}
-                </p>
-              </div>
-              <div className="hidden sm:flex flex-col items-end gap-1 shrink-0">
-                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{fmtDate(n.createdAt)}</span>
-                {n.createdBy && (
-                  <span className="text-[10px] text-slate-400">
-                    par {n.createdBy.firstName} {n.createdBy.lastName}
-                  </span>
-                )}
-              </div>
+            <div className="flex items-center px-3 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
               <button
+                type="button"
+                className="flex flex-1 min-w-0 items-center gap-4 px-2 py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 rounded-lg"
+                onClick={() => setExpanded(isOpen ? null : n.id)}
+                aria-expanded={isOpen}
+                aria-controls={`history-detail-${n.id}`}
+                aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${n.title || motifLabel(n.motif)}`}
+              >
+                <LevelBadge level={n.level} />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-bold text-slate-900 dark:text-white truncate">
+                    {n.title || motifLabel(n.motif)}
+                  </span>
+                  <span className="block text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                    {n.message || '—'}
+                  </span>
+                </span>
+                <span className="hidden sm:flex flex-col items-end gap-1 shrink-0">
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{fmtDate(n.createdAt)}</span>
+                  {n.createdBy && (
+                    <span className="text-[10px] text-slate-400">
+                      par {n.createdBy.firstName} {n.createdBy.lastName}
+                    </span>
+                  )}
+                </span>
+                <ChevronDown size={16} className={`text-slate-400 transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
+              </button>
+              <button
+                type="button"
                 onClick={(e) => handleDelete(e, n.id)}
                 disabled={deleting === n.id}
+                aria-label={`Delete ${n.title || motifLabel(n.motif)}`}
                 className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all shrink-0 disabled:opacity-40"
                 title="Delete notification"
               >
                 {deleting === n.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
               </button>
-              <ChevronDown size={16} className={`text-slate-400 transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
             </div>
 
             {/* Expanded detail */}
             {isOpen && (
-              <div className="px-5 pb-4 pt-0 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 space-y-3 animate-in slide-in-from-top-2 duration-200">
+              <div id={`history-detail-${n.id}`} className="px-5 pb-4 pt-0 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 space-y-3 animate-in slide-in-from-top-2 duration-200">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3">
                   <Detail label="Motif"     value={motifLabel(n.motif)} />
                   <Detail label="Level"     value={<LevelBadge level={n.level} />} />
@@ -194,8 +202,10 @@ const TemplateCard = ({ template: t, onDelete, onUse }) => (
     <div className="flex items-start justify-between gap-2">
       <h4 className="font-black text-slate-900 dark:text-white text-sm leading-tight">{t.name}</h4>
       <button
+        type="button"
         onClick={onDelete}
-        className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+        aria-label={`Delete ${t.name}`}
+        className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
         title="Delete template"
       >
         <Trash2 size={14} />
@@ -283,8 +293,9 @@ const TemplateForm = ({ onCreated }) => {
         </div>
 
         <div>
-          <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">Message</label>
+          <label htmlFor="template-message" className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">Message</label>
           <textarea
+            id="template-message"
             rows={3}
             placeholder="Message par défaut du template…"
             value={form.message}
@@ -294,8 +305,8 @@ const TemplateForm = ({ onCreated }) => {
         </div>
 
         <div>
-          <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">Default Recipients</label>
-          <div className="flex flex-wrap gap-2">
+          <span id="template-recipients-label" className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">Default Recipients</span>
+          <div className="flex flex-wrap gap-2" role="group" aria-labelledby="template-recipients-label">
             {ROLE_OPTIONS.map(r => (
               <button
                 key={r.value}
