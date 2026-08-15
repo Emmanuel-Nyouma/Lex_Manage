@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException, BadRequestException }
 import { PrismaService } from '../../prisma/prisma.service';
 import { MinioService } from '../documents/minio.service';
 import { randomUUID } from 'crypto';
+import { detectFileType } from '../../common/utils/file-type';
 import { CreateInvitationDto, UpdateMemberDto, UpdateTenantDto } from './dto/tenant.dto';
 
 @Injectable()
@@ -250,7 +251,6 @@ export class TenantsService {
   }
 
   private async detectFileType(buffer: Buffer) {
-    const { fileTypeFromBuffer } = await (eval('import("file-type")') as Promise<any>);
-    return fileTypeFromBuffer(buffer);
+    return detectFileType(buffer);
   }
 }

@@ -165,6 +165,15 @@ describe('DocumentsService', () => {
     }));
   });
 
+  it('applique des valeurs sûres aux métadonnées de création absentes', async () => {
+    prisma.document.create.mockImplementation(({ data }: any) => ({ id: 'doc-default', ...data }));
+    const result: any = await service.create({} as any, 'tenant-a', 'user-1');
+    expect(result).toEqual(expect.objectContaining({
+      title: 'Sans titre', file_name: 'unknown', file_url: '',
+      file_type: 'application/octet-stream', file_size: 0,
+    }));
+  });
+
   it('refuse de lier un document inexistant même si le dossier est valide', async () => {
     prisma.case.findFirst.mockResolvedValue({ id: 'case-1' });
     prisma.document.findFirst.mockResolvedValue(null);
@@ -269,6 +278,55 @@ describe('DocumentsService', () => {
     await expect(service.upload(file, 'tenant-a', 'user-1', {})).rejects.toThrow('Invalid file type');
   });
 
+  it.each([
+    ['application/octet-stream', 'application/octet-stream'],
+    ['', 'unknown'],
+  ])('décrit un upload sans signature magique avec le type %j', async (mimetype, expected) => {
+    const file = {
+      originalname: 'unknown.bin', mimetype, buffer: Buffer.from('unknown'), size: 7,
+    } as Express.Multer.File;
+    vi.spyOn(service as any, 'detectFileType').mockResolvedValue(undefined);
+    await expect(service.upload(file, 'tenant-a', 'user-1', {}))
+      .rejects.toThrow(`Invalid file type: ${expected}`);
+  });
+
+  it('valide aussi les limites de sous-catégorie et référence judiciaire', async () => {
+    const file = {
+      originalname: 'safe.txt', mimetype: 'text/plain', buffer: Buffer.from('safe'), size: 4,
+    } as Express.Multer.File;
+    await expect(service.upload(file, 'tenant-a', 'user-1', { subCategory: 'x'.repeat(101) }))
+      .rejects.toThrow('subCategory must not exceed 100');
+    await expect(service.upload(file, 'tenant-a', 'user-1', { courtCaseRef: 'x'.repeat(101) }))
+      .rejects.toThrow('courtCaseRef must not exceed 100');
+  });
+
+  it('termine un upload lié à un dossier et transmet ce dossier au RAG', async () => {
+    const file = {
+      originalname: 'evidence.pdf', mimetype: 'application/pdf', buffer: Buffer.from('%PDF'), size: 4,
+    } as Express.Multer.File;
+    vi.spyOn(service as any, 'detectFileType').mockResolvedValue({ mime: 'application/pdf' });
+    prisma.case.findFirst.mockResolvedValue({ id: 'case-1' });
+    minio.uploadFile.mockResolvedValue({ objectName: 'documents/evidence.pdf' });
+    minio.getPresignedUrl.mockResolvedValue('https://signed/evidence');
+    prisma.document.create.mockResolvedValue({ id: 'doc-1', file_url: 'documents/evidence.pdf' });
+    n8n.ingestDocument.mockResolvedValue(undefined);
+    await service.upload(file, 'tenant-a', 'user-1', { caseId: 'case-1' });
+    expect(n8n.ingestDocument).toHaveBeenCalledWith(expect.objectContaining({ caseId: 'case-1' }));
+  });
+
+  it('stocke une image valide sans tenter de l’indexer dans le RAG', async () => {
+    const file = {
+      originalname: 'evidence.png', mimetype: 'image/png', buffer: Buffer.from('png'), size: 3,
+    } as Express.Multer.File;
+    vi.spyOn(service as any, 'detectFileType').mockResolvedValue({ mime: 'image/png' });
+    minio.uploadFile.mockResolvedValue({ objectName: 'documents/evidence.png' });
+    minio.getPresignedUrl.mockResolvedValue('https://signed/evidence');
+    prisma.document.create.mockResolvedValue({ id: 'doc-image', file_url: 'documents/evidence.png' });
+    await expect(service.upload(file, 'tenant-a', 'user-1', {}))
+      .resolves.toEqual(expect.objectContaining({ id: 'doc-image' }));
+    expect(n8n.ingestDocument).not.toHaveBeenCalled();
+  });
+
   it('compense le stockage lorsque la création en base échoue', async () => {
     const file = { originalname: 'safe.txt', mimetype: 'text/plain', buffer: Buffer.from('safe'), size: 4 } as Express.Multer.File;
     vi.spyOn(service as any, 'detectFileType').mockResolvedValue(undefined);
@@ -294,6 +352,31 @@ describe('DocumentsService', () => {
     }));
   });
 
+  it('tolère aussi une panne lors du marquage d’une ingestion RAG en erreur', async () => {
+    const file = {
+      originalname: 'safe.txt', mimetype: 'text/plain', buffer: Buffer.from('safe'), size: 4,
+    } as Express.Multer.File;
+    vi.spyOn(service as any, 'detectFileType').mockResolvedValue(undefined);
+    minio.uploadFile.mockResolvedValue({ objectName: 'documents/safe.txt' });
+    minio.getPresignedUrl.mockResolvedValue('https://signed/doc');
+    prisma.document.create.mockResolvedValue({ id: 'doc-1', file_url: 'documents/safe.txt' });
+    prisma.document.update.mockRejectedValue(new Error('database offline'));
+    n8n.ingestDocument.mockRejectedValue(new Error('rag offline'));
+
+    await expect(service.upload(file, 'tenant-a', 'user-1', { pending: true }))
+      .resolves.toEqual(expect.objectContaining({ id: 'doc-1' }));
+    await vi.waitFor(() => expect(prisma.document.update).toHaveBeenCalled());
+  });
+
+  it('détecte réellement le type MIME d’un document depuis ses octets', async () => {
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      'base64',
+    );
+    await expect((service as any).detectFileType(png))
+      .resolves.toEqual(expect.objectContaining({ mime: 'image/png' }));
+  });
+
   it('met à jour, lie et supprime un document avec audit', async () => {
     prisma.document.findFirst.mockResolvedValue({
       id: 'doc-1', title: 'Old', file_name: 'old.pdf', category: 'OLD', file_url: 'object-key', case_id: 'case-1',
@@ -314,5 +397,17 @@ describe('DocumentsService', () => {
     await expect(service.remove('doc-1', 'tenant-a', 'user-1', Role.CABINET_ADMIN))
       .resolves.toEqual({ message: 'Document deleted' });
     expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'DELETE' }));
+  });
+
+  it('préserve les valeurs recherchables pendant une mise à jour partielle', async () => {
+    prisma.document.findFirst.mockResolvedValue({
+      id: 'doc-1', title: 'Old', file_name: 'old.pdf', category: 'OLD', case_id: null,
+    });
+    prisma.document.update.mockResolvedValue({ id: 'doc-1', title: 'Old', category: 'OLD' });
+    await service.update('doc-1', {} as any, 'tenant-a', 'user-1', Role.CABINET_ADMIN);
+    expect(prisma.document.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ title: undefined }),
+    }));
+    expect(protection.searchTokens).toHaveBeenCalledWith(['Old', 'old.pdf', 'OLD']);
   });
 });

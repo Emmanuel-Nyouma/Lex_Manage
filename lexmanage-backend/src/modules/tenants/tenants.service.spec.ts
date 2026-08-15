@@ -45,6 +45,12 @@ describe('TenantsService', () => {
     await expect(service.findOne('missing')).rejects.toThrow(NotFoundException);
   });
 
+  it('retourne null lorsqu’aucun logo n’est configuré', async () => {
+    prisma.tenant.findUnique.mockResolvedValue({ id: 'tenant-a', logoUrl: null, _count: {}, users: [] });
+    await expect(service.findOne('tenant-a')).resolves.toEqual(expect.objectContaining({ logoUrl: null }));
+    expect(minio.getAssetUrl).not.toHaveBeenCalled();
+  });
+
   it('liste uniquement les membres du tenant', async () => {
     prisma.user.findMany.mockResolvedValue([{ id: 'member-1' }]);
     await service.getMembers('tenant-a');
@@ -213,6 +219,14 @@ describe('TenantsService', () => {
     expect(prisma.tenant.update).toHaveBeenCalledWith(expect.objectContaining({ data: dto }));
   });
 
+  it('met à jour un tenant sans tenter de signer un logo absent', async () => {
+    prisma.tenant.findUnique.mockResolvedValue({ id: 'tenant-a' });
+    prisma.tenant.update.mockResolvedValue({ id: 'tenant-a', name: 'Atlas', logoUrl: null });
+    await expect(service.updateTenant('tenant-a', { name: 'Atlas' }))
+      .resolves.toEqual({ id: 'tenant-a', name: 'Atlas', logoUrl: null });
+    expect(minio.getAssetUrl).not.toHaveBeenCalled();
+  });
+
   it('valide la présence, le type réel et la taille du logo', async () => {
     await expect(service.uploadLogo('tenant-a')).rejects.toThrow('Logo file is required');
     const detect = vi.spyOn(service as any, 'detectFileType');
@@ -242,5 +256,14 @@ describe('TenantsService', () => {
 
     minio.getAssetUrl.mockRejectedValueOnce(new Error('offline'));
     await expect(service.uploadLogo('tenant-a', file)).resolves.toEqual({ id: 'tenant-a', logoUrl: null });
+  });
+
+  it('détecte réellement le type MIME d’un logo depuis ses octets', async () => {
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      'base64',
+    );
+    await expect((service as any).detectFileType(png))
+      .resolves.toEqual(expect.objectContaining({ mime: 'image/png' }));
   });
 });

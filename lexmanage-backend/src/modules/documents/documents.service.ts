@@ -3,6 +3,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { randomUUID } from 'crypto';
 import { Role } from '@prisma/client';
+import { detectFileType } from '../../common/utils/file-type';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateDocumentDto, UpdateDocumentDto } from './dto/document.dto';
 import { MinioService } from './minio.service';
@@ -333,8 +334,7 @@ export class DocumentsService {
   }
 
   private async detectFileType(buffer: Buffer) {
-    const { fileTypeFromBuffer } = await (eval('import("file-type")') as Promise<any>);
-    return fileTypeFromBuffer(buffer);
+    return detectFileType(buffer);
   }
 
   async getSignedUrl(id: string, tenantId: string, userId: string, role: Role) {
