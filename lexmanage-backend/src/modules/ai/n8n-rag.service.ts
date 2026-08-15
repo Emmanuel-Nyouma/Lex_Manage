@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 
 interface N8nChatParams {
   tenantId: string;
@@ -32,109 +32,98 @@ export class N8nRagService {
   private readonly chatUrl = process.env.N8N_RAG_CHAT_URL || '';
   private readonly ingestUrl = process.env.N8N_RAG_INGEST_URL || '';
   private readonly deleteUrl = process.env.N8N_RAG_DELETE_URL || '';
+  private readonly webhookSecret = process.env.N8N_WEBHOOK_SECRET || '';
 
   /** Ask the n8n Legal RAG workflow a question, scoped to the caller's firm. */
   async chat(params: N8nChatParams): Promise<{ text: string; sources: any[]; confidence: number }> {
     if (!this.chatUrl) {
-      this.logger.warn('N8N_RAG_CHAT_URL not set — AI chat is disabled.');
-      return { text: 'The AI assistant is not configured.', sources: [], confidence: 0 };
+      throw new ServiceUnavailableException('The AI assistant is not configured');
     }
     try {
-      const res = await fetch(this.chatUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tenantId: params.tenantId,
-          userId: params.userId,
-          chatInput: params.chatInput,
-          sessionId: params.sessionId || 'default',
-          caseId: params.caseId || null,
-        }),
-      });
-      if (!res.ok) {
-        throw new Error(`n8n chat webhook returned HTTP ${res.status}`);
+      const data = await this.postJson(this.chatUrl, {
+        tenantId: params.tenantId,
+        userId: params.userId,
+        chatInput: params.chatInput,
+        sessionId: params.sessionId || 'default',
+        caseId: params.caseId || null,
+      }, 15000);
+      if (typeof data?.answer !== 'string') {
+        throw new Error('n8n chat response is missing a string answer');
       }
-      const raw = await res.text();
-      const data = raw ? JSON.parse(raw) : {};
       return {
-        text: data.answer ?? 'No response from the AI service.',
-        sources: data.sources ?? [],
-        confidence: data.confidence ?? 0,
+        text: data.answer,
+        sources: Array.isArray(data.sources) ? data.sources : [],
+        confidence: typeof data.confidence === 'number' ? data.confidence : 0,
       };
     } catch (err) {
       this.logger.error('n8n RAG chat failed', err as Error);
-      return {
-        text: 'The AI assistant is temporarily unavailable. Please try again.',
-        sources: [],
-        confidence: 0,
-      };
+      throw new ServiceUnavailableException('The AI assistant is temporarily unavailable');
     }
   }
 
   /**
    * Push a document into the firm's n8n RAG knowledge base.
-   * Fire-and-forget: failures are logged but never block the upload.
+   * Errors are surfaced so callers can display a reliable ingestion state.
    */
   async ingestDocument(params: N8nIngestParams): Promise<void> {
     if (!this.ingestUrl) {
-      this.logger.warn('N8N_RAG_INGEST_URL not set — skipping RAG ingestion.');
-      return;
+      throw new ServiceUnavailableException('AI document ingestion is not configured');
     }
-    try {
-      const res = await fetch(this.ingestUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tenantId: params.tenantId,
-          userId: params.userId,
-          documentId: params.documentId,
-          filename: params.filename,
-          fileData: params.buffer.toString('base64'),
-          caseId: params.caseId || null,
-        }),
-      });
-      if (!res.ok) {
-        throw new Error(`n8n ingest webhook returned HTTP ${res.status}`);
-      }
-      this.logger.log(
-        `Document '${params.filename}' queued for RAG ingestion (tenant ${params.tenantId}).`,
-      );
-    } catch (err) {
-      this.logger.error(`n8n RAG ingestion failed for '${params.filename}'`, err as Error);
-    }
+    await this.postJson(this.ingestUrl, {
+      tenantId: params.tenantId,
+      userId: params.userId,
+      documentId: params.documentId,
+      filename: params.filename,
+      fileData: params.buffer.toString('base64'),
+      caseId: params.caseId || null,
+    }, 30000);
+    this.logger.log(
+      `Document '${params.filename}' queued for RAG ingestion (tenant ${params.tenantId}).`,
+    );
   }
 
   /**
    * Remove a document's vectors from the firm's n8n RAG knowledge base.
-   * Fire-and-forget: failures are logged but never block the deletion.
+   * Errors are surfaced so callers can retain a retryable cleanup state.
    * Targets only the given documentId within the tenant namespace, so other
    * documents for the firm are untouched.
    */
   async deleteDocumentVectors(params: N8nDeleteParams): Promise<void> {
     if (!this.deleteUrl) {
-      this.logger.warn('N8N_RAG_DELETE_URL not set — skipping RAG vector cleanup.');
-      return;
+      throw new ServiceUnavailableException('AI vector cleanup is not configured');
     }
+    await this.postJson(this.deleteUrl, {
+      tenantId: params.tenantId,
+      documentId: params.documentId,
+    }, 15000);
+    this.logger.log(
+      `Vectors for document '${params.documentId}' queued for RAG cleanup (tenant ${params.tenantId}).`,
+    );
+  }
+
+  private async postJson(url: string, payload: Record<string, unknown>, timeoutMs: number) {
+    if (!this.webhookSecret) {
+      throw new ServiceUnavailableException('N8N_WEBHOOK_SECRET is not configured');
+    }
+    const body = JSON.stringify(payload);
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.webhookSecret}`,
+      },
+      body,
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!res.ok) {
+      throw new Error(`n8n webhook returned HTTP ${res.status}`);
+    }
+    const raw = await res.text();
+    if (!raw) return {};
     try {
-      const res = await fetch(this.deleteUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tenantId: params.tenantId,
-          documentId: params.documentId,
-        }),
-      });
-      if (!res.ok) {
-        throw new Error(`n8n delete webhook returned HTTP ${res.status}`);
-      }
-      this.logger.log(
-        `Vectors for document '${params.documentId}' queued for RAG cleanup (tenant ${params.tenantId}).`,
-      );
-    } catch (err) {
-      this.logger.error(
-        `n8n RAG vector cleanup failed for document '${params.documentId}'`,
-        err as Error,
-      );
+      return JSON.parse(raw);
+    } catch {
+      throw new Error('n8n webhook returned invalid JSON');
     }
   }
 }

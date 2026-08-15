@@ -24,8 +24,8 @@
     },
     {
       "parameters": {
-        "respondWith": "text",
-        "responseBody": "={{ $json.output }}",
+        "respondWith": "json",
+        "responseBody": "={{ { \"answer\": $json.output, \"sources\": [], \"confidence\": 0 } }}",
         "options": {}
       },
       "type": "n8n-nodes-base.respondToWebhook",
@@ -40,7 +40,7 @@
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "lexmanage-chatbot",
+        "path": "legal-rag-chat",
         "responseMode": "responseNode",
         "options": {}
       },
@@ -77,7 +77,7 @@
     },
     {
       "parameters": {
-        "public": true,
+        "public": false,
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
@@ -92,26 +92,19 @@
     },
     {
       "parameters": {
-        "formTitle": "DELIT",
-        "formDescription": "Upload Company Docs",
-        "formFields": {
-          "values": [
-            {
-              "fieldLabel": "file",
-              "fieldType": "file"
-            }
-          ]
-        },
+        "httpMethod": "POST",
+        "path": "legal-rag-ingest",
+        "responseMode": "responseNode",
         "options": {}
       },
-      "type": "n8n-nodes-base.formTrigger",
-      "typeVersion": 2.3,
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
       "position": [
         -992,
         240
       ],
       "id": "2e8bd8a3-babc-4426-8c1f-0b286225de5c",
-      "name": "On form submission",
+      "name": "Ingest Webhook",
       "webhookId": "f055ea59-deb3-46fc-8cef-9b920762b3eb"
     },
     {
@@ -123,7 +116,7 @@
           "mode": "list",
           "cachedResultName": "nj435"
         },
-        "pineconeNamespace": "={{ $('Webhook').item.json.body.tenantId }}",
+        "pineconeNamespace": "={{ $json.tenantId }}",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
@@ -164,7 +157,24 @@
       "parameters": {
         "dataType": "binary",
         "textSplittingMode": "custom",
-        "options": {}
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "documentId",
+                "value": "={{ $('Verify and Prepare Ingestion').item.json.documentId }}"
+              },
+              {
+                "name": "tenantId",
+                "value": "={{ $('Verify and Prepare Ingestion').item.json.tenantId }}"
+              },
+              {
+                "name": "caseId",
+                "value": "={{ $('Verify and Prepare Ingestion').item.json.caseId || '' }}"
+              }
+            ]
+          }
+        }
       },
       "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
       "typeVersion": 1.1,
@@ -259,7 +269,7 @@
     {
       "parameters": {
         "sessionIdType": "customKey",
-        "sessionKey": "={{ $('Webhook').item.json.body.tenantId }}_{{ $('Webhook').item.json.body.userId }}"
+        "sessionKey": "={{ $('Webhook').item.json.body.tenantId }}:{{ $('Webhook').item.json.body.userId }}:{{ $('Webhook').item.json.body.sessionId }}"
       },
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
@@ -269,6 +279,124 @@
       ],
       "id": "60995de6-fa23-45d9-b018-f895d303241a",
       "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "jsCode": "const expected = $env.N8N_WEBHOOK_SECRET;\nconst auth = $json.headers?.authorization || '';\nconst body = $json.body || {};\nif (!expected || auth !== `Bearer ${expected}`) throw new Error('Unauthorized');\nif (!body.tenantId || !body.userId || !body.sessionId || !body.chatInput) throw new Error('Invalid chat payload');\nreturn [{ json: { ...$json, body } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -760,
+        -240
+      ],
+      "id": "3103e4ed-41e8-45dc-b701-862156fa83b9",
+      "name": "Verify Chat Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const expected = $env.N8N_WEBHOOK_SECRET;\nconst auth = $json.headers?.authorization || '';\nconst body = $json.body || {};\nif (!expected || auth !== `Bearer ${expected}`) throw new Error('Unauthorized');\nif (!body.tenantId || !body.userId || !body.documentId || !body.filename || !body.fileData) throw new Error('Invalid ingestion payload');\nreturn [{ json: { tenantId: body.tenantId, userId: body.userId, documentId: body.documentId, caseId: body.caseId || null, filename: body.filename }, binary: { data: { data: body.fileData, fileName: body.filename, mimeType: 'application/octet-stream' } } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        240
+      ],
+      "id": "17bc9d67-a012-498a-a2cc-67377ba33cbd",
+      "name": "Verify and Prepare Ingestion"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "legal-rag-delete",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -976,
+        760
+      ],
+      "id": "16eb6ab7-4d95-4c0d-b04a-b8b2a628f3b8",
+      "name": "Delete Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const expected = $env.N8N_WEBHOOK_SECRET;\nconst auth = $json.headers?.authorization || '';\nconst body = $json.body || {};\nif (!expected || auth !== `Bearer ${expected}`) throw new Error('Unauthorized');\nif (!body.tenantId || !body.documentId) throw new Error('Invalid deletion payload');\nreturn [{ json: { tenantId: body.tenantId, documentId: body.documentId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -752,
+        760
+      ],
+      "id": "f10224ed-08dd-4bf5-a2d9-c6384058663a",
+      "name": "Verify Delete Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.PINECONE_INDEX_HOST + '/vectors/delete' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Api-Key",
+              "value": "={{ $env.PINECONE_API_KEY }}"
+            },
+            {
+              "name": "X-Pinecone-Api-Version",
+              "value": "2026-04"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"namespace\": $json.tenantId, \"filter\": { \"documentId\": { \"$eq\": $json.documentId } } } }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -528,
+        760
+      ],
+      "id": "491643df-aa92-4dc0-b59d-4613e820f77b",
+      "name": "Delete Pinecone Vectors"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -304,
+        760
+      ],
+      "id": "f76bbec1-b345-4db7-ad07-f4aa0fba4852",
+      "name": "Respond Delete"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"documentId\": $('Verify and Prepare Ingestion').item.json.documentId } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -512,
+        240
+      ],
+      "id": "80e24c28-3e25-4541-b736-9742c4e75a98",
+      "name": "Respond Ingestion"
     }
   ],
   "pinData": {},
@@ -300,11 +428,11 @@
         []
       ]
     },
-    "On form submission": {
+    "Ingest Webhook": {
       "main": [
         [
           {
-            "node": "Pinecone Vector Store",
+            "node": "Verify and Prepare Ingestion",
             "type": "main",
             "index": 0
           }
@@ -392,7 +520,73 @@
       "main": [
         [
           {
+            "node": "Verify Chat Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Chat Request": {
+      "main": [
+        [
+          {
             "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify and Prepare Ingestion": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "main": [
+        [
+          {
+            "node": "Respond Ingestion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify Delete Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Delete Request": {
+      "main": [
+        [
+          {
+            "node": "Delete Pinecone Vectors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Pinecone Vectors": {
+      "main": [
+        [
+          {
+            "node": "Respond Delete",
             "type": "main",
             "index": 0
           }
