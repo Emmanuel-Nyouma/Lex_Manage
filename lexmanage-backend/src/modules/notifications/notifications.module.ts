@@ -12,7 +12,11 @@ import { DocumentsModule } from '../documents/documents.module';
 
 @Module({
   imports: [
-    BullModule.registerQueue({ name: 'mail' }, { name: 'reminders' }),
+    BullModule.registerQueue(
+      { name: 'mail' },
+      { name: 'reminders' },
+      { name: 'maintenance' },
+    ),
     MailModule,
     EventsModule,
     DocumentsModule,

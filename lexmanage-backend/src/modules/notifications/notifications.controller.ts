@@ -35,6 +35,7 @@ export class NotificationsController {
   }
 
   @Post()
+  @Roles('CABINET_ADMIN', 'SUPER_ADMIN')
   @UsePipes(new ZodValidationPipe(CreateNotificationSchema))
   @ApiOperation({ summary: 'Create a firm-wide or targeted notification' })
   create(

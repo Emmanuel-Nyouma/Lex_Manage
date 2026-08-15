@@ -1,12 +1,13 @@
 import { Controller, Get, Post, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { IsString, MinLength } from 'class-validator';
+import { IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 class SendMessageDto {
-  @IsString() @MinLength(1) message: string;
+  @IsString() @MinLength(1) @MaxLength(4000) message: string;
+  @IsOptional() @IsUUID() requestId?: string;
 }
 
 @ApiTags('chat')
@@ -33,7 +34,7 @@ export class ChatController {
 
   @Post('conversations/:id/messages')
   sendMessage(@Param('id') id: string, @Body() dto: SendMessageDto, @CurrentUser() user: any) {
-    return this.chatService.sendMessage(id, dto.message, user.tenantId, user.id);
+    return this.chatService.sendMessage(id, dto.message, user.tenantId, user.id, dto.requestId);
   }
 
   @Delete('conversations/:id')

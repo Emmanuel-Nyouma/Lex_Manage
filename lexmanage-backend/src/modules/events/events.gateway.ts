@@ -6,9 +6,10 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, UseGuards } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
+import { tenantContext } from '../../common/context/tenant.context';
 
 @WebSocketGateway({
   cors: {
@@ -44,12 +45,18 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const userId = payload.sub;
 
       // Verify user exists and is active
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { isActive: true, tenantId: true },
-      });
+      const user = await tenantContext.run(tenantId, () =>
+        this.prisma.user.findFirst({
+          where: { id: userId, tenantId },
+          select: {
+            isActive: true,
+            tenantId: true,
+            tenant: { select: { isActive: true } },
+          },
+        }),
+      );
 
-      if (!user || !user.isActive || user.tenantId !== tenantId) {
+      if (!user || !user.isActive || !user.tenant.isActive || user.tenantId !== tenantId) {
         this.logger.warn(`Unauthorized WebSocket connection attempt: User ${userId}`);
         client.disconnect();
         return;

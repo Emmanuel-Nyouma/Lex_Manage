@@ -8,7 +8,6 @@ export class StatsService {
   async getDashboardStats(tenantId: string) {
     const now   = new Date();
     const month = new Date(now.getFullYear(), now.getMonth(), 1);
-    const prev  = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
     const [
       activeCasesCount,
